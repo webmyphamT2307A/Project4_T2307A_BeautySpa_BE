@@ -33,6 +33,9 @@ public class Appointment {
     @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "customer_id")
     private org.aptech.backendmypham.models.Customer customer;
+    @ManyToOne
+    @JoinColumn(name = "slot_id", nullable = false)
+    private Timeslots timeSlot;
 
     @Column(name = "appointment_date", nullable = false)
     private Instant appointmentDate;
