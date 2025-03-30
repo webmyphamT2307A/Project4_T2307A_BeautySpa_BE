@@ -50,4 +50,7 @@ public class Servicehistory {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    @ColumnDefault("1")
+    @Column(name = "is_active")
+    private Boolean isActive;
 }

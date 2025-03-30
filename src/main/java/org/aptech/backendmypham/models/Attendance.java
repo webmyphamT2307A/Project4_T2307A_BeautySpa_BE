@@ -3,6 +3,7 @@ package org.aptech.backendmypham.models;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDateTime;
 
@@ -29,4 +30,8 @@ public class Attendance {
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @ColumnDefault("1")
+    @Column(name = "is_active")
+    private Boolean isActive;
 }
