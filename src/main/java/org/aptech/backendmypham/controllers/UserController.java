@@ -1,5 +1,6 @@
 package org.aptech.backendmypham.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.ResponseObject;
 import org.aptech.backendmypham.dto.UserRequestDto;
@@ -12,12 +13,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/accounts")
+@RequestMapping("/api/v1/admin/accounts")
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
 
     @PostMapping("/create")
+    @Operation(summary = "api tạo tài khoản cho admin, nhân viên")
     public ResponseEntity<ResponseObject> createAccount(@RequestBody UserRequestDto userRequestDto) {
         try {
             userService.createUser(
