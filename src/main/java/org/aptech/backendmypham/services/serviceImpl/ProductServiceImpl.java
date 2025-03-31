@@ -6,6 +6,8 @@ import org.aptech.backendmypham.repositories.ProductRepository;
 import org.aptech.backendmypham.services.ProductService;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
@@ -15,6 +17,10 @@ public class ProductServiceImpl implements ProductService {
     public Product createProduct(Product product){
        productRepository.save(product);
        return product;
+    }
+    public List<Product> getALlProduct(){
+        return productRepository.findAll();
+
     }
 
 }

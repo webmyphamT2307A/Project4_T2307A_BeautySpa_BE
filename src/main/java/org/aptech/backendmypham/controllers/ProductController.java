@@ -18,6 +18,14 @@ public class ProductController {
         this.productService = productService;
     }
 
+    @GetMapping("")
+    @Operation(summary = "Lấy hết ở product")
+    public  ResponseEntity<ResponseObject> findAllProduct(){
+        return  ResponseEntity.ok(
+                new ResponseObject(Status.SUCCESS,"Thành công",productService.getALlProduct())
+        );
+    }
+
     @PostMapping("/create")
     @Operation(summary = "Tạo mới product")
     public ResponseEntity<ResponseObject> createProduct(@RequestBody Product product) {
