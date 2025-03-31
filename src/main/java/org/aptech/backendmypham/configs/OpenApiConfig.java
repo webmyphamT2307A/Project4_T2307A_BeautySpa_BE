@@ -15,6 +15,6 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("Mỹ Phẩm API")
                         .version("1.0")
-                        .description("API documentation for cosmetics management system"));
+                        .description("API documentation for cosmetics management system;"));
     }
 }
