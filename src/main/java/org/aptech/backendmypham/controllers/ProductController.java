@@ -26,6 +26,22 @@ public class ProductController {
         );
     }
 
+    @GetMapping("/findById")
+    @Operation(summary = "Lấy theo id Product")
+    public  ResponseEntity<ResponseObject> findById(@RequestParam Long Pid){
+        Product product = productService.findById(Pid);
+        if(product != null){
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Thành công", product)
+            );
+        } else {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.ERROR, "Không tìm thấy product", null)
+            );
+        }
+    }
+
+
     @PostMapping("/create")
     @Operation(summary = "Tạo mới product")
     public ResponseEntity<ResponseObject> createProduct(@RequestBody Product product) {

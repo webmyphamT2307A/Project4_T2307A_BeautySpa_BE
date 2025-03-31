@@ -18,9 +18,14 @@ public class ProductServiceImpl implements ProductService {
        productRepository.save(product);
        return product;
     }
+    @Override
     public List<Product> getALlProduct(){
         return productRepository.findAll();
 
+    }
+    @Override
+    public Product findById(Long PId){
+        return productRepository.findByIdAndIsActiveTrue(PId).orElse(null);
     }
 
 }
