@@ -9,4 +9,5 @@ public interface ProductService {
     List<Product> getALlProduct();
     Product findById(Long PId);
     void updateProduct(Long PiD,String newProductName);
+    void deleteProduct(Long PId);
 }

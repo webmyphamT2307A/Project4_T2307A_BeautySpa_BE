@@ -66,5 +66,18 @@ public class ProductController {
             );
         }
     }
-
+    @PutMapping("/delete")
+    @Operation(summary = "xóa product")
+    public ResponseEntity<ResponseObject> deleteProduct(@RequestParam Long Pid) {
+        try{
+            productService.deleteProduct(Pid);
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Xóa product thành công", null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.ERROR, "Xóa product thất bại: " + e.getMessage(), null)
+            );
+        }
+    }
 }

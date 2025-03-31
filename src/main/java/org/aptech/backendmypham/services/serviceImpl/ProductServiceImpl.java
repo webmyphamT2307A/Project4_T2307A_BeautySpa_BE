@@ -1,5 +1,6 @@
 package org.aptech.backendmypham.services.serviceImpl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.models.Product;
 import org.aptech.backendmypham.repositories.ProductRepository;
@@ -39,6 +40,24 @@ public class ProductServiceImpl implements ProductService {
         }else{
             throw new RuntimeException("Product not found");
         }
-    }
 
+    }
+    @Transactional
+    @Override
+    public void deleteProduct(Long PId) {
+        try {
+            // Tìm sản phẩm theo ID và kiểm tra xem nó có active hay không
+            Optional<Product> product = productRepository.findByIdAndIsActiveTrue(PId);
+            if (product.isEmpty()) {
+                throw new RuntimeException("Product not found or already inactive");
+            }
+
+            // Cập nhật trạng thái isActive thành false để "xóa mềm" sản phẩm
+            Product existingProduct = product.get();
+            existingProduct.setIsActive(false);
+            productRepository.save(existingProduct);
+        } catch (Exception e) {
+            throw new RuntimeException("Error occurred while deleting product: " + e.getMessage());
+        }
+    }
 }
