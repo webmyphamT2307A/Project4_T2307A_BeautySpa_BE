@@ -7,9 +7,8 @@ import org.aptech.backendmypham.models.User;
 import org.aptech.backendmypham.repositories.BranchRepository;
 import org.aptech.backendmypham.repositories.RoleRepository;
 import org.aptech.backendmypham.repositories.UserRepository;
-import org.aptech.backendmypham.services.UserService;
+import org.aptech.backendmypham.services.AdminService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,7 +17,7 @@ import java.util.concurrent.*;
 
 @Service
 @RequiredArgsConstructor
-public class UserServiceImpl implements UserService {
+public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
@@ -28,7 +27,7 @@ public class UserServiceImpl implements UserService {
     ExecutorService executor = Executors.newFixedThreadPool(4);
 
     @Override
-    public void createUser(String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
+    public void createAdmin(String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
         //tìm role và branch theo id
         //dùng thread để kiểm tra tồn tại của role và branch
         try {
@@ -109,15 +108,59 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    //hàm này kiểm tra giá trị so với list truyền vào
-    //nếu có thì trả về true
-    private boolean checkValueInList(String value, List<String> list) {
-        for (String item : list) {
-            if (item.equals(value)) {
-                return true;
-            }
+    @Override
+    public void updateAdmin(Long userId, String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new RuntimeException("Người dùng không tồn tại!");
         }
-        return false;
+        User user = userOpt.get();
+        if (password != null) {
+            user.setPassword(passwordEncoder.encode(password));
+        }
+        if (email != null) {
+            Optional<User> emailOpt = userRepository.findByEmail(email);
+            if (emailOpt.isPresent()) {
+                throw new RuntimeException("Email đã tồn tại!");
+            }
+            user.setEmail(email);
+        }
+        if (phoneNumber != null) {
+            Optional<User> phoneOpt = userRepository.findByPhone(phoneNumber);
+            if (phoneOpt.isPresent()) {
+                throw new RuntimeException("Số điện thoại đã tồn tại!");
+            }
+            user.setPhone(phoneNumber);
+        }
+        if (address != null) {
+            user.setAddress(address);
+        }
+        if (roleId != null) {
+            Optional<Role> roleOpt = roleRepository.findById((long) roleId);
+            if (roleOpt.isEmpty()) {
+                throw new RuntimeException("Role không tồn tại!");
+            }
+            user.setRole(roleOpt.get());
+        }
+        if (branchId != null) {
+            Optional<Branch> branchOpt = branchRepository.findById((long) branchId);
+            if (branchOpt.isEmpty()) {
+                throw new RuntimeException("Chi nhánh không tồn tại!");
+            }
+            user.setBranch(branchOpt.get());
+        }
+        userRepository.save(user);
+    }
+
+    @Override
+    public void deleteAdmin(Long userId) {
+        //check xem user có tồn tại không
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            throw new RuntimeException("Người dùng không tồn tại!");
+        }
+        user.setIsActive(false);
+        userRepository.save(user);
     }
 
     //hàm này dùng để lấy kết quả của future với timeout
@@ -131,5 +174,25 @@ public class UserServiceImpl implements UserService {
             future.cancel(true);
             throw new RuntimeException("Tìm kiếm " + entityName + " quá thời gian. Vui lòng thử lại sau.");
         }
+    }
+
+    @Override
+    public User findById(Long userId) {
+        return userRepository.findById(userId).orElse(null);
+    }
+
+    @Override
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null);
+    }
+
+    @Override
+    public User findByPhoneNumber(String phoneNumber) {
+        return userRepository.findByPhone(phoneNumber).orElse(null);
+    }
+
+    @Override
+    public List<User> findAll() {
+        return userRepository.findAllIsActive();
     }
 }
