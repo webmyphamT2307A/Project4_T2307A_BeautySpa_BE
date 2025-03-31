@@ -54,9 +54,9 @@ public class ProductController {
     }
     @PutMapping("/update")
     @Operation(summary = "update lại product")
-    public ResponseEntity<ResponseObject> updateProduct(@RequestParam Long PiD,String newProductName) {
+    public ResponseEntity<ResponseObject> updateProduct(@RequestParam Long PiD,Product updateProduct) {
         try{
-            productService.updateProduct(PiD, newProductName);
+            productService.updateProduct(PiD, updateProduct);
             return ResponseEntity.ok(
                     new ResponseObject(Status.SUCCESS, "Cập nhật product thành công", null)
             );

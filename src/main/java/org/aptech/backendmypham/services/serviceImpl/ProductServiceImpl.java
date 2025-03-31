@@ -31,11 +31,16 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public  void updateProduct(Long PiD,String newProductName){
+    public  void updateProduct(Long PiD,Product updateProduct){
         Optional<Product> product = productRepository.findByIdAndIsActiveTrue(PiD);
         if(product.isPresent()){
             Product newProduct = product.get();
-            newProduct.setName(newProductName);
+            newProduct.setName(updateProduct.getName());
+            newProduct.setDescription(updateProduct.getDescription());
+            newProduct.setPrice(updateProduct.getPrice());
+            newProduct.setImageUrl(updateProduct.getImageUrl());
+            newProduct.setCreatedAt(updateProduct.getCreatedAt());
+            newProduct.setUpdatedAt(updateProduct.getUpdatedAt());
             productRepository.save(newProduct);
         }else{
             throw new RuntimeException("Product not found");
