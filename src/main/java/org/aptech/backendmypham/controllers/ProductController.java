@@ -52,6 +52,19 @@ public class ProductController {
             return ResponseEntity.badRequest().body(new ResponseObject(Status.ERROR, "Lỗi khi tạo sản phẩm", null));
         }
     }
-
+    @PutMapping("/update")
+    @Operation(summary = "update lại product")
+    public ResponseEntity<ResponseObject> updateProduct(@RequestParam Long PiD,String newProductName) {
+        try{
+            productService.updateProduct(PiD, newProductName);
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Cập nhật product thành công", null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.ERROR, "Cập nhật product thất bại: " + e.getMessage(), null)
+            );
+        }
+    }
 
 }
