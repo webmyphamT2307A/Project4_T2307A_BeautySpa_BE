@@ -1,5 +1,6 @@
 package org.aptech.backendmypham.services.serviceImpl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.models.Branch;
 import org.aptech.backendmypham.models.Role;
@@ -122,7 +123,23 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Lỗi khi cập nhật thông tin người dùng: " + e.getMessage());
         }
     }
+    @Transactional
+    @Override
+    public void deleteUser(Long userId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new RuntimeException("Người dùng không tồn tại!");
+        }
 
+        User user = userOpt.get();
+
+        if (user.getRole().getId() != 4) {
+            throw new RuntimeException("Chỉ có thể vô hiệu hóa tài khoản khách hàng!");
+        }
+
+        user.setIsActive(false);
+        userRepository.save(user);
+    }
 
     // Hàm lấy kết quả với timeout (không đổi)
     private <T> T getFutureResultWithTimeout(Future<T> future, String entityName, int seconds)

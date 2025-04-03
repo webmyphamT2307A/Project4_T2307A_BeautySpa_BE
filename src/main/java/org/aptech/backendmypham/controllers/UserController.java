@@ -74,6 +74,18 @@ public class UserController {
                     .body(new ResponseObject(Status.ERROR, "Lỗi khi cập nhật tài khoản: " + e.getMessage(), null));
         }
     }
-
+    @PutMapping("/delete/{id}")
+    @Operation(summary = "Xóa tài khoản khách hàng (role Customer)")
+    public ResponseEntity<ResponseObject> deleteCustomerAccount(@PathVariable Long id) {
+        try {
+            userService.deleteUser(id);
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Tài khoản khách hàng đã bị vô hiệu hóa!", null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ResponseObject(Status.ERROR, "Lỗi khi vô hiệu hóa tài khoản khách hàng: " + e.getMessage(), null));
+        }
+    }
 
 }
