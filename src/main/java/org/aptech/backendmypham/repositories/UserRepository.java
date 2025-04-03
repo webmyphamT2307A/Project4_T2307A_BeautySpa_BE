@@ -18,7 +18,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByPhone(String phoneNumber);
 
     @Modifying
-    @Query(nativeQuery = true, value = "SELECT * FROM users WHERE id = :id and is_active = 1")
+    @Query(nativeQuery = true, value = "SELECT * FROM users WHERE is_active = 1")
     List<User> findAllIsActive();
 
     @Modifying

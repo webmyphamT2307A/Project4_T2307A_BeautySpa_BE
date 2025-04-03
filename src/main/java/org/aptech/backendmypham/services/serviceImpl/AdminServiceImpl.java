@@ -1,5 +1,6 @@
 package org.aptech.backendmypham.services.serviceImpl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.models.Branch;
 import org.aptech.backendmypham.models.Role;
@@ -27,7 +28,7 @@ public class AdminServiceImpl implements AdminService {
     ExecutorService executor = Executors.newFixedThreadPool(4);
 
     @Override
-    public void createAdmin(String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
+    public void createAdmin(String password,String fullName, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
         //tìm role và branch theo id
         //dùng thread để kiểm tra tồn tại của role và branch
         try {
@@ -91,15 +92,18 @@ public class AdminServiceImpl implements AdminService {
             }
             //nếu thỏa mãn điều kiện bên trên thì tạo mới user
             User user = new User();
+            user.setFullName(fullName);
             user.setPassword(passwordEncoder.encode(password));
             user.setEmail(email);
             user.setPhone(phoneNumber);
             user.setAddress(address);
+            user.setIsActive(true);
             user.setRole(roleOpt.get());
             if (branchId != null) {
                 //nếu branchId khác null thì set branch cho user
                 user.setBranch(branchOpt.get());
             }
+            userRepository.save(user);
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Lỗi khi kiểm tra tồn tại của role và branch: " + e.getMessage());
@@ -108,6 +112,7 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
+    @Transactional
     @Override
     public void updateAdmin(Long userId, String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
         Optional<User> userOpt = userRepository.findById(userId);
