@@ -5,13 +5,13 @@ import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.ResponseObject;
 import org.aptech.backendmypham.dto.UserRequestDto;
 import org.aptech.backendmypham.enums.Status;
+import org.aptech.backendmypham.models.User;
 import org.aptech.backendmypham.services.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/user/accounts")
@@ -23,7 +23,6 @@ public class UserController {
     @Operation(summary = "API tạo tài khoản cho role customer")
     public ResponseEntity<ResponseObject> createAccount(@RequestBody UserRequestDto userRequestDto) {
         try {
-            // Validate the request data
             if (userRequestDto.getPassword() == null || userRequestDto.getEmail() == null ||
                     userRequestDto.getPhone() == null || userRequestDto.getAddress() == null) {
                 throw new RuntimeException("Thông tin không được để trống!");
@@ -52,5 +51,29 @@ public class UserController {
             );
         }
     }
+    @PutMapping("/update/{id}")
+    @Operation(summary = "Cập nhật lại thông tin tài khoản customer")
+    public ResponseEntity<ResponseObject> updateAccount(@PathVariable Long id, @RequestBody UserRequestDto userRequestDto) {
+        try {
+            userService.updateUser(
+                    id,
+                    userRequestDto.getPassword(),
+                    userRequestDto.getFullName(),
+                    userRequestDto.getEmail(),
+                    userRequestDto.getPhone(),
+                    userRequestDto.getAddress(),
+                    userRequestDto.getRoleId(),
+                    userRequestDto.getBranchId()
+            );
+
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Cập nhật tài khoản thành công", null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ResponseObject(Status.ERROR, "Lỗi khi cập nhật tài khoản: " + e.getMessage(), null));
+        }
+    }
+
 
 }

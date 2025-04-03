@@ -9,10 +9,8 @@ import org.aptech.backendmypham.repositories.RoleRepository;
 import org.aptech.backendmypham.repositories.UserRepository;
 import org.aptech.backendmypham.services.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
 
@@ -80,6 +78,48 @@ public class UserServiceImpl implements UserService {
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Lỗi khi kiểm tra tồn tại của role và branch: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void updateUser(Long id, String password, String fullName, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
+        try {
+            Optional<User> userOpt = userRepository.findById(id);
+            if (userOpt.isEmpty()) {
+                throw new RuntimeException("Người dùng không tồn tại!");
+            }
+
+            User user = userOpt.get();
+
+            Optional<User> phoneOpt = userRepository.findByPhone(phoneNumber);
+            if (phoneOpt.isPresent() && !phoneOpt.get().getId().equals(user.getId())) {
+                throw new RuntimeException("Số điện thoại đã tồn tại!");
+            }
+
+            final Integer finalRoleId = (roleId != null) ? roleId : 4;
+            Optional<Role> roleOpt = roleRepository.findById((long) finalRoleId);
+            if (roleOpt.isEmpty()) {
+                throw new RuntimeException("Role không tồn tại!");
+            }
+
+            Optional<Branch> branchOpt = (branchId != null) ? branchRepository.findById((long) branchId) : Optional.empty();
+            if (branchId != null && branchOpt.isEmpty()) {
+                throw new RuntimeException("Chi nhánh không tồn tại!");
+            }
+
+            user.setFullName(fullName);
+            if (password != null && !password.isEmpty()) {
+                user.setPassword(passwordEncoder.encode(password));
+            }
+            user.setPhone(phoneNumber);
+            user.setAddress(address);
+            user.setRole(roleOpt.get());
+            branchOpt.ifPresent(user::setBranch);
+
+            userRepository.save(user);
+
+        } catch (RuntimeException e) {
+            throw new RuntimeException("Lỗi khi cập nhật thông tin người dùng: " + e.getMessage());
         }
     }
 
