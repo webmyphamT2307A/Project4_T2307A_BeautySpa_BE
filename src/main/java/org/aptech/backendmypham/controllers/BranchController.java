@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.ResponseObject;
 import org.aptech.backendmypham.enums.Status;
 import org.aptech.backendmypham.models.Branch;
+import org.aptech.backendmypham.models.Role;
 import org.aptech.backendmypham.services.BranchService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +33,20 @@ public class BranchController {
             return ResponseEntity.ok(new ResponseObject(Status.SUCCESS, "Tạo chi nhánh thành công", createdBranch));
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(new ResponseObject(Status.ERROR, "Lỗi khi tạo chi nhánh", null));
+        }
+    }
+    @GetMapping("/findByName")
+    @Operation(summary = "Lấy branch theo tên")
+    public ResponseEntity<ResponseObject> findByName(@RequestParam String branchName) {
+        Branch branch = branchService.findByName(branchName);
+        if (branch != null) {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Thành công", branch)
+            );
+        } else {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.ERROR, "Không tìm thấy branch", null)
+            );
         }
     }
 }

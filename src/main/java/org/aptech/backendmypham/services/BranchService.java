@@ -7,4 +7,5 @@ import java.util.List;
 public interface BranchService {
     List<Branch> getALlBranch();
     Branch createBranch(Branch branch);
+    Branch findByName(String branchName);
 }

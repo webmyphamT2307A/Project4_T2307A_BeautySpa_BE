@@ -24,6 +24,14 @@ public class BranchServiceImpl implements BranchService {
         branchRepository.save(branch);
         return branch;
     }
+    @Override
+    public Branch findByName(String branchName){
+        return branchRepository.findAll()
+                .stream()
+                .filter(branch -> branch.getName().equals(branchName))
+                .findFirst()
+                .orElse(null);
+    }
 
 
 }
