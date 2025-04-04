@@ -5,8 +5,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.2.5</version>
-        <relativePath/>
-        <!--  lookup parent from repository  -->
+
     </parent>
     <groupId>org.aptech</groupId>
     <artifactId>backend-mypham</artifactId>
@@ -94,6 +93,7 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -108,4 +108,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>
