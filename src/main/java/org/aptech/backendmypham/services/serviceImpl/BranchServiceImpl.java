@@ -32,6 +32,10 @@ public class BranchServiceImpl implements BranchService {
                 .findFirst()
                 .orElse(null);
     }
+    @Override
+    public  Branch findByID(Long BiD){
+        return branchRepository.findById(BiD).orElse(null);
+    }
 
 
 }

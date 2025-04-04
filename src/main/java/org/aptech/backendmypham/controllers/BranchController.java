@@ -25,6 +25,7 @@ public class BranchController {
                 new ResponseObject(Status.SUCCESS,"Lấy thành công",branchService.getALlBranch())
         );
     }
+
     @PostMapping("/create")
     @Operation(summary = "Tạo branch")
     public ResponseEntity<ResponseObject> createBranch(@RequestBody Branch branch) {
@@ -39,6 +40,20 @@ public class BranchController {
     @Operation(summary = "Lấy branch theo tên")
     public ResponseEntity<ResponseObject> findByName(@RequestParam String branchName) {
         Branch branch = branchService.findByName(branchName);
+        if (branch != null) {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Thành công", branch)
+            );
+        } else {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.ERROR, "Không tìm thấy branch", null)
+            );
+        }
+    }
+    @GetMapping("/findById")
+    @Operation(summary = "Lấy branch theo id")
+    public ResponseEntity<ResponseObject> findById(@RequestParam Long BiD) {
+        Branch branch = branchService.findByID(BiD);
         if (branch != null) {
             return ResponseEntity.ok(
                     new ResponseObject(Status.SUCCESS, "Thành công", branch)

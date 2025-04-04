@@ -8,4 +8,5 @@ public interface BranchService {
     List<Branch> getALlBranch();
     Branch createBranch(Branch branch);
     Branch findByName(String branchName);
+    Branch findByID(Long id);
 }
