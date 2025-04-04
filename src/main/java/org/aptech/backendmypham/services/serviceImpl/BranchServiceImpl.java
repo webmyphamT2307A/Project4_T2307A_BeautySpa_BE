@@ -36,6 +36,16 @@ public class BranchServiceImpl implements BranchService {
     public  Branch findByID(Long BiD){
         return branchRepository.findById(BiD).orElse(null);
     }
+    @Override
+    public void updateBranch(Long branchId, Branch updatedBranch) {
+        branchRepository.findById(branchId).ifPresent(branch -> {
+            branch.setName(updatedBranch.getName());
+            branch.setAddress(updatedBranch.getAddress());
+            branch.setIsActive(updatedBranch.getIsActive());
+            branchRepository.save(branch);
+        });
+    }
+
 
 
 }

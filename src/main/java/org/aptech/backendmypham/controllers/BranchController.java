@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/branch")
@@ -64,4 +65,22 @@ public class BranchController {
             );
         }
     }
+    @PutMapping("/update/")
+    @Operation(summary = "Cập nhật branch")
+    public ResponseEntity<ResponseObject> updateBranch(
+            @RequestParam Long BiD,
+            @RequestBody Branch updatedBranch) {
+
+       try{
+           branchService.updateBranch(BiD,updatedBranch);
+           return ResponseEntity.ok(
+                   new ResponseObject(Status.SUCCESS, "Cập nhật branch thành công", null)
+           );
+       } catch (Exception e) {
+           return ResponseEntity.ok(
+                   new ResponseObject(Status.ERROR, "Cập nhật branch thất bại: " + e.getMessage(), null)
+           );
+       }
+    }
+
 }
