@@ -8,6 +8,7 @@ import org.aptech.backendmypham.services.BranchService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +47,21 @@ public class BranchServiceImpl implements BranchService {
         });
     }
 
+    @Override
+    public void deleteBranch(Long BiD){
+        try{
+            Optional<Branch> branch = branchRepository.findById(BiD);
+            if(branch.isEmpty()){
+                throw new RuntimeException("Branch đã bị xóa hoặc không tồn tại!");
+            }
+            Branch existingBranch = branch.get();
+            existingBranch.setIsActive(false);
+            branchRepository.save(existingBranch);
+        }catch (Exception e){
+            throw new RuntimeException("Error occurred while deleting branch: " + e.getMessage());
+        }
+
+    }
 
 
 }

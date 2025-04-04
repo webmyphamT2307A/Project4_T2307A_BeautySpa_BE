@@ -10,4 +10,5 @@ public interface BranchService {
     Branch findByName(String branchName);
     Branch findByID(Long id);
     void updateBranch(Long BiD,Branch updatedBranch);
+    void deleteBranch(Long BiD);
 }

@@ -82,5 +82,21 @@ public class BranchController {
            );
        }
     }
+    @PutMapping("/delete")
+    @Operation(summary = "Xóa branch")
+    public ResponseEntity<ResponseObject> deleteBranch(@RequestParam Long BiD) {
+        try{
+            branchService.deleteBranch(BiD);
+
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Xóa Branch thành công", null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.ERROR, "Xóa Branch thất bại: " + e.getMessage(), null)
+            );
+        }
+        }
+    
 
 }
