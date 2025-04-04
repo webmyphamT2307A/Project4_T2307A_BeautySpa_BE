@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/v1/api/discounts")
+@RequestMapping("/api/v1/discounts")
 public class DiscountController {
 
     @Autowired
@@ -57,15 +57,16 @@ public class DiscountController {
                     .body(new ResponseObject(Status.FAIL, "Không tìm thấy mã giảm giá", null));
         }
     }
-    @PutMapping("/delete")
-    @Operation(summary = "Xóa mã giảm giá thành công")
-    public ResponseEntity<ResponseObject> disableDiscount(@PathVariable Integer id) {
-        try {
-            discountService.softDeleteDiscount(id);
-            return ResponseEntity.ok(new ResponseObject(Status.SUCCESS, "Mã giảm giá đã bị vô hiệu hóa", null));
-        } catch (RuntimeException e) {
+    @PutMapping("/delete/{id}")
+    @Operation(summary = "Xóa mềm discount bằng cách vô hiệu hóa")
+    public ResponseEntity<ResponseObject> softDeleteDiscount(@PathVariable Integer id) {
+        if (discountService.getDiscountById(id).isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ResponseObject(Status.FAIL, "Không tìm thấy mã giảm giá", null));
+                    .body(new ResponseObject(Status.FAIL, "Discount không tồn tại hoặc đã bị vô hiệu hóa", null));
         }
+
+        discountService.softDeleteDiscount(id);
+        return ResponseEntity.ok(new ResponseObject(Status.SUCCESS, "Discount đã bị vô hiệu hóa", null));
     }
+
 }

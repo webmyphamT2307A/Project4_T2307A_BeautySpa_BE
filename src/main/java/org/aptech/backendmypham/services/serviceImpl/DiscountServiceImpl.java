@@ -25,7 +25,7 @@ public class DiscountServiceImpl implements DiscountService {
 
     @Override
     public List<Discount> getAllDiscounts() {
-        return discountRepository.findByIsActive(true); // Chỉ lấy các discount còn hiệu lực
+        return discountRepository.findAll();
     }
 
     @Override
@@ -53,28 +53,23 @@ public class DiscountServiceImpl implements DiscountService {
     public Optional<Discount> findDiscountById(Integer id) {
         return discountRepository.findById(id);
     }
-    public Optional<Discount> findById(Integer id) {
-        return discountRepository.findById(id);
-    }
-
-    public boolean deleteDiscount(Integer id) {
-        if (discountRepository.existsById(id)) {
-            discountRepository.softDeleteById(id);
-            return true;
-        }
-        return false;
-    }
-
     @Override
     public void softDeleteDiscount(Integer id) {
-        Optional<Discount> discountOpt = discountRepository.findById(id);
-        if (discountOpt.isPresent()) {
-            Discount discount = discountOpt.get();
-            discount.setIsActive(false); // Xóa mềm bằng cách đặt isActive = false
-            discountRepository.save(discount);
-        } else {
-            throw new RuntimeException("Discount không tồn tại!");
+        try {
+            Optional<Discount> discountOpt = discountRepository.findByIdAndIsActiveTrue(id);
+            if (discountOpt.isPresent()) {
+                Discount discount = discountOpt.get();
+                discount.setIsActive(false);
+                discountRepository.save(discount); // Cập nhật trạng thái xóa mềm
+            } else {
+                System.out.println("Discount không tồn tại hoặc đã bị vô hiệu hóa."); // hoặc log.warn(...)
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi thực hiện soft delete discount: " + e.getMessage());
+            e.printStackTrace();
         }
     }
+
+
 }
 
