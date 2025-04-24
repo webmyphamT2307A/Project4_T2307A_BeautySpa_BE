@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import org.aptech.backendmypham.models.User;
+import org.aptech.backendmypham.models.Customer;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -11,15 +12,26 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY = "your_secret_key"; // Cần thay đổi key này để bảo mật hơn
-    private static final String ISSUER = "your_issuer"; // Cần thiết lập một Issuer
+    private static final String SECRET_KEY = "your_secret_key"; // Đổi thành key bảo mật
+    private static final String ISSUER = "your_issuer"; // Đổi thành tên hệ thống
 
-    // Sinh JWT token
-    public String generateToken(User user) {
+    // Sinh token cho User
+    public String generateTokenForUser(User user) {
+        return generateToken(user.getEmail(), "USER");
+    }
+
+    // Sinh token cho Customer
+    public String generateTokenForCustomer(Customer customer) {
+        return generateToken(customer.getEmail(), "CUSTOMER");
+    }
+
+    // Tạo token chung
+    private String generateToken(String email, String role) {
         return JWT.create()
-                .withSubject(user.getEmail())
+                .withSubject(email)
                 .withIssuer(ISSUER)
-                .withExpiresAt(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // Hết hạn sau 1 ngày
+                .withClaim("role", role)
+                .withExpiresAt(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 1 ngày
                 .sign(Algorithm.HMAC256(SECRET_KEY));
     }
 
@@ -31,8 +43,13 @@ public class JwtService {
                 .verify(token);
     }
 
-    // Lấy thông tin từ token
+    // Lấy email từ token
     public String getSubjectFromToken(String token) {
         return verifyToken(token).getSubject();
+    }
+
+    // Lấy role từ token
+    public String getRoleFromToken(String token) {
+        return verifyToken(token).getClaim("role").asString();
     }
 }

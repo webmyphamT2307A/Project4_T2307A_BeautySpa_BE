@@ -85,7 +85,7 @@ public class userDetailServiceImpl implements userDetailService {
 
 
         // Nếu mật khẩu đúng, tạo token
-        String token = jwtService.generateToken(user);
+        String token = jwtService.generateTokenForUser(user);
         logger.info("Đăng nhập thành công cho email: {}", dto.getEmail());
 
         return new ResponseObject(Status.SUCCESS, "Đăng nhập thành công", Map.of(

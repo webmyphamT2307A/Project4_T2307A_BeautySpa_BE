@@ -16,12 +16,12 @@ public class UserDetailController {
     private final userDetailService userDetailService;
 
     @PostMapping("/login")
-    @Operation(summary = "Login user")
+    @Operation(summary = "đăng nhập cho user(nhân viên)")
     public ResponseEntity<ResponseObject> login(@RequestBody LoginRequestDto dto) {
         return ResponseEntity.ok(userDetailService.login(dto));
     }
     @PostMapping("/register")
-    @Operation(summary = "Register user")
+    @Operation(summary = "đăng ký cho user(nhân viên)")
     public ResponseEntity<ResponseObject> register(@RequestBody UserRegisterDto userRegisterDto) {
         try {
             ResponseObject user = userDetailService.registerUser(userRegisterDto);
@@ -31,11 +31,13 @@ public class UserDetailController {
         }
     }
     @GetMapping("/detail/{id}")
+    @Operation(summary = "Thông tin chi tiết về user(nhân viên)")
     public ResponseEntity<ResponseObject> detail(@PathVariable Long id) {
         return ResponseEntity.ok(userDetailService.getUserDetail(id));
     }
 
     @PutMapping("/update-info/{id}")
+    @Operation(summary = "Cập nhập thông tin cho user(nhân viên)")
     public ResponseEntity<ResponseObject> updateInfo(@PathVariable Long id, @RequestBody UserInfoUpdateDto dto) {
         return ResponseEntity.ok(userDetailService.updateInfo(id, dto));
     }
