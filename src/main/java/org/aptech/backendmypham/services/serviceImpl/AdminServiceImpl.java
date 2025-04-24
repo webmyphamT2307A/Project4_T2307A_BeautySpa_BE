@@ -12,6 +12,7 @@ import org.aptech.backendmypham.services.AdminService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -28,69 +29,40 @@ public class AdminServiceImpl implements AdminService {
     ExecutorService executor = Executors.newFixedThreadPool(4);
 
     @Override
-    public void createAdmin(String password,String fullName, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
-        //tìm role và branch theo id
-        //dùng thread để kiểm tra tồn tại của role và branch
+    public void createAdmin(String password, String fullName, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
+        if (password == null || email == null || phoneNumber == null || address == null) {
+            throw new RuntimeException("Thông tin không được để trống!");
+        }
+
+        // Bất đồng bộ kiểm tra sự tồn tại của role, branch, email và phone
+        CompletableFuture<Optional<Role>> roleFuture = CompletableFuture.supplyAsync(() -> roleRepository.findById((long) roleId));
+        CompletableFuture<Optional<Branch>> branchFuture = branchId != null ? CompletableFuture.supplyAsync(() -> branchRepository.findById((long) branchId)) : CompletableFuture.completedFuture(Optional.empty());
+        CompletableFuture<Optional<User>> emailFuture = CompletableFuture.supplyAsync(() -> userRepository.findByEmail(email));
+        CompletableFuture<Optional<User>> phoneFuture = CompletableFuture.supplyAsync(() -> userRepository.findByPhone(phoneNumber));
+
         try {
-            if (password == null || email == null || phoneNumber == null || address == null) {
-                throw new RuntimeException("Thông tin không được để trống!");
-            }
-            Future<Optional<Role>> roleFuture;
-            Future<Optional<Branch>> branchFuture = null;
-            if (roleId != null) {
-                // bất đồng bộ để kiểm tra sự tồn tại của role với id
-                roleFuture = executor.submit(() ->
-                        roleRepository.findById((long) roleId));
-            } else {
-                throw new RuntimeException("Role không được để trống!");
-            }
-            if (branchId != null) {
-                // Bất đồng bộ để kiểm tra sự tồn tại của branch với id
-                branchFuture = executor.submit(() ->
-                        branchRepository.findById((long) branchId));
-            }
-            // Bất đồng bộ để kiểm tra sự tồn tại của Email nhập vào
-            Future<Optional<User>> emailFuture = executor.submit(() ->
-                    userRepository.findByEmail(email));
+            Optional<Role> roleOpt = roleFuture.get(5, TimeUnit.SECONDS);
+            Optional<Branch> branchOpt = branchFuture.get(5, TimeUnit.SECONDS);
+            Optional<User> emailOpt = emailFuture.get(5, TimeUnit.SECONDS);
+            Optional<User> phoneOpt = phoneFuture.get(5, TimeUnit.SECONDS);
 
-            // Bất đồng bộ để kiểm tra sự tồn tại của Phone nhập vào
-            Future<Optional<User>> phoneFuture = executor.submit(() ->
-                    userRepository.findByPhone(phoneNumber));
-
-
-            Optional<Branch> branchOpt = Optional.empty();
-            // Lấy kết quả với timeout 3 giây cho mỗi Future
-            //truyền kiểu dữ liệu Optional<Role> vào hàm
-            Optional<Role> roleOpt = getFutureResultWithTimeout(roleFuture, "role", 3);
-            if (branchId != null) {
-                //truyền kiểu dữ liệu Optional<Branch> vào hàm
-                branchOpt = getFutureResultWithTimeout(branchFuture, "chi nhánh", 3);
-            }
-            //truyền kiểu dữ liệu Optional<User> vào hàm
-            Optional<User> emailOpt = getFutureResultWithTimeout(emailFuture, "email", 3);
-            //truyền kiểu dữ liệu Optional<User> vào hàm
-            Optional<User> phoneOpt = getFutureResultWithTimeout(phoneFuture, "số điện thoại", 3);
-
-            //Lấy dữ liệu thành công kiểm tra role có bằng null không
             if (roleOpt.isEmpty()) {
                 throw new RuntimeException("Role không tồn tại!");
             }
 
-            if (branchId != null) {
-                //kiểm tra branch có null không
-                if (branchOpt.isEmpty()) {
-                    throw new RuntimeException("Chi nhánh không tồn tại!");
-                }
+            if (branchId != null && branchOpt.isEmpty()) {
+                throw new RuntimeException("Chi nhánh không tồn tại!");
             }
-            //nếu email đã tồn tại thì trả về lỗi
+
             if (emailOpt.isPresent()) {
                 throw new RuntimeException("Email đã tồn tại!");
             }
-            //nếu số điện thoại đã tồn tại thì trả về lỗi
+
             if (phoneOpt.isPresent()) {
                 throw new RuntimeException("Số điện thoại đã tồn tại!");
             }
-            //nếu thỏa mãn điều kiện bên trên thì tạo mới user
+
+            // Tạo mới User
             User user = new User();
             user.setFullName(fullName);
             user.setPassword(passwordEncoder.encode(password));
@@ -99,16 +71,15 @@ public class AdminServiceImpl implements AdminService {
             user.setAddress(address);
             user.setIsActive(true);
             user.setRole(roleOpt.get());
-            if (branchId != null) {
-                //nếu branchId khác null thì set branch cho user
-                user.setBranch(branchOpt.get());
-            }
+            user.setCreatedAt(Instant.now());
+            branchOpt.ifPresent(user::setBranch); // Set branch if present
             userRepository.save(user);
+
+        } catch (TimeoutException e) {
+            throw new RuntimeException("Một trong các yêu cầu kiểm tra dữ liệu mất quá nhiều thời gian. Vui lòng thử lại sau.");
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Lỗi khi kiểm tra tồn tại của role và branch: " + e.getMessage());
-        } finally {
-            executor.shutdown();
         }
     }
 
