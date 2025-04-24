@@ -25,4 +25,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query(nativeQuery = true, value = "UPDATE users SET is_active = :isActive WHERE id = :id")
     void updateIsActiveById(@Param("id") Long id, @Param("isActive") int isActive);
 
+    boolean existsByEmail(String email);
 }
