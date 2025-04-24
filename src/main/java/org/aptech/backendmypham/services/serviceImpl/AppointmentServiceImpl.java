@@ -30,7 +30,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         appointment.setUser(userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy User")));
-        appointment.setService(serviceRepository.findById(dto.getServiceId())
+        appointment.setService(serviceRepository.findById(Math.toIntExact(dto.getServiceId()))
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Service")));
         appointment.setCustomer(customerRepository.findById(dto.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Customer")));

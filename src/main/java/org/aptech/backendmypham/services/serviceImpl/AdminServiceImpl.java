@@ -25,10 +25,10 @@ public class AdminServiceImpl implements AdminService {
     private final RoleRepository roleRepository;
     private final BranchRepository branchRepository;
 
-    //tạo thread pool với 2 thread
-    ExecutorService executor = Executors.newFixedThreadPool(4);
+    // Sử dụng thread pool với 2 threads (đủ để xử lý đồng thời mà không gây quá tải)
+    private final ExecutorService executor = Executors.newFixedThreadPool(2);
 
-    @Override
+   @Override
     public void createAdmin(String password, String fullName, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
         if (password == null || email == null || phoneNumber == null || address == null) {
             throw new RuntimeException("Thông tin không được để trống!");
@@ -83,17 +83,20 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
-    @Transactional
+
     @Override
+    @Transactional
     public void updateAdmin(Long userId, String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
             throw new RuntimeException("Người dùng không tồn tại!");
         }
         User user = userOpt.get();
+
         if (password != null) {
             user.setPassword(passwordEncoder.encode(password));
         }
+
         if (email != null) {
             Optional<User> emailOpt = userRepository.findByEmail(email);
             if (emailOpt.isPresent()) {
@@ -101,6 +104,7 @@ public class AdminServiceImpl implements AdminService {
             }
             user.setEmail(email);
         }
+
         if (phoneNumber != null) {
             Optional<User> phoneOpt = userRepository.findByPhone(phoneNumber);
             if (phoneOpt.isPresent()) {
@@ -108,9 +112,11 @@ public class AdminServiceImpl implements AdminService {
             }
             user.setPhone(phoneNumber);
         }
+
         if (address != null) {
             user.setAddress(address);
         }
+
         if (roleId != null) {
             Optional<Role> roleOpt = roleRepository.findById((long) roleId);
             if (roleOpt.isEmpty()) {
@@ -118,6 +124,7 @@ public class AdminServiceImpl implements AdminService {
             }
             user.setRole(roleOpt.get());
         }
+
         if (branchId != null) {
             Optional<Branch> branchOpt = branchRepository.findById((long) branchId);
             if (branchOpt.isEmpty()) {
@@ -125,23 +132,27 @@ public class AdminServiceImpl implements AdminService {
             }
             user.setBranch(branchOpt.get());
         }
+
         userRepository.save(user);
     }
 
     @Override
+    @Transactional
     public void deleteAdmin(Long userId) {
-        //check xem user có tồn tại không
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
             throw new RuntimeException("Người dùng không tồn tại!");
         }
+
+        if (user.getRole().getId() != 4) {
+            throw new RuntimeException("Chỉ có thể vô hiệu hóa tài khoản khách hàng!");
+        }
+
         user.setIsActive(false);
         userRepository.save(user);
     }
 
-    //hàm này dùng để lấy kết quả của future với timeout
-    //sử dụng generic để có thể lấy được nhiều kiểu dữ liệu khác nhau
-    // T thay cho kiểu dữ liệu được truyền vào
+    // Hàm lấy kết quả với timeout (không đổi)
     private <T> T getFutureResultWithTimeout(Future<T> future, String entityName, int seconds)
             throws InterruptedException, ExecutionException {
         try {
