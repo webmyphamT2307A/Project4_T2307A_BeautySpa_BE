@@ -17,6 +17,15 @@ public class ServiceController {
     @Autowired
     private ServiceService serviceService;
 
+   @GetMapping("")
+    @Operation(summary = "Lấy tất cả service trong hệ thống")
+    public ResponseEntity<ResponseObject> getAllService() {
+        return ResponseEntity.ok(
+                new ResponseObject(Status.SUCCESS, "Thành công", servicesService.gellALlService())
+        );
+
+    }
+  
     @GetMapping("/{id}")
     @Operation(summary = "Tìm dịch vụ theo ID")
     public ResponseEntity<ResponseObject> findServiceById(@PathVariable Integer id) {
@@ -61,5 +70,6 @@ public class ServiceController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ResponseObject(Status.FAIL, "Lỗi khi xóa service: " + e.getMessage(), null));
         }
-    }
-}
+
+   
+

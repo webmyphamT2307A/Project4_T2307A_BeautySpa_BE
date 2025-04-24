@@ -5,7 +5,10 @@ import org.aptech.backendmypham.models.User;
 import java.util.List;
 
 public interface AdminService {
-    void createAdmin(String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId);
+
+
+    void createAdmin(String password,String fullName, String email, String phoneNumber, String address, Integer roleId, Integer branchId);
+
 
     void updateAdmin(Long userId, String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId);
 
@@ -18,4 +21,6 @@ public interface AdminService {
     User findByPhoneNumber(String phoneNumber);
 
     List<User> findAll();
+
 }
+
