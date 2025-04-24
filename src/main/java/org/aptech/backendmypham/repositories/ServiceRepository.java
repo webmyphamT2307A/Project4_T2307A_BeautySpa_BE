@@ -10,6 +10,7 @@ import java.util.Optional;
 @Repository
 public interface ServiceRepository extends JpaRepository<Service, Integer> {
     Optional<Service> findByName(String name);
+
     Optional<Service> findByIdAndIsActiveTrue(Integer id);
-=======
+}
 
