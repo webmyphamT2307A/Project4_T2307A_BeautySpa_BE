@@ -13,15 +13,17 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/userDetail")
 @RequiredArgsConstructor
 public class UserDetailController {
+
     private final userDetailService userDetailService;
 
     @PostMapping("/login")
-    @Operation(summary = "đăng nhập cho user(nhân viên)")
+    @Operation(summary = "Đăng nhập cho user (nhân viên)")
     public ResponseEntity<ResponseObject> login(@RequestBody LoginRequestDto dto) {
         return ResponseEntity.ok(userDetailService.login(dto));
     }
+
     @PostMapping("/register")
-    @Operation(summary = "đăng ký cho user(nhân viên)")
+    @Operation(summary = "Đăng ký cho user (nhân viên)")
     public ResponseEntity<ResponseObject> register(@RequestBody UserRegisterDto userRegisterDto) {
         try {
             ResponseObject user = userDetailService.registerUser(userRegisterDto);
@@ -30,14 +32,15 @@ public class UserDetailController {
             return ResponseEntity.badRequest().body(new ResponseObject(Status.ERROR, e.getMessage(), null));
         }
     }
+
     @GetMapping("/detail/{id}")
-    @Operation(summary = "Thông tin chi tiết về user(nhân viên)")
+    @Operation(summary = "Thông tin chi tiết về user (nhân viên)")
     public ResponseEntity<ResponseObject> detail(@PathVariable Long id) {
         return ResponseEntity.ok(userDetailService.getUserDetail(id));
     }
 
     @PutMapping("/update-info/{id}")
-    @Operation(summary = "Cập nhập thông tin cho user(nhân viên)")
+    @Operation(summary = "Cập nhật thông tin cho user (nhân viên)")
     public ResponseEntity<ResponseObject> updateInfo(@PathVariable Long id, @RequestBody UserInfoUpdateDto dto) {
         return ResponseEntity.ok(userDetailService.updateInfo(id, dto));
     }
@@ -46,8 +49,6 @@ public class UserDetailController {
     public ResponseEntity<ResponseObject> changePassword(@PathVariable Long id, @RequestBody UserPasswordChangeDto dto) {
         return ResponseEntity.ok(userDetailService.changePassword(id, dto));
     }
-
-
 
     @PostMapping("/logout")
     public ResponseEntity<ResponseObject> logout() {

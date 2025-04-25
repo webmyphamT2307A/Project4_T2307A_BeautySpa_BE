@@ -53,6 +53,7 @@ public class userDetailServiceImpl implements userDetailService {
         user.setPhone(userRegisterDto.getPhone());
         user.setAddress(userRegisterDto.getAddress());
         user.setBranch(branch);
+        user.setIsActive(true);
         user.setRole(role);
 
         // Lưu người dùng vào cơ sở dữ liệu
@@ -64,16 +65,11 @@ public class userDetailServiceImpl implements userDetailService {
     @Override
     public ResponseObject login(LoginRequestDto dto) {
 
-        // Log thông tin email của người dùng đang cố gắng đăng nhập
-        logger.info("Đang đăng nhập với email: {}", dto.getEmail());
 
         // Tìm người dùng trong cơ sở dữ liệu
         User user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
-
         // Log mật khẩu người dùng nhập vào và mật khẩu đã lưu trong cơ sở dữ liệu
-        logger.info("Mật khẩu người dùng nhập vào: {}", dto.getPassword());
-        logger.info("Mật khẩu trong cơ sở dữ liệu: {}", user.getPassword());
         System.out.println("Match? " + passwordEncoder.matches(dto.getPassword(), user.getPassword()));
 
         // So sánh mật khẩu
@@ -86,8 +82,6 @@ public class userDetailServiceImpl implements userDetailService {
 
         // Nếu mật khẩu đúng, tạo token
         String token = jwtService.generateTokenForUser(user);
-        logger.info("Đăng nhập thành công cho email: {}", dto.getEmail());
-
         return new ResponseObject(Status.SUCCESS, "Đăng nhập thành công", Map.of(
                 "user", user,
                 "token", token

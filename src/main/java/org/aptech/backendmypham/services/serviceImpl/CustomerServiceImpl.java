@@ -37,6 +37,7 @@ public class CustomerServiceImpl implements CustomerService {
         customer.setPassword(encodedPassword);
         customer.setPhone(registerRequestDto.getPhone());
         customer.setAddress(registerRequestDto.getAddress());
+        customer.setIsActive(true);
 
         // Lưu customer vào cơ sở dữ liệu
         customerRepository.save(customer);

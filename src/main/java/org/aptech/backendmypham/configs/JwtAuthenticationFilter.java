@@ -24,10 +24,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
-    private final JwtUtil jwtUtil;
+    private final JwtService jwtService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
-        this.jwtUtil = jwtUtil;
+    public JwtAuthenticationFilter(JwtService jwtService) {
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -40,7 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             try {
                 // Xác thực token
-                DecodedJWT decodedJWT = jwtUtil.verifyToken(token);
+                DecodedJWT decodedJWT = jwtService.verifyToken(token);
                 String username = decodedJWT.getSubject();
 
                 // Tạo đối tượng Authentication và thiết lập chi tiết yêu cầu

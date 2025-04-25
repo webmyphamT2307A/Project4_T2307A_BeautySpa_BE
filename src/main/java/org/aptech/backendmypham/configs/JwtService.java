@@ -12,14 +12,17 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY = "your_secret_key"; // Đổi thành key bảo mật
-    private static final String ISSUER = "your_issuer"; // Đổi thành tên hệ thống
+    private static final String SECRET_KEY = "ban_mat_bao_mat_cua_ban";
+    private static final String ISSUER = "my_beauty_spa";
 
     // Sinh token cho User
     public String generateTokenForUser(User user) {
         return generateToken(user.getEmail(), "USER");
     }
-
+    //Sinh token cho Admin
+    public String generateTokenForAdmin(User user){
+        return generateToken(user.getEmail(), "ADMIN");
+    }
     // Sinh token cho Customer
     public String generateTokenForCustomer(Customer customer) {
         return generateToken(customer.getEmail(), "CUSTOMER");
