@@ -9,7 +9,7 @@ import org.aptech.backendmypham.configs.JwtService;
 import org.aptech.backendmypham.enums.Status;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import org.springframework.web.multipart.MultipartFile;
 import java.util.Map;
 
 @Service
@@ -74,20 +74,48 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public ResponseObject updateCustomer(Long id,CustomerDetailResponseDto CustomerDetailResponseDto) {
+    public ResponseObject updateCustomer(Long id, CustomerDetailResponseDto customerDetailResponseDto, MultipartFile file) {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
-        // Cập nhật thông tin
-        customer.setFullName(CustomerDetailResponseDto.getFullName());
-        customer.setPhone(CustomerDetailResponseDto.getPhone());
-        customer.setAddress(CustomerDetailResponseDto.getAddress());
-        customer.setImageUrl(CustomerDetailResponseDto.getImageUrl());
+        // Cập nhật thông tin cơ bản
+        customer.setFullName(customerDetailResponseDto.getFullName());
+        customer.setPhone(customerDetailResponseDto.getPhone());
+        customer.setAddress(customerDetailResponseDto.getAddress());
+
+        // Nếu có file thì lưu avatar
+        if (file != null && !file.isEmpty()) {
+            try {
+                String uploadDir = "uploads/";
+                java.nio.file.Path uploadPath = java.nio.file.Paths.get(uploadDir);
+                if (!java.nio.file.Files.exists(uploadPath)) {
+                    java.nio.file.Files.createDirectories(uploadPath);
+                }
+
+                // Kiểm tra loại file
+                String fileType = file.getContentType();
+                if (!fileType.startsWith("image/")) {
+                    throw new RuntimeException("Chỉ cho phép tải lên ảnh.");
+                }
+
+                // Tạo tên file duy nhất: yyyyMMddHHmmssSSS_originalName
+                String timePrefix = java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS")
+                        .format(java.time.LocalDateTime.now());
+                String fileName = timePrefix + "_" + file.getOriginalFilename().replaceAll("\\s+", "_");
+                java.nio.file.Path filePath = uploadPath.resolve(fileName);
+                java.nio.file.Files.copy(file.getInputStream(), filePath);
+
+                customer.setImageUrl("/uploads/" + fileName);
+            } catch (Exception e) {
+                throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
+            }
+        }
 
         customerRepository.save(customer);
 
         return new ResponseObject(Status.SUCCESS, "Cập nhật thông tin thành công", customer);
     }
+
 
     @Override
     public ResponseObject changePasswordCustomer(ChangePasswordCustomerRequestDto changePasswordRequestDto,Long id) {
