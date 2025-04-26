@@ -7,6 +7,7 @@ import org.aptech.backendmypham.enums.Status;
 import org.aptech.backendmypham.services.CustomerService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/customer/")
@@ -35,11 +36,15 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.getCustomerDetail(id));
     }
 
-    @PutMapping("/update-info/{id}")
-    @Operation(summary = "Cập nhập thông tin cho khách hàng")
-    public ResponseEntity<ResponseObject> updateInfo(@PathVariable Long id, @RequestBody CustomerDetailResponseDto Cdto) {
-        return ResponseEntity.ok(customerService.updateCustomer(id,Cdto));
+    @PutMapping(value = "/update-info/{id}", consumes = {"multipart/form-data"})
+    @Operation(summary = "Cập nhật thông tin cho khách hàng")
+    public ResponseEntity<ResponseObject> updateInfo(
+            @PathVariable Long id,
+            @RequestPart("info") CustomerDetailResponseDto Cdto,
+            @RequestPart(value = "file", required = false) MultipartFile file) {
+        return ResponseEntity.ok(customerService.updateCustomer(id, Cdto, file));
     }
+
 
     @PutMapping("/change-password/{id}")
     public ResponseEntity<ResponseObject> changePassword(@PathVariable Long id, @RequestBody ChangePasswordCustomerRequestDto dto) {
