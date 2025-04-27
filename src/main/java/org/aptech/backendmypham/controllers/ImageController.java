@@ -38,4 +38,4 @@ public class ImageController {
                 .body(resource);
     }
 
-}
+
