@@ -10,6 +10,8 @@ import org.aptech.backendmypham.enums.Status;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.Instant;
 import java.util.Map;
 
 @Service
@@ -37,6 +39,7 @@ public class CustomerServiceImpl implements CustomerService {
         customer.setPassword(encodedPassword);
         customer.setPhone(registerRequestDto.getPhone());
         customer.setAddress(registerRequestDto.getAddress());
+        customer.setCreatedAt(Instant.now());
         customer.setIsActive(true);
 
         // Lưu customer vào cơ sở dữ liệu
