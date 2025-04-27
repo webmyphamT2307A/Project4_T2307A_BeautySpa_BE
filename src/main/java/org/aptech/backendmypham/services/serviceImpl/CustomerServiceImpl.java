@@ -85,7 +85,7 @@ public class CustomerServiceImpl implements CustomerService {
         customer.setFullName(customerDetailResponseDto.getFullName());
         customer.setPhone(customerDetailResponseDto.getPhone());
         customer.setAddress(customerDetailResponseDto.getAddress());
-
+        customer.setEmail(customerDetailResponseDto.getEmail());
         // Nếu có file thì lưu avatar
         if (file != null && !file.isEmpty()) {
             try {
