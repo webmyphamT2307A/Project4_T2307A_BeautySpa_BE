@@ -26,14 +26,28 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final TimeSlotsRepository timeSlotsRepository;
 
     @Override
-    public void createAppointment(AppointmentDto dto) { Appointment appointment = new Appointment();
+    public void createAppointment(AppointmentDto dto) {
+        Appointment appointment = new Appointment();
 
-        appointment.setUser(userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy User")));
+        // Nếu có userId thì set, không thì để null
+        if (dto.getUserId() != null) {
+            appointment.setUser(userRepository.findById(dto.getUserId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy User")));
+        } else {
+            appointment.setUser(null);
+        }
+
         appointment.setService(serviceRepository.findById(Math.toIntExact(dto.getServiceId()))
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Service")));
-        appointment.setCustomer(customerRepository.findById(dto.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Customer")));
+
+        // Nếu có customerId thì set, không thì để null
+        if (dto.getCustomerId() != null) {
+            appointment.setCustomer(customerRepository.findById(dto.getCustomerId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy Customer")));
+        } else {
+            appointment.setCustomer(null);
+        }
+
         appointment.setBranch(branchRepository.findById(dto.getBranchId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Branch")));
         appointment.setTimeSlot(timeSlotsRepository.findById(dto.getTimeSlotId())
@@ -45,7 +59,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         Instant startOfDay = date.atStartOfDay(ZoneId.systemDefault()).toInstant();
         appointment.setAppointmentDate(startOfDay);
 
-        // Tùy bạn muốn tính `endTime` như thế nào (ví dụ +1 giờ)
         appointment.setEndTime(startOfDay.plusSeconds(3600)); // cộng 1 tiếng
 
         appointment.setSlot(dto.getSlot());
