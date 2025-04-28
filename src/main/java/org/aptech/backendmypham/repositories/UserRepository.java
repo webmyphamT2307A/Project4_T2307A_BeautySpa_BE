@@ -19,7 +19,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Modifying
 
-    @Query(nativeQuery = true, value = "SELECT * FROM users WHERE is_active = 1")
+    @Query(nativeQuery = true, value = "SELECT * FROM users")
 
     List<User> findAllIsActive();
 
