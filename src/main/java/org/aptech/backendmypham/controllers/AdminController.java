@@ -40,13 +40,13 @@ public class AdminController {
             );
         }
     }
-
     @PutMapping("/update/{id}")
     @Operation(summary = "api cập nhật thông tin tài khoản admin, nhân viên")
     public ResponseEntity<ResponseObject> updateAccount(@PathVariable Long id, @RequestBody UserRequestDto userRequestDto) {
         try {
             adminService.updateAdmin(
                     id,
+                    userRequestDto.getFullName(),
                     userRequestDto.getPassword(),
                     userRequestDto.getEmail(),
                     userRequestDto.getPhone(),
