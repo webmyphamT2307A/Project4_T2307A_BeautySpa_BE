@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class TimeSlotController {
     private final TimeSlotService timeSlotService;
 
-    @GetMapping("")
+    @GetMapping(" ")
     @Operation(summary = "Lấy tất cả trong timeslot")
     public ResponseEntity<ResponseObject> getAllTimeSlots() {
         return ResponseEntity.ok(

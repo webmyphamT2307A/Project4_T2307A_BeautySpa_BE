@@ -43,7 +43,7 @@ public class User {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "role_id", nullable = false)
-    @JsonIgnore
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Role role;
 
     @ManyToOne(fetch = FetchType.LAZY)
