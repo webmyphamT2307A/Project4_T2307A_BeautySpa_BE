@@ -52,7 +52,9 @@ public class AdminController {
                     userRequestDto.getPhone(),
                     userRequestDto.getAddress(),
                     userRequestDto.getRoleId(),
-                    userRequestDto.getBranchId()
+                    userRequestDto.getBranchId(),
+                    userRequestDto.getIsActive()
+
             );
             return ResponseEntity.ok(
                     new ResponseObject(Status.SUCCESS, "Account updated successfully", null)

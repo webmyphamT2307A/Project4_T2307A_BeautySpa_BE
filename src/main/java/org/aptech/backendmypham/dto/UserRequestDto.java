@@ -17,4 +17,5 @@ public class UserRequestDto {
     Integer roleId;
     Integer branchId;
     String description;
+    Boolean isActive;
 }

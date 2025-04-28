@@ -86,7 +86,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    public void updateAdmin(Long userId, String fullName, String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
+    public void updateAdmin(Long userId, String fullName, String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId,Boolean isActive) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
             throw new RuntimeException("Người dùng không tồn tại!");
@@ -138,6 +138,9 @@ public class AdminServiceImpl implements AdminService {
                 throw new RuntimeException("Chi nhánh không tồn tại!");
             }
             user.setBranch(branchOpt.get());
+        }
+        if (isActive != null) {
+            user.setIsActive(isActive);
         }
 
         userRepository.save(user);
