@@ -7,6 +7,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserRequestDto {
+    Long id;
     String fullName;
     String phone;
     String email;

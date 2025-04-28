@@ -16,7 +16,6 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
             value = "UPDATE roles SET is_active = 0 WHERE role_id = :roleId")
     void disableRoleById(@Param("roleId") Long roleId);
 
-    @Modifying
     @Query(nativeQuery = true,
             value = "SELECT * FROM roles WHERE role_id = :id and is_active = 1")
     Optional<Role> findById(Long id);
