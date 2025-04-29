@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.CustomerDto;
 import org.aptech.backendmypham.dto.ResponseObject;
 import org.aptech.backendmypham.enums.Status;
+import org.aptech.backendmypham.services.CustomerService;
 import org.aptech.backendmypham.services.serviceImpl.CustomerServiceImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/customer")
 @RequiredArgsConstructor
 public class CustomerController {
-    private  final CustomerServiceImpl customerService;
+    private  final CustomerService customerService;
 
     @GetMapping("")
     @Operation(summary = "Lấy tất cả của customer")
@@ -62,10 +63,10 @@ public class CustomerController {
     }
     @PutMapping("/update/{id}")
     @Operation(summary = "api cập nhật thông tin tài khoản khách hàng")
-    public ResponseEntity<ResponseObject> updateCustomer(@PathVariable Long Cid, @RequestBody CustomerDto customerDto){
+    public ResponseEntity<ResponseObject> updateCustomer(@PathVariable Long id, @RequestBody CustomerDto customerDto){
         try {
             customerService.updateCustomer(
-                    Cid,
+                    id,
                     customerDto.getFullName(),
                     customerDto.getPassword(),
                     customerDto.getEmail(),
