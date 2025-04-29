@@ -1,144 +1,136 @@
 package org.aptech.backendmypham.services.serviceImpl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.aptech.backendmypham.dto.*;
+import org.aptech.backendmypham.models.Branch;
 import org.aptech.backendmypham.models.Customer;
+import org.aptech.backendmypham.models.Role;
+import org.aptech.backendmypham.models.User;
 import org.aptech.backendmypham.repositories.CustomerRepository;
-import org.aptech.backendmypham.services.CustomerService;
-import org.aptech.backendmypham.configs.JwtService;
-import org.aptech.backendmypham.enums.Status;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
-
-import java.util.Map;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Service
 @RequiredArgsConstructor
-public class CustomerServiceImpl implements CustomerService {
-
-    private final CustomerRepository customerRepository;
+public class CustomerServiceImpl implements org.aptech.backendmypham.services.CustomerService {
+    private  final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
 
     @Override
-    public ResponseObject registerCustomer(RegisterRequestDto registerRequestDto) {
-        // Kiểm tra nếu email đã tồn tại
-        if (customerRepository.existsByEmail(registerRequestDto.getEmail())) {
-            return new ResponseObject(Status.ERROR, "Email đã được đăng ký", null);
+    public List<Customer> getALL(){
+        return customerRepository.findAll();
+    }
+    @Override
+    public Customer findById(Long UiD){
+        return customerRepository.findById(UiD).orElse(null);
+    }
+    @Override
+    public void createCustomer(String password, String fullName, String email, String phoneNumber, String address,String imageUrl) {
+        if (password == null || email == null || phoneNumber == null || address == null) {
+            throw new RuntimeException("Thông tin không được để trống!");
         }
 
-        // Mã hóa mật khẩu
-        String encodedPassword = passwordEncoder.encode(registerRequestDto.getPassword());
+        // Bất đồng bộ kiểm tra sự tồn tại của email và phone
+        CompletableFuture<Optional<Customer>> emailFuture = CompletableFuture.supplyAsync(() -> customerRepository.findByEmail(email));
+        CompletableFuture<Optional<Customer>> phoneFuture = CompletableFuture.supplyAsync(() -> customerRepository.findByPhone(phoneNumber));
 
-        // Tạo đối tượng customer
-        Customer customer = new Customer();
-        customer.setFullName(registerRequestDto.getFullName());
-        customer.setEmail(registerRequestDto.getEmail());
-        customer.setPassword(encodedPassword);
-        customer.setPhone(registerRequestDto.getPhone());
-        customer.setAddress(registerRequestDto.getAddress());
-        customer.setCreatedAt(Instant.now());
-        customer.setIsActive(true);
+        try {
+            Optional<Customer> emailOpt = emailFuture.get(5, TimeUnit.SECONDS);
+            Optional<Customer> phoneOpt = phoneFuture.get(5, TimeUnit.SECONDS);
 
-        // Lưu customer vào cơ sở dữ liệu
-        customerRepository.save(customer);
-
-        return new ResponseObject(Status.SUCCESS, "Đăng ký thành công", customer);
-    }
-
-    @Override
-    public ResponseObject loginCustomer(LoginCustomerDto loginCustomerDto) {
-        // Kiểm tra nếu email tồn tại
-        Customer customer = customerRepository.findByEmail(loginCustomerDto.getEmail())
-                .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
-
-        // Kiểm tra mật khẩu
-        if (!passwordEncoder.matches(loginCustomerDto.getPassword(), customer.getPassword())) {
-            throw new RuntimeException("Mật khẩu không đúng");
-        }
-
-        // Tạo token
-        String token = jwtService.generateTokenForCustomer(customer);
-
-        return new ResponseObject(Status.SUCCESS, "Đăng nhập thành công", Map.of(
-                "customer", customer,
-                "token", token
-        ));
-    }
-
-    @Override
-    public ResponseObject getCustomerDetail(Long customerId) {
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
-
-        return new ResponseObject(Status.SUCCESS, "Thông tin người dùng", customer);
-    }
-
-    @Override
-    public ResponseObject updateCustomer(Long id, CustomerDetailResponseDto customerDetailResponseDto, MultipartFile file) {
-        Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
-
-        // Cập nhật thông tin cơ bản
-        customer.setFullName(customerDetailResponseDto.getFullName());
-        customer.setPhone(customerDetailResponseDto.getPhone());
-        customer.setAddress(customerDetailResponseDto.getAddress());
-        customer.setEmail(customerDetailResponseDto.getEmail());
-        // Nếu có file thì lưu avatar
-        if (file != null && !file.isEmpty()) {
-            try {
-                String uploadDir = "uploads/";
-                java.nio.file.Path uploadPath = java.nio.file.Paths.get(uploadDir);
-                if (!java.nio.file.Files.exists(uploadPath)) {
-                    java.nio.file.Files.createDirectories(uploadPath);
-                }
-
-                // Kiểm tra loại file
-                String fileType = file.getContentType();
-                if (!fileType.startsWith("image/")) {
-                    throw new RuntimeException("Chỉ cho phép tải lên ảnh.");
-                }
-
-                // Tạo tên file duy nhất: yyyyMMddHHmmssSSS_originalName
-                String timePrefix = java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS")
-                        .format(java.time.LocalDateTime.now());
-                String fileName = timePrefix + "_" + file.getOriginalFilename().replaceAll("\\s+", "_");
-                java.nio.file.Path filePath = uploadPath.resolve(fileName);
-                java.nio.file.Files.copy(file.getInputStream(), filePath);
-
-                customer.setImageUrl("/uploads/" + fileName);
-            } catch (Exception e) {
-                throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
+            if (emailOpt.isPresent()) {
+                throw new RuntimeException("Email đã tồn tại!");
             }
+
+            if (phoneOpt.isPresent()) {
+                throw new RuntimeException("Số điện thoại đã tồn tại!");
+            }
+
+            // Tạo mới Customer
+            Customer customer = new Customer();
+            customer.setFullName(fullName);
+            customer.setPassword(passwordEncoder.encode(password));
+            customer.setEmail(email);
+            customer.setPhone(phoneNumber);
+            customer.setAddress(address);
+            customer.setIsActive(true);
+            customer.setCreatedAt(Instant.now());
+            customerRepository.save(customer);
+
+        } catch (TimeoutException e) {
+            throw new RuntimeException("Một trong các yêu cầu kiểm tra dữ liệu mất quá nhiều thời gian. Vui lòng thử lại sau.");
+        } catch (InterruptedException | ExecutionException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Lỗi khi kiểm tra tồn tại email hoặc số điện thoại: " + e.getMessage());
+        }
+    }
+    @Override
+    @Transactional
+    public void updateCustomer(Long CustomerId, String password, String fullName, String email, String phoneNumber, String address,String imageUrl,Boolean isActive) {
+        Optional<Customer> customerOpt = customerRepository.findByIdAndIsActiveTrue(CustomerId);
+        if (customerOpt.isEmpty()) {
+            throw new RuntimeException("Người dùng không tồn tại!");
+        }
+        Customer customer = customerOpt.get();
+
+        // Cập nhật fullName
+        if (fullName != null) {
+            customer.setFullName(fullName);
+        }
+
+        if (password != null) {
+            customer.setPassword(passwordEncoder.encode(password));
+        }
+
+        // Sửa logic kiểm tra email
+        if (email != null && !email.equals(customer.getEmail())) {
+            Optional<Customer> emailOpt = customerRepository.findByEmail(email);
+            if (emailOpt.isPresent()) {
+                throw new RuntimeException("Email đã tồn tại!");
+            }
+            customer.setEmail(email);
+        }
+
+        // Sửa logic kiểm tra phone
+        if (phoneNumber != null && !phoneNumber.equals(customer.getPhone())) {
+            Optional<Customer> phoneOpt = customerRepository.findByPhone(phoneNumber);
+            if (phoneOpt.isPresent()) {
+                throw new RuntimeException("Số điện thoại đã tồn tại!");
+            }
+            customer.setPhone(phoneNumber);
+        }
+
+        if (address != null) {
+            customer.setAddress(address);
+        }
+
+
+
+
+        if (isActive != null) {
+            customer.setIsActive(isActive);
         }
 
         customerRepository.save(customer);
-
-        return new ResponseObject(Status.SUCCESS, "Cập nhật thông tin thành công", customer);
     }
-
-
     @Override
-    public ResponseObject changePasswordCustomer(ChangePasswordCustomerRequestDto changePasswordRequestDto,Long id) {
-        Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
-
-        // Kiểm tra mật khẩu cũ
-        if (!passwordEncoder.matches(changePasswordRequestDto.getOldPassword(), customer.getPassword())) {
-            throw new RuntimeException("Mật khẩu cũ không đúng");
+    @Transactional
+    public  void deleteCustomer(Long Cid){
+        Customer customer = customerRepository.findById(Cid).orElse(null);
+        if (customer == null) {
+            throw new RuntimeException("Người dùng không tồn tại!");
         }
 
-        // Cập nhật mật khẩu mới
-        customer.setPassword(passwordEncoder.encode(changePasswordRequestDto.getNewPassword()));
-        customerRepository.save(customer);
 
-        return new ResponseObject(Status.SUCCESS, "Đổi mật khẩu thành công", null);
-    }
-    @Override
-    public ResponseObject logout() {
-        return new ResponseObject(Status.SUCCESS, "Đăng xuất thành công", null);
+        customer.setIsActive(false);
+        customerRepository.save(customer);
     }
 }

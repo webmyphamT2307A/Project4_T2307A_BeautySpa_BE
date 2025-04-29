@@ -2,59 +2,100 @@ package org.aptech.backendmypham.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
-import org.aptech.backendmypham.dto.*;
+import org.aptech.backendmypham.dto.CustomerDto;
+import org.aptech.backendmypham.dto.ResponseObject;
 import org.aptech.backendmypham.enums.Status;
-import org.aptech.backendmypham.services.CustomerService;
+import org.aptech.backendmypham.services.serviceImpl.CustomerServiceImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/v1/customer/")
+@RequestMapping("/api/v1/customer")
 @RequiredArgsConstructor
 public class CustomerController {
-    private final CustomerService customerService;
+    private  final CustomerServiceImpl customerService;
 
-    @PostMapping("/login")
-    @Operation(summary = "đăng nhập cho khách hàng")
-    public ResponseEntity<ResponseObject> loginCustomer(@RequestBody LoginCustomerDto Cdto) {
-        return ResponseEntity.ok(customerService.loginCustomer(Cdto));
+    @GetMapping("")
+    @Operation(summary = "Lấy tất cả của customer")
+    public ResponseEntity<ResponseObject> getAllCustomer(){
+        return ResponseEntity.ok(
+                new ResponseObject(Status.SUCCESS,"Lấy thành công",customerService.getALL())
+        );
     }
-    @PostMapping("/register")
-    @Operation(summary = "đăng ký cho khách hàng")
-    public ResponseEntity<ResponseObject> registerCustomer(@RequestBody RegisterRequestDto registerRequestDto) {
+    @GetMapping("/findById")
+    @Operation(summary = "Lấy id của customer")
+    public ResponseEntity<ResponseObject> getCustomerById(Long Uid){
         try {
-            ResponseObject user = customerService.registerCustomer(registerRequestDto);
-            return ResponseEntity.ok(new ResponseObject(Status.SUCCESS, "Đăng ký thành công", user));
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Tìm tài khoản thành công", customerService.findById(Uid))
+            );
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new ResponseObject(Status.ERROR, e.getMessage(), null));
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.ERROR, "Lỗi khi tìm tài khoản: " + e.getMessage(), null)
+            );
+        }
+
+    }
+    @PostMapping("/created")
+    @Operation(summary = "Tạo customer")
+    public  ResponseEntity<ResponseObject> createdCustomer(@RequestBody CustomerDto customerDto){
+        try {
+            customerService.createCustomer(
+                    customerDto.getFullName(),
+
+                    customerDto.getPassword(),
+                    customerDto.getEmail(),
+                    customerDto.getPhone(),
+                    customerDto.getAddress(),
+                    customerDto.getImageUrl()
+
+            );
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Customer created successfully", null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.ERROR, "Lỗi khi tạo tài khoản: " + e.getMessage(), null)
+            );
+        }
+
+    }
+    @PutMapping("/update/{id}")
+    @Operation(summary = "api cập nhật thông tin tài khoản khách hàng")
+    public ResponseEntity<ResponseObject> updateCustomer(@PathVariable Long Cid, @RequestBody CustomerDto customerDto){
+        try {
+            customerService.updateCustomer(
+                    Cid,
+                    customerDto.getFullName(),
+                    customerDto.getPassword(),
+                    customerDto.getEmail(),
+                    customerDto.getPhone(),
+                    customerDto.getAddress(),
+                    customerDto.getImageUrl(),
+                    customerDto.getIsActive()
+
+            );
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Customer updated successfully", null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.ERROR, "Lỗi khi cập nhật tài khoản: " + e.getMessage(), null)
+            );
         }
     }
-    @GetMapping("/detail/{id}")
-    @Operation(summary = "Thông tin chi tiết về khách hàng")
-    public ResponseEntity<ResponseObject> detail(@PathVariable Long id) {
-        return ResponseEntity.ok(customerService.getCustomerDetail(id));
-    }
-
-    @PutMapping(value = "/update-info/{id}", consumes = {"multipart/form-data"})
-    @Operation(summary = "Cập nhật thông tin cho khách hàng")
-    public ResponseEntity<ResponseObject> updateInfo(
-            @PathVariable Long id,
-            @RequestPart("info") CustomerDetailResponseDto Cdto,
-            @RequestPart(value = "file", required = false) MultipartFile file) {
-        return ResponseEntity.ok(customerService.updateCustomer(id, Cdto, file));
-    }
-
-
-    @PutMapping("/change-password/{id}")
-    public ResponseEntity<ResponseObject> changePassword(@PathVariable Long id, @RequestBody ChangePasswordCustomerRequestDto dto) {
-        return ResponseEntity.ok(customerService.changePasswordCustomer(dto,id));
-    }
-
-
-
-    @PostMapping("/logout")
-    public ResponseEntity<ResponseObject> logout() {
-        return ResponseEntity.ok(customerService.logout());
+    @PutMapping("/delete/{id}")
+    @Operation(summary = "Xóa mềm customer")
+    public  ResponseEntity<ResponseObject> deleteCustomers(@PathVariable Long Cid){
+        try {
+            customerService.deleteCustomer(Cid);
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Customer deleted successfully", null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.ERROR, "Lỗi khi xóa tài khoản: " + e.getMessage(), null)
+            );
+        }
     }
 }
