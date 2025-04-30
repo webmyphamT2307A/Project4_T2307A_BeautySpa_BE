@@ -76,6 +76,7 @@ public class CustomerController {
                     customerDto.getIsActive()
 
             );
+            System.out.println("isActive from FE: " + customerDto.getIsActive());
             return ResponseEntity.ok(
                     new ResponseObject(Status.SUCCESS, "Customer updated successfully", null)
             );
