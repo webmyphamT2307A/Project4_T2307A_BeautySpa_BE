@@ -72,7 +72,7 @@ public class AdminServiceImpl implements AdminService {
             user.setIsActive(true);
             user.setRole(roleOpt.get());
             user.setCreatedAt(Instant.now());
-            branchOpt.ifPresent(user::setBranch); // Set branch if present
+            branchOpt.ifPresent(user::setBranch);
             userRepository.save(user);
 
         } catch (TimeoutException e) {

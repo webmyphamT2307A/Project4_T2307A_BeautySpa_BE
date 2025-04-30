@@ -75,7 +75,7 @@ public class CustomerServiceImpl implements org.aptech.backendmypham.services.Cu
     @Override
     @Transactional
     public void updateCustomer(Long CustomerId, String password, String fullName, String email, String phoneNumber, String address,String imageUrl,Boolean isActive) {
-        Optional<Customer> customerOpt = customerRepository.findByIdAndIsActiveTrue(CustomerId);
+        Optional<Customer> customerOpt = customerRepository.findById(CustomerId);
         if (customerOpt.isEmpty()) {
             throw new RuntimeException("Người dùng không tồn tại!");
         }
