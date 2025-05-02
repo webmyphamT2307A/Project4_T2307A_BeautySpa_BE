@@ -86,7 +86,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    public void updateAdmin(Long userId, String fullName, String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId,Boolean isActive) {
+    public void updateAdmin(Long userId, String fullName, String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId,String imageUrl,Boolean isActive) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
             throw new RuntimeException("Người dùng không tồn tại!");
@@ -109,6 +109,9 @@ public class AdminServiceImpl implements AdminService {
                 throw new RuntimeException("Email đã tồn tại!");
             }
             user.setEmail(email);
+        }
+        if (imageUrl != null) {
+            user.setImageUrl(imageUrl);
         }
 
         // Sửa logic kiểm tra phone
