@@ -9,6 +9,8 @@ import org.aptech.backendmypham.models.User;
 import org.aptech.backendmypham.repositories.CustomerRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.time.Instant;
 import java.util.List;
@@ -33,7 +35,7 @@ public class CustomerServiceImpl implements org.aptech.backendmypham.services.Cu
         return customerRepository.findById(UiD).orElse(null);
     }
     @Override
-    public void createCustomer(String password, String fullName, String email, String phoneNumber, String address,String imageUrl) {
+    public void createCustomer(String password, String fullName, String email, String phoneNumber, String address, MultipartFile file) {
         if (password == null || email == null || phoneNumber == null || address == null) {
             throw new RuntimeException("Thông tin không được để trống!");
         }
@@ -63,7 +65,35 @@ public class CustomerServiceImpl implements org.aptech.backendmypham.services.Cu
             customer.setAddress(address);
             customer.setIsActive(true);
             customer.setCreatedAt(Instant.now());
+            if (file != null && !file.isEmpty()) {
+                try {
+                    String uploadDir = "uploads/";
+                    java.nio.file.Path uploadPath = java.nio.file.Paths.get(uploadDir);
+                    if (!java.nio.file.Files.exists(uploadPath)) {
+                        java.nio.file.Files.createDirectories(uploadPath);
+                    }
+
+                    String fileType = file.getContentType();
+                    if (!fileType.startsWith("image/")) {
+                        throw new RuntimeException("Chỉ cho phép tải lên ảnh.");
+                    }
+
+                    String timePrefix = java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS")
+                            .format(java.time.LocalDateTime.now());
+                    String fileName = timePrefix + "_" + file.getOriginalFilename().replaceAll("\\s+", "_");
+                    java.nio.file.Path filePath = uploadPath.resolve(fileName);
+                    java.nio.file.Files.copy(file.getInputStream(), filePath);
+
+                    String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+                    String imageUrls = baseUrl + "/uploads/" + fileName;
+                    customer.setImageUrl(imageUrls);
+                } catch (Exception e) {
+                    throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
+                }
+            }
+
             customerRepository.save(customer);
+
 
         } catch (TimeoutException e) {
             throw new RuntimeException("Một trong các yêu cầu kiểm tra dữ liệu mất quá nhiều thời gian. Vui lòng thử lại sau.");
@@ -74,49 +104,55 @@ public class CustomerServiceImpl implements org.aptech.backendmypham.services.Cu
     }
     @Override
     @Transactional
-    public void updateCustomer(Long CustomerId, String password, String fullName, String email, String phoneNumber, String address,String imageUrl,Boolean isActive) {
+    public void updateCustomer(Long CustomerId, String password, String fullName, String email, String phoneNumber, String address, Boolean isActive, String imageUrl, MultipartFile file) {
         Optional<Customer> customerOpt = customerRepository.findById(CustomerId);
         if (customerOpt.isEmpty()) {
             throw new RuntimeException("Người dùng không tồn tại!");
         }
         Customer customer = customerOpt.get();
 
-        // Cập nhật fullName
-        if (fullName != null) {
-            customer.setFullName(fullName);
-        }
-
-        if (password != null) {
-            customer.setPassword(passwordEncoder.encode(password));
-        }
-
-        // Sửa logic kiểm tra email
+        if (fullName != null) customer.setFullName(fullName);
+        if (password != null) customer.setPassword(passwordEncoder.encode(password));
         if (email != null && !email.equals(customer.getEmail())) {
             Optional<Customer> emailOpt = customerRepository.findByEmail(email);
-            if (emailOpt.isPresent()) {
-                throw new RuntimeException("Email đã tồn tại!");
-            }
+            if (emailOpt.isPresent()) throw new RuntimeException("Email đã tồn tại!");
             customer.setEmail(email);
         }
-
-        // Sửa logic kiểm tra phone
         if (phoneNumber != null && !phoneNumber.equals(customer.getPhone())) {
             Optional<Customer> phoneOpt = customerRepository.findByPhone(phoneNumber);
-            if (phoneOpt.isPresent()) {
-                throw new RuntimeException("Số điện thoại đã tồn tại!");
-            }
+            if (phoneOpt.isPresent()) throw new RuntimeException("Số điện thoại đã tồn tại!");
             customer.setPhone(phoneNumber);
         }
+        if (address != null) customer.setAddress(address);
+        if (isActive != null) customer.setIsActive(isActive);
 
-        if (address != null) {
-            customer.setAddress(address);
-        }
+        // Nếu có file thì lưu avatar mới
+        if (file != null && !file.isEmpty()) {
+            try {
+                String uploadDir = "uploads/";
+                java.nio.file.Path uploadPath = java.nio.file.Paths.get(uploadDir);
+                if (!java.nio.file.Files.exists(uploadPath)) {
+                    java.nio.file.Files.createDirectories(uploadPath);
+                }
+                String fileType = file.getContentType();
+                if (!fileType.startsWith("image/")) {
+                    throw new RuntimeException("Chỉ cho phép tải lên ảnh.");
+                }
+                String timePrefix = java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS")
+                        .format(java.time.LocalDateTime.now());
+                String fileName = timePrefix + "_" + file.getOriginalFilename().replaceAll("\\s+", "_");
+                java.nio.file.Path filePath = uploadPath.resolve(fileName);
+                java.nio.file.Files.copy(file.getInputStream(), filePath);
 
-
-
-
-        if (isActive != null) {
-            customer.setIsActive(isActive);
+                String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+                String imageUrls = baseUrl + "/uploads/" + fileName;
+                customer.setImageUrl(imageUrls);
+            } catch (Exception e) {
+                throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
+            }
+        } else if (imageUrl != null && !imageUrl.isEmpty()) {
+            // Nếu không upload file mới, giữ lại ảnh cũ từ FE gửi lên
+            customer.setImageUrl(imageUrl);
         }
 
         customerRepository.save(customer);
