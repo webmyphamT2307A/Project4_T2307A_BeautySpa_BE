@@ -53,6 +53,7 @@ public class AdminController {
                     userRequestDto.getAddress(),
                     userRequestDto.getRoleId(),
                     userRequestDto.getBranchId(),
+                    userRequestDto.getImageUrl(),
                     userRequestDto.getIsActive()
 
             );
