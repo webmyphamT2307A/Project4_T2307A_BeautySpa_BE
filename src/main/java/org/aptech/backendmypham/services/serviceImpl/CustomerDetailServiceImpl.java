@@ -10,6 +10,8 @@ import org.aptech.backendmypham.enums.Status;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
 
 import java.time.Instant;
 
@@ -109,7 +111,9 @@ public class CustomerDetailServiceImpl implements CustomerDetailService {
                 java.nio.file.Path filePath = uploadPath.resolve(fileName);
                 java.nio.file.Files.copy(file.getInputStream(), filePath);
 
-                customer.setImageUrl("/uploads/" + fileName);
+                String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+                String imageUrl = baseUrl + "/uploads/" + fileName;
+                customer.setImageUrl(imageUrl);
             } catch (Exception e) {
                 throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
             }
