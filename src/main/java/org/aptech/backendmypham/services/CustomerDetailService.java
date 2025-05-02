@@ -10,7 +10,7 @@ public interface CustomerDetailService {
     ResponseObject registerCustomer(RegisterRequestDto registerRequestDto);
     ResponseObject loginCustomer(LoginCustomerDto loginCustomerDto);
     ResponseObject logout();
-    ResponseObject getCustomerDetail(Long customerId); // ✅ sửa Integer → Long
+    ResponseObject getCustomerDetail(Long customerId);
     ResponseObject updateCustomer(Long id, CustomerDetailResponseDto CustomerDetailResponseDto, MultipartFile file);
     ResponseObject changePasswordCustomer(ChangePasswordCustomerRequestDto changePasswordRequestDto, Long id); // ✅ bổ sung id
 }

@@ -9,6 +9,7 @@ import org.aptech.backendmypham.services.CustomerService;
 import org.aptech.backendmypham.services.serviceImpl.CustomerServiceImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/customer")
@@ -37,19 +38,21 @@ public class CustomerController {
         }
 
     }
+
     @PostMapping("/created")
     @Operation(summary = "Tạo customer")
-    public  ResponseEntity<ResponseObject> createdCustomer(@RequestBody CustomerDto customerDto){
+    public ResponseEntity<ResponseObject> createdCustomer(
+            @RequestPart("customer") CustomerDto customerDto,
+            @RequestPart(value = "file", required = false) MultipartFile file
+    ) {
         try {
             customerService.createCustomer(
-                    customerDto.getFullName(),
-
                     customerDto.getPassword(),
+                    customerDto.getFullName(),
                     customerDto.getEmail(),
                     customerDto.getPhone(),
                     customerDto.getAddress(),
-                    customerDto.getImageUrl()
-
+                    file
             );
             return ResponseEntity.ok(
                     new ResponseObject(Status.SUCCESS, "Customer created successfully", null)
@@ -59,24 +62,27 @@ public class CustomerController {
                     new ResponseObject(Status.ERROR, "Lỗi khi tạo tài khoản: " + e.getMessage(), null)
             );
         }
-
     }
-    @PutMapping("/update/{id}")
+
+    @PostMapping(value = "/update/{id}", consumes = {"multipart/form-data"})
     @Operation(summary = "api cập nhật thông tin tài khoản khách hàng")
-    public ResponseEntity<ResponseObject> updateCustomer(@PathVariable Long id, @RequestBody CustomerDto customerDto){
+    public ResponseEntity<ResponseObject> updateCustomer(
+            @PathVariable Long id,
+            @RequestPart("customer") CustomerDto customerDto,
+            @RequestPart(value = "file", required = false) MultipartFile file
+    ) {
         try {
             customerService.updateCustomer(
                     id,
-                    customerDto.getFullName(),
                     customerDto.getPassword(),
+                    customerDto.getFullName(),
                     customerDto.getEmail(),
                     customerDto.getPhone(),
                     customerDto.getAddress(),
+                    customerDto.getIsActive(),
                     customerDto.getImageUrl(),
-                    customerDto.getIsActive()
-
+                    file
             );
-            System.out.println("isActive from FE: " + customerDto.getIsActive());
             return ResponseEntity.ok(
                     new ResponseObject(Status.SUCCESS, "Customer updated successfully", null)
             );
@@ -86,11 +92,12 @@ public class CustomerController {
             );
         }
     }
+
     @PutMapping("/delete/{id}")
     @Operation(summary = "Xóa mềm customer")
-    public  ResponseEntity<ResponseObject> deleteCustomers(@PathVariable Long Cid){
+    public  ResponseEntity<ResponseObject> deleteCustomers(@PathVariable Long id){
         try {
-            customerService.deleteCustomer(Cid);
+            customerService.deleteCustomer(id);
             return ResponseEntity.ok(
                     new ResponseObject(Status.SUCCESS, "Customer deleted successfully", null)
             );
