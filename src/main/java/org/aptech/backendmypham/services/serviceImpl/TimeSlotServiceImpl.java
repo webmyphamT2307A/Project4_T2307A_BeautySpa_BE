@@ -26,7 +26,6 @@ public class TimeSlotServiceImpl implements TimeSlotService {
     @Override
     public int getAvailableSlot(LocalDate date, Long serviceId, Long timeSlotId) {
         int totalSlot = 10;
-        // Lấy thời điểm bắt đầu và kết thúc ngày
         Instant startOfDay = date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
         Instant endOfDay = date.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
 
