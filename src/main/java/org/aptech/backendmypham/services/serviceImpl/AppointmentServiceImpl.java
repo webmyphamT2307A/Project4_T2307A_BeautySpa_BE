@@ -143,8 +143,55 @@ public class AppointmentServiceImpl implements AppointmentService {
         return appointments.stream()
                 .map(appointment -> {
                     try {
-                        return convertToDto(appointment);
-                    } catch (NullPointerException e) {
+                        AppointmentResponseDto dto = new AppointmentResponseDto();
+                        dto.setId(appointment.getId());
+                        dto.setFullName(appointment.getFullName());
+                        dto.setPhoneNumber(appointment.getPhoneNumber());
+                        dto.setStatus(appointment.getStatus());
+                        dto.setSlot(appointment.getSlot());
+                        dto.setNotes(appointment.getNotes());
+                        dto.setAppointmentDate(appointment.getAppointmentDate().toString());
+                        dto.setEndTime(appointment.getEndTime().toString());
+                        dto.setPrice(appointment.getPrice());
+
+                        // Set userName if available - Fixed to use getFullName()
+                        if (appointment.getUser() != null) {
+                            dto.setUserName(appointment.getUser().getFullName());
+                        } else {
+                            dto.setUserName("N/A");
+                        }
+
+                        // Set service name if available
+                        if (appointment.getService() != null) {
+                            dto.setServiceName(appointment.getService().getName());
+
+                            // Set imageUrl from service if available
+                            if (appointment.getService().getImageUrl() != null) {
+                                dto.setImageUrl(appointment.getService().getImageUrl());
+                            } else {
+                                dto.setImageUrl("default-image-url.jpg"); // default image URL
+                            }
+                        } else {
+                            dto.setServiceName("N/A");
+                            dto.setImageUrl("default-image-url.jpg");
+                        }
+
+                        // Set branch name if available
+                        if (appointment.getBranch() != null) {
+                            dto.setBranchName(appointment.getBranch().getName());
+                        } else {
+                            dto.setBranchName("N/A");
+                        }
+
+                        // Set customer name if available
+                        if (appointment.getCustomer() != null) {
+                            dto.setCustomerName(appointment.getCustomer().getFullName());
+                        } else {
+                            dto.setCustomerName("N/A");
+                        }
+
+                        return dto;
+                    } catch (Exception e) {
                         // Create a basic DTO with available information
                         AppointmentResponseDto dto = new AppointmentResponseDto();
                         dto.setId(appointment.getId());
@@ -157,28 +204,17 @@ public class AppointmentServiceImpl implements AppointmentService {
                         dto.setEndTime(appointment.getEndTime().toString());
                         dto.setPrice(appointment.getPrice());
 
-                        if (appointment.getService() != null) {
-                            dto.setServiceName(appointment.getService().getName());
-                        } else {
-                            dto.setServiceName("N/A");
-                        }
-
-                        if (appointment.getBranch() != null) {
-                            dto.setBranchName(appointment.getBranch().getName());
-                        } else {
-                            dto.setBranchName("N/A");
-                        }
-
+                        dto.setUserName("N/A");
+                        dto.setServiceName("N/A");
+                        dto.setBranchName("N/A");
                         dto.setCustomerName("N/A");
+                        dto.setImageUrl("default-image-url.jpg");
 
                         return dto;
                     }
                 })
                 .collect(Collectors.toList());
     }
-
-
-
 
 
 }
