@@ -14,6 +14,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -135,6 +137,47 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new RuntimeException("Xóa mềm thất bại: " + e.getMessage());
         }
     }
+    @Override
+    public List<AppointmentResponseDto> getALlAppointment() {
+        List<Appointment> appointments = appointmentRepository.findAll();
+        return appointments.stream()
+                .map(appointment -> {
+                    try {
+                        return convertToDto(appointment);
+                    } catch (NullPointerException e) {
+                        // Create a basic DTO with available information
+                        AppointmentResponseDto dto = new AppointmentResponseDto();
+                        dto.setId(appointment.getId());
+                        dto.setFullName(appointment.getFullName());
+                        dto.setPhoneNumber(appointment.getPhoneNumber());
+                        dto.setStatus(appointment.getStatus());
+                        dto.setSlot(appointment.getSlot());
+                        dto.setNotes(appointment.getNotes());
+                        dto.setAppointmentDate(appointment.getAppointmentDate().toString());
+                        dto.setEndTime(appointment.getEndTime().toString());
+                        dto.setPrice(appointment.getPrice());
+
+                        if (appointment.getService() != null) {
+                            dto.setServiceName(appointment.getService().getName());
+                        } else {
+                            dto.setServiceName("N/A");
+                        }
+
+                        if (appointment.getBranch() != null) {
+                            dto.setBranchName(appointment.getBranch().getName());
+                        } else {
+                            dto.setBranchName("N/A");
+                        }
+
+                        dto.setCustomerName("N/A");
+
+                        return dto;
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
+
 
 
 
