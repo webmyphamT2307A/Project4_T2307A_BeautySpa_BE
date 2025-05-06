@@ -94,11 +94,28 @@ public class AppointmentServiceImpl implements AppointmentService {
         dto.setNotes(appointment.getNotes());
         dto.setAppointmentDate(appointment.getAppointmentDate().toString());
         dto.setEndTime(appointment.getEndTime().toString());
+        dto.setCustomerImageUrl(appointment.getCustomer() != null ? appointment.getCustomer().getImageUrl() : null);
         dto.setPrice(appointment.getPrice());
+        dto.setUserImageUrl(appointment.getUser() != null ? appointment.getUser().getImageUrl() : null);
 
         dto.setServiceName(appointment.getService().getName());
         dto.setBranchName(appointment.getBranch().getName());
         dto.setCustomerName(appointment.getCustomer().getFullName());
+
+        if (appointment.getCustomer() != null) {
+            dto.setCustomerName(appointment.getCustomer().getFullName());
+            dto.setCustomerImageUrl(appointment.getCustomer().getImageUrl());
+        } else {
+            dto.setCustomerName("N/A");
+            dto.setCustomerImageUrl(null);
+        }
+        if (appointment.getUser() != null) {
+            dto.setUserName(appointment.getUser().getFullName());
+            dto.setUserImageUrl(appointment.getUser().getImageUrl());
+        } else {
+            dto.setUserName("N/A");
+            dto.setUserImageUrl(null);
+        }
 
         return dto;
     }
@@ -154,7 +171,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                         dto.setEndTime(appointment.getEndTime().toString());
                         dto.setPrice(appointment.getPrice());
 
-                        // Set userName if available - Fixed to use getFullName()
                         if (appointment.getUser() != null) {
                             dto.setUserName(appointment.getUser().getFullName());
                         } else {
@@ -164,16 +180,8 @@ public class AppointmentServiceImpl implements AppointmentService {
                         // Set service name if available
                         if (appointment.getService() != null) {
                             dto.setServiceName(appointment.getService().getName());
-
-                            // Set imageUrl from service if available
-                            if (appointment.getService().getImageUrl() != null) {
-                                dto.setImageUrl(appointment.getService().getImageUrl());
-                            } else {
-                                dto.setImageUrl("default-image-url.jpg"); // default image URL
-                            }
                         } else {
                             dto.setServiceName("N/A");
-                            dto.setImageUrl("default-image-url.jpg");
                         }
 
                         // Set branch name if available
@@ -183,11 +191,20 @@ public class AppointmentServiceImpl implements AppointmentService {
                             dto.setBranchName("N/A");
                         }
 
-                        // Set customer name if available
+                        // Set customer name & image if available
                         if (appointment.getCustomer() != null) {
                             dto.setCustomerName(appointment.getCustomer().getFullName());
+                            dto.setCustomerImageUrl(appointment.getCustomer().getImageUrl()); // <-- BỔ SUNG DÒNG NÀY
                         } else {
                             dto.setCustomerName("N/A");
+                            dto.setCustomerImageUrl(null);
+                        }
+                        if(appointment.getUser() != null) {
+                            dto.setUserName(appointment.getUser().getFullName());
+                            dto.setUserImageUrl(appointment.getUser().getImageUrl());
+                        }else{
+                            dto.setUserName("N/A");
+                            dto.setUserImageUrl(null);
                         }
 
                         return dto;
@@ -208,7 +225,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                         dto.setServiceName("N/A");
                         dto.setBranchName("N/A");
                         dto.setCustomerName("N/A");
-                        dto.setImageUrl("default-image-url.jpg");
+                        dto.setCustomerImageUrl(null);
 
                         return dto;
                     }
