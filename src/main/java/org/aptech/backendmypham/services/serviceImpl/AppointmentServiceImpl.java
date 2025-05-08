@@ -14,6 +14,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -92,11 +94,28 @@ public class AppointmentServiceImpl implements AppointmentService {
         dto.setNotes(appointment.getNotes());
         dto.setAppointmentDate(appointment.getAppointmentDate().toString());
         dto.setEndTime(appointment.getEndTime().toString());
+        dto.setCustomerImageUrl(appointment.getCustomer() != null ? appointment.getCustomer().getImageUrl() : null);
         dto.setPrice(appointment.getPrice());
+        dto.setUserImageUrl(appointment.getUser() != null ? appointment.getUser().getImageUrl() : null);
 
         dto.setServiceName(appointment.getService().getName());
         dto.setBranchName(appointment.getBranch().getName());
         dto.setCustomerName(appointment.getCustomer().getFullName());
+
+        if (appointment.getCustomer() != null) {
+            dto.setCustomerName(appointment.getCustomer().getFullName());
+            dto.setCustomerImageUrl(appointment.getCustomer().getImageUrl());
+        } else {
+            dto.setCustomerName("N/A");
+            dto.setCustomerImageUrl(null);
+        }
+        if (appointment.getUser() != null) {
+            dto.setUserName(appointment.getUser().getFullName());
+            dto.setUserImageUrl(appointment.getUser().getImageUrl());
+        } else {
+            dto.setUserName("N/A");
+            dto.setUserImageUrl(null);
+        }
 
         return dto;
     }
@@ -135,7 +154,84 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new RuntimeException("Xóa mềm thất bại: " + e.getMessage());
         }
     }
+    @Override
+    public List<AppointmentResponseDto> getALlAppointment() {
+        List<Appointment> appointments = appointmentRepository.findAll();
+        return appointments.stream()
+                .map(appointment -> {
+                    try {
+                        AppointmentResponseDto dto = new AppointmentResponseDto();
+                        dto.setId(appointment.getId());
+                        dto.setFullName(appointment.getFullName());
+                        dto.setPhoneNumber(appointment.getPhoneNumber());
+                        dto.setStatus(appointment.getStatus());
+                        dto.setSlot(appointment.getSlot());
+                        dto.setNotes(appointment.getNotes());
+                        dto.setAppointmentDate(appointment.getAppointmentDate().toString());
+                        dto.setEndTime(appointment.getEndTime().toString());
+                        dto.setPrice(appointment.getPrice());
 
+                        if (appointment.getUser() != null) {
+                            dto.setUserName(appointment.getUser().getFullName());
+                        } else {
+                            dto.setUserName("N/A");
+                        }
+
+                        // Set service name if available
+                        if (appointment.getService() != null) {
+                            dto.setServiceName(appointment.getService().getName());
+                        } else {
+                            dto.setServiceName("N/A");
+                        }
+
+                        // Set branch name if available
+                        if (appointment.getBranch() != null) {
+                            dto.setBranchName(appointment.getBranch().getName());
+                        } else {
+                            dto.setBranchName("N/A");
+                        }
+
+                        // Set customer name & image if available
+                        if (appointment.getCustomer() != null) {
+                            dto.setCustomerName(appointment.getCustomer().getFullName());
+                            dto.setCustomerImageUrl(appointment.getCustomer().getImageUrl()); // <-- BỔ SUNG DÒNG NÀY
+                        } else {
+                            dto.setCustomerName("N/A");
+                            dto.setCustomerImageUrl(null);
+                        }
+                        if(appointment.getUser() != null) {
+                            dto.setUserName(appointment.getUser().getFullName());
+                            dto.setUserImageUrl(appointment.getUser().getImageUrl());
+                        }else{
+                            dto.setUserName("N/A");
+                            dto.setUserImageUrl(null);
+                        }
+
+                        return dto;
+                    } catch (Exception e) {
+                        // Create a basic DTO with available information
+                        AppointmentResponseDto dto = new AppointmentResponseDto();
+                        dto.setId(appointment.getId());
+                        dto.setFullName(appointment.getFullName());
+                        dto.setPhoneNumber(appointment.getPhoneNumber());
+                        dto.setStatus(appointment.getStatus());
+                        dto.setSlot(appointment.getSlot());
+                        dto.setNotes(appointment.getNotes());
+                        dto.setAppointmentDate(appointment.getAppointmentDate().toString());
+                        dto.setEndTime(appointment.getEndTime().toString());
+                        dto.setPrice(appointment.getPrice());
+
+                        dto.setUserName("N/A");
+                        dto.setServiceName("N/A");
+                        dto.setBranchName("N/A");
+                        dto.setCustomerName("N/A");
+                        dto.setCustomerImageUrl(null);
+
+                        return dto;
+                    }
+                })
+                .collect(Collectors.toList());
+    }
 
 
 }

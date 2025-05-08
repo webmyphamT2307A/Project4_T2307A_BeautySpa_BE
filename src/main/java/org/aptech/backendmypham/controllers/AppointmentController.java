@@ -66,6 +66,13 @@ public class AppointmentController {
             return ResponseEntity.badRequest().body(new ResponseObject(Status.ERROR, e.getMessage(), null));
         }
     }
+    @GetMapping("")
+    @Operation(summary = "Lấy tất cả appointment")
+    public  ResponseEntity<ResponseObject> getALlAppointment() {
+        return ResponseEntity.ok(
+                new ResponseObject(Status.SUCCESS,"Lấy thành công",appointmentService.getALlAppointment())
+        );
+    }
 
 
 }

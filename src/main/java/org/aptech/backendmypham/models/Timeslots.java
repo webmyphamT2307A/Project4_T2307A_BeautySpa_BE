@@ -16,7 +16,7 @@ import java.time.LocalTime;
 public class Timeslots {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer slotId;
+    private Long slotId;
 
     @Column(nullable = false)
     private LocalTime startTime;
