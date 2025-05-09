@@ -1,5 +1,6 @@
 package org.aptech.backendmypham.services.serviceImpl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.*;
 import org.aptech.backendmypham.models.Customer;
@@ -16,6 +17,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.time.Instant;
 
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -26,26 +28,39 @@ public class CustomerDetailServiceImpl implements CustomerDetailService {
     private final JwtService jwtService;
 
     @Override
+    @Transactional
     public ResponseObject registerCustomer(RegisterRequestDto registerRequestDto) {
-        // Kiểm tra nếu email đã tồn tại
-        if (customerRepository.existsByEmail(registerRequestDto.getEmail())) {
-            return new ResponseObject(Status.ERROR, "Email đã được đăng ký", null);
+        // Kiểm tra nếu đã có guest customer với cùng số điện thoại
+        Optional<Customer> existingCustomer = customerRepository.findByPhone(registerRequestDto.getPhone());
+
+        if (existingCustomer.isPresent()) {
+            Customer customer = existingCustomer.get();
+
+            // Nếu tài khoản đã có email, thông báo lỗi
+            if (customer.getEmail() != null) {
+                return new ResponseObject(Status.ERROR, "Số điện thoại đã được sử dụng", null);
+            }
+
+            // Cập nhật thông tin guest thành khách hàng chính thức
+            customer.setFullName(registerRequestDto.getFullName());
+            customer.setEmail(registerRequestDto.getEmail());
+            customer.setPassword(passwordEncoder.encode(registerRequestDto.getPassword()));
+            customer.setAddress(registerRequestDto.getAddress());
+            customerRepository.save(customer);
+
+            return new ResponseObject(Status.SUCCESS, "Đăng ký thành công", customer);
         }
 
-        // Mã hóa mật khẩu
-        String encodedPassword = passwordEncoder.encode(registerRequestDto.getPassword());
-
-        // Tạo đối tượng customer
+        // Nếu chưa tồn tại khách hàng này -> tạo mới
         Customer customer = new Customer();
         customer.setFullName(registerRequestDto.getFullName());
         customer.setEmail(registerRequestDto.getEmail());
-        customer.setPassword(encodedPassword);
+        customer.setPassword(passwordEncoder.encode(registerRequestDto.getPassword()));
         customer.setPhone(registerRequestDto.getPhone());
         customer.setAddress(registerRequestDto.getAddress());
         customer.setCreatedAt(Instant.now());
         customer.setIsActive(true);
 
-        // Lưu customer vào cơ sở dữ liệu
         customerRepository.save(customer);
 
         return new ResponseObject(Status.SUCCESS, "Đăng ký thành công", customer);

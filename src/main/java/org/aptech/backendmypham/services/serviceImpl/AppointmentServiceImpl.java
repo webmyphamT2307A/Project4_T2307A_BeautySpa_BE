@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.AppointmentDto;
 import org.aptech.backendmypham.dto.AppointmentResponseDto;
 import org.aptech.backendmypham.models.Appointment;
+import org.aptech.backendmypham.models.Servicehistory;
 import org.aptech.backendmypham.repositories.*;
 import org.aptech.backendmypham.services.AppointmentService;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final CustomerRepository customerRepository;
     private final BranchRepository branchRepository;
     private final TimeSlotsRepository timeSlotsRepository;
+    private  final ServiceHistoryRepository serviceHistoryRepository;
 
     @Override
     public void createAppointment(AppointmentDto dto) {
@@ -73,6 +75,23 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setCreatedAt(Instant.now());
         appointment.setUpdatedAt(Instant.now());
         appointment.setIsActive(true);
+//        // Lưu thông tin lịch hẹn vào cơ sở dữ liệu
+//        Appointment savedAppointment = appointmentRepository.save(appointment);
+//
+//        // Tạo service history (lịch sử dịch vụ)
+//        Servicehistory serviceHistory = new Servicehistory();
+//        serviceHistory.setUser(savedAppointment.getUser()); // User thực hiện dịch vụ
+//        serviceHistory.setCustomer(savedAppointment.getCustomer()); // Khách hàng
+//        serviceHistory.setAppointment(savedAppointment); // Lịch hẹn
+//        serviceHistory.setService(savedAppointment.getService()); // Dịch vụ sử dụng
+//        serviceHistory.setDateUsed(Instant.now()); // Ngày sử dụng dịch vụ (thời điểm hiện tại)
+//        serviceHistory.setNotes("Lịch sử lưu tự động khi tạo lịch"); // Có thể nhận từ DTO nếu cần
+//        serviceHistory.setCreatedAt(Instant.now());
+//        serviceHistory.setIsActive(true);
+//
+//        // Lưu service history vào cơ sở dữ liệu
+//        serviceHistoryRepository.save(serviceHistory);
+
 
         appointmentRepository.save(appointment);
     }

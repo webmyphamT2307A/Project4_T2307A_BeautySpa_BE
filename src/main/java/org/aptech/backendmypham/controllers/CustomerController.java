@@ -10,9 +10,11 @@ import org.aptech.backendmypham.repositories.CustomerRepository;
 import org.aptech.backendmypham.services.CustomerService;
 import org.aptech.backendmypham.services.serviceImpl.CustomerServiceImpl;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -23,6 +25,7 @@ import java.util.Optional;
 public class CustomerController {
     private  final CustomerService customerService;
     private final CustomerRepository customerRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @GetMapping("")
     @Operation(summary = "Lấy tất cả của customer")
@@ -127,12 +130,16 @@ public class CustomerController {
         Optional<Customer> existing = customerRepository.findByPhone(phone);
         Customer customer;
         if (existing.isPresent()) {
+            // Nếu khách hàng đã tồn tại -> trả về thông tin
             customer = existing.get();
         } else {
+            // Tạo khách hàng mới (guest)
             customer = new Customer();
             customer.setFullName(fullName);
             customer.setPhone(phone);
-            customer.setPassword("guest_default_password");
+            customer.setPassword(passwordEncoder.encode("guest_default_password")); // Mã hóa mật khẩu
+            customer.setCreatedAt(Instant.now());
+            customer.setIsActive(true);
             customer = customerRepository.save(customer);
         }
 
