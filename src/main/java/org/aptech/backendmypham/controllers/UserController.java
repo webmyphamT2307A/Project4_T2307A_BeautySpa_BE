@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -86,6 +87,10 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ResponseObject(Status.ERROR, "Lỗi khi vô hiệu hóa tài khoản khách hàng: " + e.getMessage(), null));
         }
+    }
+    @GetMapping("/staff")
+    public List<User> getStaffUsers() {
+        return userService.getUsersByRole("staff");
     }
 
 }

@@ -12,6 +12,7 @@ import org.aptech.backendmypham.services.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
 
@@ -140,7 +141,9 @@ public class UserServiceImpl implements UserService {
         user.setIsActive(false);
         userRepository.save(user);
     }
-
+    public List<User> getUsersByRole(String roleName) {
+        return userRepository.findByRoleName(roleName);
+    }
     // Hàm lấy kết quả với timeout (không đổi)
     private <T> T getFutureResultWithTimeout(Future<T> future, String entityName, int seconds)
             throws InterruptedException, ExecutionException {
