@@ -16,6 +16,7 @@ import java.time.Instant;
 public class Servicehistory {
     @Id
     @Column(name = "history_id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
