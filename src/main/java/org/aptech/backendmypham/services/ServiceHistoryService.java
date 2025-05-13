@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface ServiceHistoryService {
     public List<ServiceHistoryDTO> getAll();
+//    public ServiceHistoryDTO findById(Long id);
 }

@@ -18,9 +18,15 @@ public class ServiceHistoryServiceImpl implements ServiceHistoryService {
     @Override
     public List<ServiceHistoryDTO> getAll() {
         return serviceHistoryRepository.findAll().stream()
-                .map(this::mapToDTO) 
+                .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
+//    @Override
+//    public ServiceHistoryDTO findByID(Integer id) {
+//        return serviceHistoryRepository.findById(id)
+//                .map(this::mapToDTO) // Ánh xạ từ entity sang DTO
+//                .orElseThrow(() -> new RuntimeException("Lịch sử dịch vụ không tồn tại với ID: " + id));
+//    }
     private ServiceHistoryDTO mapToDTO(Servicehistory history) {
         return new ServiceHistoryDTO(
                 history.getId(),
