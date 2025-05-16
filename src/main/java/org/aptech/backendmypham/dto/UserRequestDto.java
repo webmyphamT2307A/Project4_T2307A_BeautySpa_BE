@@ -14,7 +14,8 @@ public class UserRequestDto {
     String password;
     String imageUrl;
     String address;
-    int roleId;
-    int branchId;
+    Integer roleId;
+    Integer branchId;
     String description;
+    Boolean isActive;
 }

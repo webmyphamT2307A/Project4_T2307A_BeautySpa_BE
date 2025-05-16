@@ -12,6 +12,7 @@ import org.aptech.backendmypham.services.AdminService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -27,27 +28,30 @@ public class AdminServiceImpl implements AdminService {
     // Sử dụng thread pool với 2 threads (đủ để xử lý đồng thời mà không gây quá tải)
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
 
-    @Override
-    @Transactional
+   @Override
     public void createAdmin(String password, String fullName, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
-        // Kiểm tra thông tin đầu vào
         if (password == null || email == null || phoneNumber == null || address == null) {
             throw new RuntimeException("Thông tin không được để trống!");
         }
 
-        try {
-            Future<Optional<Role>> roleFuture = executor.submit(() -> roleRepository.findById((long) roleId));
-            Future<Optional<Branch>> branchFuture = (branchId != null) ? executor.submit(() -> branchRepository.findById((long) branchId)) : null;
-            Future<Optional<User>> emailFuture = executor.submit(() -> userRepository.findByEmail(email));
-            Future<Optional<User>> phoneFuture = executor.submit(() -> userRepository.findByPhone(phoneNumber));
+        // Bất đồng bộ kiểm tra sự tồn tại của role, branch, email và phone
+        CompletableFuture<Optional<Role>> roleFuture = CompletableFuture.supplyAsync(() -> roleRepository.findById((long) roleId));
+        CompletableFuture<Optional<Branch>> branchFuture = branchId != null ? CompletableFuture.supplyAsync(() -> branchRepository.findById((long) branchId)) : CompletableFuture.completedFuture(Optional.empty());
+        CompletableFuture<Optional<User>> emailFuture = CompletableFuture.supplyAsync(() -> userRepository.findByEmail(email));
+        CompletableFuture<Optional<User>> phoneFuture = CompletableFuture.supplyAsync(() -> userRepository.findByPhone(phoneNumber));
 
-            Optional<Role> roleOpt = getFutureResultWithTimeout(roleFuture, "role", 3);
-            Optional<Branch> branchOpt = (branchId != null) ? getFutureResultWithTimeout(branchFuture, "chi nhánh", 3) : Optional.empty();
-            Optional<User> emailOpt = getFutureResultWithTimeout(emailFuture, "email", 3);
-            Optional<User> phoneOpt = getFutureResultWithTimeout(phoneFuture, "số điện thoại", 3);
+        try {
+            Optional<Role> roleOpt = roleFuture.get(5, TimeUnit.SECONDS);
+            Optional<Branch> branchOpt = branchFuture.get(5, TimeUnit.SECONDS);
+            Optional<User> emailOpt = emailFuture.get(5, TimeUnit.SECONDS);
+            Optional<User> phoneOpt = phoneFuture.get(5, TimeUnit.SECONDS);
 
             if (roleOpt.isEmpty()) {
                 throw new RuntimeException("Role không tồn tại!");
+            }
+
+            if (branchId != null && branchOpt.isEmpty()) {
+                throw new RuntimeException("Chi nhánh không tồn tại!");
             }
 
             if (emailOpt.isPresent()) {
@@ -58,6 +62,7 @@ public class AdminServiceImpl implements AdminService {
                 throw new RuntimeException("Số điện thoại đã tồn tại!");
             }
 
+            // Tạo mới User
             User user = new User();
             user.setFullName(fullName);
             user.setPassword(passwordEncoder.encode(password));
@@ -66,39 +71,51 @@ public class AdminServiceImpl implements AdminService {
             user.setAddress(address);
             user.setIsActive(true);
             user.setRole(roleOpt.get());
+            user.setCreatedAt(Instant.now());
             branchOpt.ifPresent(user::setBranch);
-
             userRepository.save(user);
+
+        } catch (TimeoutException e) {
+            throw new RuntimeException("Một trong các yêu cầu kiểm tra dữ liệu mất quá nhiều thời gian. Vui lòng thử lại sau.");
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Lỗi khi kiểm tra tồn tại của role và branch: " + e.getMessage());
-        } finally {
-            executor.shutdown();
         }
     }
 
+
     @Override
     @Transactional
-    public void updateAdmin(Long userId, String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
+    public void updateAdmin(Long userId, String fullName, String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId,String imageUrl,Boolean isActive) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
             throw new RuntimeException("Người dùng không tồn tại!");
         }
         User user = userOpt.get();
 
+        // Cập nhật fullName
+        if (fullName != null) {
+            user.setFullName(fullName);
+        }
+
         if (password != null) {
             user.setPassword(passwordEncoder.encode(password));
         }
 
-        if (email != null) {
+        // Sửa logic kiểm tra email
+        if (email != null && !email.equals(user.getEmail())) {
             Optional<User> emailOpt = userRepository.findByEmail(email);
             if (emailOpt.isPresent()) {
                 throw new RuntimeException("Email đã tồn tại!");
             }
             user.setEmail(email);
         }
+        if (imageUrl != null) {
+            user.setImageUrl(imageUrl);
+        }
 
-        if (phoneNumber != null) {
+        // Sửa logic kiểm tra phone
+        if (phoneNumber != null && !phoneNumber.equals(user.getPhone())) {
             Optional<User> phoneOpt = userRepository.findByPhone(phoneNumber);
             if (phoneOpt.isPresent()) {
                 throw new RuntimeException("Số điện thoại đã tồn tại!");
@@ -124,6 +141,9 @@ public class AdminServiceImpl implements AdminService {
                 throw new RuntimeException("Chi nhánh không tồn tại!");
             }
             user.setBranch(branchOpt.get());
+        }
+        if (isActive != null) {
+            user.setIsActive(isActive);
         }
 
         userRepository.save(user);

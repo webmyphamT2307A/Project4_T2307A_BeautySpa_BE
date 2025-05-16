@@ -19,12 +19,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Modifying
 
-    @Query(nativeQuery = true, value = "SELECT * FROM users WHERE is_active = 1")
+    @Query(nativeQuery = true, value = "SELECT * FROM users")
 
     List<User> findAllIsActive();
 
     @Modifying
     @Query(nativeQuery = true, value = "UPDATE users SET is_active = :isActive WHERE id = :id")
     void updateIsActiveById(@Param("id") Long id, @Param("isActive") int isActive);
-
+    @Query("SELECT u FROM User u WHERE u.role.name = :roleName")
+    List<User> findByRoleName(@Param("roleName") String roleName);
+    boolean existsByEmail(String email);
 }

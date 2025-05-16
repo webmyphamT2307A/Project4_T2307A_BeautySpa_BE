@@ -40,19 +40,22 @@ public class AdminController {
             );
         }
     }
-
     @PutMapping("/update/{id}")
     @Operation(summary = "api cập nhật thông tin tài khoản admin, nhân viên")
     public ResponseEntity<ResponseObject> updateAccount(@PathVariable Long id, @RequestBody UserRequestDto userRequestDto) {
         try {
             adminService.updateAdmin(
                     id,
+                    userRequestDto.getFullName(),
                     userRequestDto.getPassword(),
                     userRequestDto.getEmail(),
                     userRequestDto.getPhone(),
                     userRequestDto.getAddress(),
                     userRequestDto.getRoleId(),
-                    userRequestDto.getBranchId()
+                    userRequestDto.getBranchId(),
+                    userRequestDto.getImageUrl(),
+                    userRequestDto.getIsActive()
+
             );
             return ResponseEntity.ok(
                     new ResponseObject(Status.SUCCESS, "Account updated successfully", null)

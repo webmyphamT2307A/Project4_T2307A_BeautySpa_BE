@@ -15,8 +15,14 @@ public class AppointmentResponseDto {
     private String appointmentDate;
     private String endTime;
     private BigDecimal price;
+    private String userName;
 
     private String serviceName;
     private String branchName;
     private String customerName;
+    private String UserImageUrl;
+    private String customerImageUrl;
+
+
+
 }

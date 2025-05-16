@@ -29,7 +29,8 @@ public class Service {
 
     @Column(name = "duration", nullable = false)
     private Integer duration;
-
+    @Column(name = "image_url")
+    private String imageUrl;
     @ColumnDefault("(now())")
     @Column(name = "created_at")
     private Instant createdAt;
