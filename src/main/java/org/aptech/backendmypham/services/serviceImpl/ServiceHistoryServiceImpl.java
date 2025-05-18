@@ -37,7 +37,7 @@ public class ServiceHistoryServiceImpl implements ServiceHistoryService {
                 history.getService().getName(),
                 history.getService().getPrice(),
                 history.getAppointment().getAppointmentDate(),
-                history.getNotes(), 
+                history.getNotes(),
                 history.getCreatedAt(),
                 history.getIsActive()
         );
