@@ -21,12 +21,12 @@ public class ServiceHistoryServiceImpl implements ServiceHistoryService {
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
-//    @Override
-//    public ServiceHistoryDTO findByID(Integer id) {
-//        return serviceHistoryRepository.findById(id)
-//                .map(this::mapToDTO) // Ánh xạ từ entity sang DTO
-//                .orElseThrow(() -> new RuntimeException("Lịch sử dịch vụ không tồn tại với ID: " + id));
-//    }
+    @Override
+    public List<ServiceHistoryDTO> getHistoryBycustomerId(Integer customerId) {
+        return serviceHistoryRepository.findBycustomerId(customerId).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
     private ServiceHistoryDTO mapToDTO(Servicehistory history) {
         return new ServiceHistoryDTO(
                 history.getId(),
