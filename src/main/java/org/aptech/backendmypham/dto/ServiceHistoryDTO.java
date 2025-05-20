@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Getter
@@ -17,7 +18,9 @@ public class ServiceHistoryDTO {
     private Integer customerId;
     private Integer appointmentId;
     private Integer serviceId;
-    private Instant dateUsed;
+    private String serviceName;
+    private BigDecimal price;
+    private Instant appointmentDate;
     private String notes;
     private Instant createdAt;
     private Boolean isActive;
