@@ -33,7 +33,7 @@ public class JwtService {
         return JWT.create()
                 .withSubject(email)
                 .withIssuer(ISSUER)
-                .withClaim("role", role)
+                .withClaim("role", "ROLE_" + role.toUpperCase())
                 .withExpiresAt(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 1 ngày
                 .sign(Algorithm.HMAC256(SECRET_KEY));
     }

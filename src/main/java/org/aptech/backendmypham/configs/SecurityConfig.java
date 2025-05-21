@@ -15,7 +15,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf().disable() // Tạm thời tắt CSRF
+                .csrf().disable()
                 .authorizeHttpRequests(requests -> requests
                         // Chỉ cho phép role "ADMIN" truy cập vào các endpoint của admin
                         .requestMatchers("/admin/**").hasRole("ADMIN")

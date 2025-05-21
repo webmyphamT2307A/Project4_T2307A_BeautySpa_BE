@@ -43,7 +43,7 @@ public class userDetailServiceImpl implements userDetailService {
         Branch branch = branchRepository.findById(userRegisterDto.getBranchId())
                 .orElseThrow(() -> new RuntimeException("Nhánh không tồn tại"));
 
-        Role role = roleRepository.findById(3L)
+        Role role = roleRepository.findById(1L)
                 .orElseThrow(() -> new RuntimeException("Vai trò không tồn tại"));
 
         // Tạo đối tượng người dùng
