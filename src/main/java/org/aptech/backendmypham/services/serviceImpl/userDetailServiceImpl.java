@@ -135,7 +135,10 @@ public class userDetailServiceImpl implements userDetailService {
 
         return new ResponseObject(Status.SUCCESS, "Đổi mật khẩu thành công", null);
     }
-
-
+    @Override
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
+    }
 
 }

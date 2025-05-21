@@ -1,5 +1,6 @@
 package org.aptech.backendmypham.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -14,10 +15,10 @@ import java.nio.file.Paths;
 @RestController
 public class ImageController {
 
-    // Đảm bảo rằng thư mục "uploads" tồn tại trên hệ thống tệp của bạn.
     private static final String UPLOAD_DIR = "uploads";
 
     @GetMapping("/uploads/{filename}")
+    @Operation(summary = "Upload ảnh lên")
     public ResponseEntity<Resource> getImage(@PathVariable String filename) {
         // Xác định đường dẫn tệp từ tên tệp truyền vào
         Path filePath = Paths.get(UPLOAD_DIR).resolve(filename).normalize();
@@ -31,7 +32,6 @@ public class ImageController {
         // Xác định loại MIME cho file (JPEG ở đây)
         String contentType = "image/jpeg"; // Cần thay đổi cho loại ảnh thực tế
 
-        // Trả về tệp dưới dạng phản hồi với các header cho phép hiển thị hình ảnh
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, contentType)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
