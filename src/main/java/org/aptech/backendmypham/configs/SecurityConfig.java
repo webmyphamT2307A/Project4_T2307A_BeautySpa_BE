@@ -14,16 +14,20 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.
-                csrf().disable() //todo: sau này thêm phân quyền, thêm xác thực qua jwt
+        http
+                .csrf().disable() // Tạm thời tắt CSRF
                 .authorizeHttpRequests(requests -> requests
-                        .anyRequest().permitAll());
+                        // Chỉ cho phép role "ADMIN" truy cập vào các endpoint của admin
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        // Các endpoint khác cho phép tất cả truy cập
+                        .anyRequest().permitAll()
+                )
+                .formLogin().disable(); // Tắt form login nếu bạn dùng JWT
 
         return http.build();
     }
 
     @Bean
-    //bean mã hóa password
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }

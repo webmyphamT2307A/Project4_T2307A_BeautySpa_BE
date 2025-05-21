@@ -43,7 +43,7 @@ public class userDetailServiceImpl implements userDetailService {
         Branch branch = branchRepository.findById(userRegisterDto.getBranchId())
                 .orElseThrow(() -> new RuntimeException("Nhánh không tồn tại"));
 
-        Role role = roleRepository.findById(1L)
+        Role role = roleRepository.findById(3L)
                 .orElseThrow(() -> new RuntimeException("Vai trò không tồn tại"));
 
         // Tạo đối tượng người dùng
@@ -135,7 +135,10 @@ public class userDetailServiceImpl implements userDetailService {
 
         return new ResponseObject(Status.SUCCESS, "Đổi mật khẩu thành công", null);
     }
-
-
+    @Override
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
+    }
 
 }

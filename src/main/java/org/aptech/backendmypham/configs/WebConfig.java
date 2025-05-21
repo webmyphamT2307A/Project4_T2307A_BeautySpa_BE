@@ -13,7 +13,7 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .allowedOrigins("http://localhost:3000","http://localhost:3001") //todo: chỉnh thành fe url
+                .allowedOrigins("http://localhost:3003","http://localhost:3001","http://localhost:3002") //todo: chỉnh thành fe url
                 .allowCredentials(true)
                 .maxAge(3600);
     }
