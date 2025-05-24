@@ -29,20 +29,19 @@ public class ServiceHistoryController {
             );
         }
     }
-//    @GetMapping("/{id}")
-//    @Operation(summary = "Tìm lịch sử dịch vụ theo ID")
-//    public ResponseEntity<ResponseObject> getServiceHistoryById(@PathVariable Integer id) {
-//        try {
-//            ServiceHistoryDTO serviceHistory = serviceHistoryService.findById(id);
-//            return ResponseEntity.ok(
-//                    new ResponseObject(Status.SUCCESS, "Tìm thành công", serviceHistory)
-//            );
-//        } catch (RuntimeException e) {
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-//                    new ResponseObject(Status.ERROR, e.getMessage(), null)
-//            );
-//        }
-//    }
+    @GetMapping("/customer/{customerId}")
+    @Operation(summary = "Lấy lịch sử dịch vụ theo customerId")
+    public ResponseEntity<ResponseObject> getServiceHistoryByCustomerId(@PathVariable Integer customerId) {
+        try {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Tìm thành công", serviceHistoryService.getHistoryBycustomerId(customerId))
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ResponseObject(Status.ERROR, "Lỗi khi tìm lịch sử dịch vụ: " + e.getMessage(), null)
+            );
+        }
+    }
 
 
 }

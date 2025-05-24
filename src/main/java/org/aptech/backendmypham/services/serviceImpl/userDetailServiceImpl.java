@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -67,8 +68,12 @@ public class userDetailServiceImpl implements userDetailService {
 
 
         // Tìm người dùng trong cơ sở dữ liệu
-        User user = userRepository.findByEmail(dto.getEmail())
-                .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
+        Optional<User> userOptional = userRepository.findByEmail(dto.getEmail());
+        if (userOptional.isEmpty()) {
+            return new ResponseObject(Status.ERROR, "Email không tồn tại", null);
+        }
+        User user = userOptional.get();
+
         // Log mật khẩu người dùng nhập vào và mật khẩu đã lưu trong cơ sở dữ liệu
         System.out.println("Match? " + passwordEncoder.matches(dto.getPassword(), user.getPassword()));
 
@@ -130,7 +135,10 @@ public class userDetailServiceImpl implements userDetailService {
 
         return new ResponseObject(Status.SUCCESS, "Đổi mật khẩu thành công", null);
     }
-
-
+    @Override
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
+    }
 
 }

@@ -15,13 +15,12 @@ public class JwtService {
     private static final String SECRET_KEY = "ban_mat_bao_mat_cua_ban";
     private static final String ISSUER = "my_beauty_spa";
 
-    // Sinh token cho User
     public String generateTokenForUser(User user) {
-        return generateToken(user.getEmail(), "USER");
+        return generateToken(user.getEmail(), user.getRole().getName()); // Lấy vai trò thực tế từ DB
     }
-    //Sinh token cho Admin
-    public String generateTokenForAdmin(User user){
-        return generateToken(user.getEmail(), "ADMIN");
+
+    public String generateTokenForAdmin(User user) {
+        return generateToken(user.getEmail(), user.getRole().getName()); // Lấy vai trò thực tế từ DB
     }
     // Sinh token cho Customer
     public String generateTokenForCustomer(Customer customer) {
@@ -33,7 +32,7 @@ public class JwtService {
         return JWT.create()
                 .withSubject(email)
                 .withIssuer(ISSUER)
-                .withClaim("role", role)
+                .withClaim("role", "ROLE_" + role.toUpperCase())
                 .withExpiresAt(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 1 ngày
                 .sign(Algorithm.HMAC256(SECRET_KEY));
     }
