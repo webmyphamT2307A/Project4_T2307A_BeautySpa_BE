@@ -16,6 +16,7 @@ import java.time.Instant;
 @Table(name = "spapayments")
 public class Spapayment {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "payment_id", nullable = false)
     private Integer id;
 
@@ -26,8 +27,8 @@ public class Spapayment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "user_id")
-    private org.aptech.backendmypham.models.User user;
+    @JoinColumn(name = "customer_id")
+    private org.aptech.backendmypham.models.Customer customer;
 
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;

@@ -6,8 +6,6 @@ import org.aptech.backendmypham.dto.AppointmentDto;
 import org.aptech.backendmypham.dto.AppointmentResponseDto;
 import org.aptech.backendmypham.dto.ResponseObject;
 import org.aptech.backendmypham.enums.Status;
-import org.aptech.backendmypham.models.Appointment;
-import org.aptech.backendmypham.models.Product;
 import org.aptech.backendmypham.services.AppointmentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
