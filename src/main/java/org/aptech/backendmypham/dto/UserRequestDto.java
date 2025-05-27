@@ -18,4 +18,5 @@ public class UserRequestDto {
     Integer branchId;
     String description;
     Boolean isActive;
+    String skillsText;
 }

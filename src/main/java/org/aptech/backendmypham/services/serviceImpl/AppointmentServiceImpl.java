@@ -174,6 +174,14 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
     @Override
+    public List<AppointmentResponseDto> getAppointmentsByUserId(Long userId) {
+        List<Appointment> appointments = appointmentRepository.findAllByUserIdAndIsActive(userId);
+
+        return appointments.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+    @Override
     public List<AppointmentResponseDto> getALlAppointment() {
         List<Appointment> appointments = appointmentRepository.findAll();
         appointments.sort((a1, a2) -> a2.getId().compareTo(a1.getId()));
