@@ -75,6 +75,7 @@ public class UserServiceImpl implements UserService {
             user.setIsActive(true);
             branchOpt.ifPresent(user::setBranch);
 
+
             userRepository.save(user);
 
         } catch (InterruptedException | ExecutionException e) {
