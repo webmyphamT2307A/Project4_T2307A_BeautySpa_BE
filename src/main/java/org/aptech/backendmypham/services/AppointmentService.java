@@ -12,4 +12,6 @@ public interface AppointmentService {
     AppointmentResponseDto findByIdAndIsActive(Long AiD);
     void updateAppointment(Long Aid,AppointmentDto appointmentDto);
     void deleteAppointment(Long AiD);
+
+      public List<AppointmentResponseDto> getAppointmentsByUserId(Long userId);
 }

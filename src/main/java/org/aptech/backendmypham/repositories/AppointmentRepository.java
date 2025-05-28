@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 @Repository
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
@@ -17,4 +18,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     int countByAppointmentDateBetweenAndServiceIdAndTimeSlot_SlotId(
             Instant start, Instant end, Long serviceId, Long slotId
     );
+    @Query("SELECT a FROM Appointment a WHERE a.user.id = :userId AND a.isActive = true")
+    List<Appointment> findAllByUserIdAndIsActive(Long userId);
 }

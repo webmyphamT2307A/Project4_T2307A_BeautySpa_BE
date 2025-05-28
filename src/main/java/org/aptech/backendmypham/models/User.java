@@ -60,6 +60,16 @@ public class User {
     @Column(name = "is_active")
     private Boolean isActive;
 
+    @Lob
+    @Column(name = "skills_text")
+    private String skillsText;
+
+    @Column(name = "average_rating")
+    private Double averageRating;
+
+    @Column(name = "total_reviews")
+    private Integer totalReviews;
+
     @ColumnDefault("(now())")
     @Column(name = "created_at")
     private Instant createdAt;
