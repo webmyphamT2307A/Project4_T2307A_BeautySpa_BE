@@ -24,4 +24,5 @@ public class ServiceHistoryDTO {
     private String notes;
     private Instant createdAt;
     private Boolean isActive;
+    
 }
