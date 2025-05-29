@@ -62,7 +62,7 @@ public class User {
     @Column(name = "is_active")
     private Boolean isActive;
 
-    @Lob
+//    @Lob
     @Column(name = "skills_text")
     private String skillsText;
     @ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.MERGE })

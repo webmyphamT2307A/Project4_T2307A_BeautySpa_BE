@@ -2,15 +2,22 @@ package org.aptech.backendmypham.services.serviceImpl;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.aptech.backendmypham.dto.TechnicianResponseDTO;
+import org.aptech.backendmypham.dto.TechnicianSearchCriteriaDTO;
 import org.aptech.backendmypham.models.Branch;
 import org.aptech.backendmypham.models.Role;
 import org.aptech.backendmypham.models.User;
 import org.aptech.backendmypham.repositories.BranchRepository;
 import org.aptech.backendmypham.repositories.RoleRepository;
 import org.aptech.backendmypham.repositories.UserRepository;
+import org.aptech.backendmypham.repositories.specifications.UserSpecifications;
 import org.aptech.backendmypham.services.UserService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -146,6 +153,50 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByRoleName(roleName);
     }
     // Hàm lấy kết quả với timeout (không đổi)
+
+    @Override
+    public Page<TechnicianResponseDTO> findTechnicians(TechnicianSearchCriteriaDTO criteria, Pageable pageable) {
+        // Luôn lọc theo role "TECHNICIAN" (hoặc tên role bạn định nghĩa cho kỹ thuật viên) và isActive
+        // Ví dụ: final String TECHNICIAN_ROLE_NAME = "TECHNICIAN";
+        final String TECHNICIAN_ROLE_NAME = "staff"; // HOẶC TÊN ROLE KỸ THUẬT VIÊN CỦA BẠN
+
+        Specification<User> spec = Specification.where(UserSpecifications.isActive())
+                .and(UserSpecifications.hasRole(TECHNICIAN_ROLE_NAME));
+
+        if (!CollectionUtils.isEmpty(criteria.getSkillIds())) {
+            // Logic cho requireAllSkills:
+            // Nếu requireAllSkills = true, bạn có thể cần một query phức tạp hơn hoặc lọc sau.
+            // Hiện tại, UserSpecifications.hasAllSkills đang hoạt động tương tự hasAnyOfSkills
+            // để đơn giản. Bạn cần quyết định cách xử lý "AND skills" chính xác.
+            // Ví dụ:
+            // if (Boolean.TRUE.equals(criteria.getRequireAllSkills())) {
+            //     // Cần một specification phức tạp hơn cho "has ALL skills"
+            //     // Hoặc gọi một phương thức repository riêng với @Query tùy chỉnh
+            // } else {
+            //     spec = spec.and(UserSpecifications.hasAnyOfSkills(criteria.getSkillIds()));
+            // }
+            // Tạm thời dùng hasAnyOfSkills cho cả hai, client/FE có thể filter thêm nếu cần độ chính xác tuyệt đối cho "ALL"
+            spec = spec.and(UserSpecifications.hasAnyOfSkills(criteria.getSkillIds()));
+
+        }
+
+        if (criteria.getSkillKeyword() != null && !criteria.getSkillKeyword().trim().isEmpty()) {
+            spec = spec.and(UserSpecifications.skillKeywordSearch(criteria.getSkillKeyword()));
+        }
+
+        if (criteria.getMinAverageRating() != null) {
+            spec = spec.and(UserSpecifications.hasMinimumAverageRating(criteria.getMinAverageRating()));
+        }
+
+        if (criteria.getMinTotalReviews() != null) {
+            spec = spec.and(UserSpecifications.hasMinimumTotalReviews(criteria.getMinTotalReviews()));
+        }
+
+        Page<User> userPage = userRepository.findAll(spec, pageable);
+
+        // Map Page<User> sang Page<TechnicianResponseDTO>
+        return userPage.map(TechnicianResponseDTO::new); // Sử dụng constructor của DTO
+    }
     private <T> T getFutureResultWithTimeout(Future<T> future, String entityName, int seconds)
             throws InterruptedException, ExecutionException {
         try {
