@@ -98,7 +98,7 @@ public class UserController {
         return userService.getUsersByRole("staff");
     }
 
-    @GetMapping
+    @GetMapping("/skill")
     @Operation(summary = "Tìm kiếm kỹ thuật viên theo tiêu chí",
             description = "Tìm kiếm kỹ thuật viên dựa trên kỹ năng, đánh giá, kinh nghiệm. " +
                     "Sử dụng các tham số query để lọc. " +
@@ -107,7 +107,7 @@ public class UserController {
             // Spring sẽ tự động map các query params vào các trường của DTO này
             // Ví dụ: ?skillIds=1,2&minAverageRating=4.0
             @ModelAttribute TechnicianSearchCriteriaDTO criteria,
-            @PageableDefault(size = 10, sort = "averageRating,desc") Pageable pageable) {
+            @PageableDefault(size = 10) Pageable pageable) {
         try {
             Page<TechnicianResponseDTO> technicians = userService.findTechnicians(criteria, pageable);
             return ResponseEntity.ok(technicians);
