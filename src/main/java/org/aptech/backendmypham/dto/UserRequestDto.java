@@ -21,4 +21,6 @@ public class UserRequestDto {
     String description;
     Boolean isActive;
     private Set<Long> skillIds;
+    Double averageRating;
+    Integer totalReviews;
 }

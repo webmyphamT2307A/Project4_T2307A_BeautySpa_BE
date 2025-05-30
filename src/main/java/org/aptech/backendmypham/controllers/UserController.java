@@ -3,10 +3,15 @@ package org.aptech.backendmypham.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.ResponseObject;
+import org.aptech.backendmypham.dto.TechnicianResponseDTO;
+import org.aptech.backendmypham.dto.TechnicianSearchCriteriaDTO;
 import org.aptech.backendmypham.dto.UserRequestDto;
 import org.aptech.backendmypham.enums.Status;
 import org.aptech.backendmypham.models.User;
 import org.aptech.backendmypham.services.UserService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -93,4 +98,25 @@ public class UserController {
         return userService.getUsersByRole("staff");
     }
 
+    @GetMapping("/skill")
+    @Operation(summary = "Tìm kiếm kỹ thuật viên theo tiêu chí",
+            description = "Tìm kiếm kỹ thuật viên dựa trên kỹ năng, đánh giá, kinh nghiệm. " +
+                    "Sử dụng các tham số query để lọc. " +
+                    "Sắp xếp có thể dùng: ?sort=averageRating,desc&sort=totalReviews,desc&sort=createdAt,asc")
+    public ResponseEntity<Page<TechnicianResponseDTO>> findTechnicians(
+            // Spring sẽ tự động map các query params vào các trường của DTO này
+            // Ví dụ: ?skillIds=1,2&minAverageRating=4.0
+            @ModelAttribute TechnicianSearchCriteriaDTO criteria,
+            @PageableDefault(size = 10) Pageable pageable) {
+        try {
+            Page<TechnicianResponseDTO> technicians = userService.findTechnicians(criteria, pageable);
+            return ResponseEntity.ok(technicians);
+        } catch (Exception e) {
+            // Log lỗi ở đây
+            // Trả về lỗi chung chung hơn cho client nếu cần
+            // Ví dụ: return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            // Hoặc một Page rỗng với thông báo lỗi (nếu có cấu trúc DTO cho lỗi)
+            throw new RuntimeException("Lỗi khi tìm kiếm kỹ thuật viên: " + e.getMessage(), e); // Hoặc xử lý lỗi tốt hơn
+        }
+    }
 }
