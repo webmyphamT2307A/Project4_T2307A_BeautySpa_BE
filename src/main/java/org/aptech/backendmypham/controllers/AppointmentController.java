@@ -6,11 +6,11 @@ import org.aptech.backendmypham.dto.AppointmentDto;
 import org.aptech.backendmypham.dto.AppointmentResponseDto;
 import org.aptech.backendmypham.dto.ResponseObject;
 import org.aptech.backendmypham.enums.Status;
-import org.aptech.backendmypham.models.Appointment;
-import org.aptech.backendmypham.models.Product;
 import org.aptech.backendmypham.services.AppointmentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/admin/appointment")
@@ -72,6 +72,20 @@ public class AppointmentController {
         return ResponseEntity.ok(
                 new ResponseObject(Status.SUCCESS,"Lấy thành công",appointmentService.getALlAppointment())
         );
+    }
+    @GetMapping("/byUser")
+    @Operation(summary = "Lấy danh sách lịch hẹn theo userId")
+    public ResponseEntity<ResponseObject> getAppointmentsByUserId(@RequestParam Long userId) {
+        try {
+            List<AppointmentResponseDto> appointments = appointmentService.getAppointmentsByUserId(userId);
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Lấy danh sách lịch hẹn thành công", appointments)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, "Lỗi khi lấy danh sách lịch hẹn: " + e.getMessage(), null)
+            );
+        }
     }
 
 

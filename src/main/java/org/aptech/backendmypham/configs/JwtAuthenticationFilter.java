@@ -39,21 +39,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             token = token.substring(7);  // Loại bỏ tiền tố "Bearer "
 
             try {
-                // Xác thực token
+                logger.info("Token nhận được: {}", token);
                 DecodedJWT decodedJWT = jwtService.verifyToken(token);
                 String username = decodedJWT.getSubject();
+                String role = decodedJWT.getClaim("role").asString();
+                logger.info("Token hợp lệ. User: {}, Role: {}", username, role);
 
-                // Tạo đối tượng Authentication và thiết lập chi tiết yêu cầu
                 AbstractAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        username, null, null); // Không cần password vì đã xác thực qua JWT
+                        username, null, null);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                // Cập nhật SecurityContext
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (JWTVerificationException e) {
                 logger.error("Token không hợp lệ: {}", e.getMessage());
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token không hợp lệ");
-                return;  // Dừng xử lý tiếp nếu token không hợp lệ
+                return;
             } catch (Exception e) {
                 logger.error("Lỗi xác thực JWT: {}", e.getMessage());
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Lỗi xác thực");
