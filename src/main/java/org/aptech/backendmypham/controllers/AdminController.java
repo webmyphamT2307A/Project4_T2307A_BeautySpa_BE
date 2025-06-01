@@ -19,18 +19,7 @@ public class AdminController {
     @Operation(summary = "api tạo tài khoản cho admin, nhân viên")
     public ResponseEntity<ResponseObject> createAccount(@RequestBody UserRequestDto userRequestDto) {
         try {
-            adminService.createAdmin(
-
-
-                    userRequestDto.getFullName(),
-
-                    userRequestDto.getPassword(),
-                    userRequestDto.getEmail(),
-                    userRequestDto.getPhone(),
-                    userRequestDto.getAddress(),
-                    userRequestDto.getRoleId(),
-                    userRequestDto.getBranchId()
-            );
+            adminService.createAdmin(userRequestDto);
             return ResponseEntity.ok(
                     new ResponseObject(Status.SUCCESS, "Account created successfully", null)
             );
