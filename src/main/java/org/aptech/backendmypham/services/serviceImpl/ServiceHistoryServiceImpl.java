@@ -19,6 +19,7 @@ public class ServiceHistoryServiceImpl implements ServiceHistoryService {
     public List<ServiceHistoryDTO> getAll() {
         return serviceHistoryRepository.findAll().stream()
                 .map(this::mapToDTO)
+                .sorted((a, b) -> b.getId().compareTo(a.getId()))
                 .collect(Collectors.toList());
     }
     @Override
