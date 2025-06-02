@@ -33,6 +33,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     public void createAppointment(AppointmentDto dto) {
         Appointment appointment = new Appointment();
 
+
         // Nếu có userId thì set, không thì để null
         if (dto.getUserId() != null) {
             appointment.setUser(userRepository.findById(dto.getUserId())
