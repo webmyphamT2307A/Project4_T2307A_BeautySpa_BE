@@ -17,7 +17,7 @@ import java.time.LocalTime;
 public class UsersSchedule {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "users_id", nullable = false)
+    @Column(name = "id", nullable = false)
     private Long id;
 
     @NotNull
