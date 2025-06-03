@@ -68,40 +68,5 @@ public class BookingServiceImpl implements BookingService {
 
         return true; // Nhân viên rảnh
     }
-    @Override
-    @Transactional
-    public void createBooking(BookingDTO dto) {
-        Booking booking = new Booking();
 
-        // Lấy thông tin nhân viên
-        booking.setUser(userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy User")));
-
-        // Lấy thông tin khách hàng
-        booking.setCustomer(customerRepository.findById(dto.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Customer")));
-
-        // Lấy thông tin dịch vụ
-        booking.setService(serviceRepository.findById(dto.getServiceId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Service")));
-
-        // Đặt ngày giờ đặt lịch
-        booking.setBookingDateTime(dto.getBookingDateTime());
-
-        // Đặt trạng thái, ghi chú, giá, thời lượng
-        booking.setStatus(dto.getStatus());
-        booking.setNotes(dto.getNotes());
-        booking.setTotalPrice(dto.getTotalPrice());
-        booking.setDurationMinutes(dto.getDurationMinutes());
-
-        // Đặt thời gian tạo và cập nhật
-        booking.setCreatedAt(Instant.now());
-        booking.setUpdatedAt(Instant.now());
-
-        // Đặt trạng thái hoạt động
-        booking.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
-
-        // Lưu vào cơ sở dữ liệu
-        bookingRepository.save(booking);
-    }
 }

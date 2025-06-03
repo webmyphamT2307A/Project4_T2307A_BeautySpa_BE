@@ -57,15 +57,5 @@ public class BookingController {
             );
         }
     }
-    @PostMapping("/create")
-    @Operation(summary = "tạo booking ")
-    public ResponseEntity<ResponseObject> createBooking(@RequestBody @Valid BookingDTO dto) {
-        try {
-            bookingService.createBooking(dto);
-            return ResponseEntity.ok(new ResponseObject(Status.SUCCESS, "Đặt lịch thành công.", null));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ResponseObject(Status.ERROR, "Đặt lịch thất bại: " + e.getMessage(), null));
-        }
-    }
+
 }
