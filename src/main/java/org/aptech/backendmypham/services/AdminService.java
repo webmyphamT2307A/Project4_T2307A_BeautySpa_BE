@@ -1,5 +1,6 @@
 package org.aptech.backendmypham.services;
 
+import org.aptech.backendmypham.dto.UserRequestDto;
 import org.aptech.backendmypham.models.User;
 
 import java.util.List;
@@ -7,7 +8,7 @@ import java.util.List;
 public interface AdminService {
 
 
-    void createAdmin(String password,String fullName, String email, String phoneNumber, String address, Integer roleId, Integer branchId);
+    void createAdmin(UserRequestDto userRequestDto);
 
 
     void updateAdmin(Long userId, String fullName, String password, String email, String phone, String address, Integer roleId, Integer branchId,String imageUrl,Boolean isActive);

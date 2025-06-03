@@ -17,8 +17,11 @@ import java.time.LocalTime;
 public class UsersSchedule {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+
     @Column(name = "id", nullable = false)
     private Long id;
+
+
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
