@@ -157,7 +157,7 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Người dùng không tồn tại!");
         }
 
-        if (user.getRole().getId() != 4) {
+        if (user.getRole().getId() != 3) {
             throw new RuntimeException("Chỉ có thể vô hiệu hóa tài khoản khách hàng!");
         }
 
