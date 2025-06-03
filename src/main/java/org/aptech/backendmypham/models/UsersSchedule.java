@@ -39,7 +39,6 @@ public class UsersSchedule {
     @Column(name = "check_out_time")
     private LocalTime checkOutTime;
 
-    @Size(max = 50)
     @Column(name = "status", length = 50)
     private String status;
 
