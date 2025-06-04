@@ -16,4 +16,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             Instant endTimeWindow
     );
 
+    List<Booking> findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
+            Integer userId,
+            Integer serviceId,
+            Instant bookingDateTime
+    );
 }
