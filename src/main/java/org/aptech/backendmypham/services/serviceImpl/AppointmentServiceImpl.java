@@ -378,11 +378,13 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (recheckStaffAvailability && staffToBook != null) {
             System.out.println("Đang kiểm tra lịch rảnh cho User ID: " + staffToBook.getId() +
                     " vào lúc (UTC): " + appointment.getAppointmentDate() +
-                    " với duration: " + newDurationMinutes + " phút");
+                    " với duration: " + newDurationMinutes +
+                    " (Loại trừ Appointment ID: " + appointmentId + ")");
             boolean staffIsActuallyAvailable = bookingService.isStaffAvailable(
                     staffToBook.getId(),
                     appointment.getAppointmentDate(),
-                    newDurationMinutes
+                    newDurationMinutes,
+                    appointmentId
             );
             if (!staffIsActuallyAvailable) {
                 String localTimeDisplay = LocalDateTime.ofInstant(appointment.getAppointmentDate(), ZoneId.of("Asia/Ho_Chi_Minh"))

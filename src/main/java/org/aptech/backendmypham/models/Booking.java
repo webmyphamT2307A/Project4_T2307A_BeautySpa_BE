@@ -52,7 +52,9 @@ public class Booking {
 
     @Column(name = "duration_minutes")
     private Integer durationMinutes;
-
+    @ManyToOne
+    @JoinColumn(name = "appointment_id")
+    private Appointment appointment;
     @NotNull
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "created_at", nullable = false)
