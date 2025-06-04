@@ -81,7 +81,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         LocalDateTime localBookingStartDateTime = parsedDate.atTime(slotStartTime);
-        Instant bookingStartInstant = localBookingStartDateTime.atZone(ZoneId.systemDefault()).toInstant();
+        // Thay vì ZoneId.systemDefault() nếu bạn không chắc chắn múi giờ server
+        Instant bookingStartInstant = localBookingStartDateTime.atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant();
 
         appointment.setAppointmentDate(bookingStartInstant); // Thời gian bắt đầu thực sự của lịch hẹn
 
@@ -152,7 +153,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         serviceHistory.setCustomer(savedAppointment.getCustomer());
         serviceHistory.setAppointment(savedAppointment);
         serviceHistory.setService(savedAppointment.getService());
-        serviceHistory.setDateUsed(Instant.now()); // Hoặc savedAppointment.getAppointmentDate() nếu muốn ngày hẹn
+        serviceHistory.setDateUsed(Instant.now());
         serviceHistory.setNotes("Lịch sử lưu tự động khi tạo lịch hẹn.");
         serviceHistory.setCreatedAt(Instant.now());
         serviceHistory.setIsActive(true);
