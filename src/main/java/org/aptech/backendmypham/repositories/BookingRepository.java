@@ -15,5 +15,28 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             Instant startTimeWindow,
             Instant endTimeWindow
     );
+    // Phương thức mới để tìm booking xung đột, có loại trừ
+    @Query("SELECT b FROM Booking b WHERE b.user.id = :userId " +
+            "AND b.isActive = true " +
+            "AND b.bookingDateTime BETWEEN :startTimeWindow AND :endTimeWindow " +
+            "AND (b.appointment IS NULL OR b.appointment.id != :appointmentIdToExclude)")
+    List<Booking> findConflictingBookingsWithExclusion(
+            @Param("userId") Integer userId,
+            @Param("startTimeWindow") Instant startTimeWindow,
+            @Param("endTimeWindow") Instant endTimeWindow,
+            @Param("appointmentIdToExclude") Long appointmentIdToExclude
+    );
 
+    // Các phương thức bạn đã có để tìm booking theo User, Service, DateTime
+    List<Booking> findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
+            Integer userId,
+            Long serviceId, // Hoặc Integer tùy kiểu ID của Service entity
+            Instant bookingDateTime
+    );
+
+    List<Booking> findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
+            Integer userId,
+            Integer serviceId,
+            Instant bookingDateTime
+    );
 }

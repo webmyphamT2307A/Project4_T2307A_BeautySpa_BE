@@ -22,51 +22,63 @@ public class BookingServiceImpl implements BookingService {
     private final org.aptech.backendmypham.repositories.ServiceRepository serviceRepository;
     private  final BookingRepository bookingRepository;
     @Override
-    public boolean isStaffAvailable(Integer userId, Instant requestedStartTime, Integer durationMinutes) {
-        // Optional: Kiểm tra xem userId có tồn tại không
-        // User user = userRepository.findById(userId).orElse(null);
-        // if (user == null) {
-        //     throw new ResourceNotFoundException("User not found with id: " + userId); // Hoặc trả về false
-        // }
-
+    public boolean isStaffAvailable(Integer userId, Instant requestedStartTime, Integer durationMinutes, Long appointmentIdToExclude) {
         if (durationMinutes == null || durationMinutes <= 0) {
             throw new IllegalArgumentException("Thời lượng phải là số dương.");
         }
 
         Instant requestedEndTime = requestedStartTime.plus(durationMinutes, ChronoUnit.MINUTES);
-
-        // Xác định khoảng thời gian rộng hơn để truy vấn DB hiệu quả
-        // Ví dụ: lấy tất cả các booking của nhân viên trong ngày hôm đó
         Instant startOfDay = requestedStartTime.truncatedTo(ChronoUnit.DAYS);
-        Instant endOfDay = startOfDay.plus(1, ChronoUnit.DAYS).minusNanos(1); // Gần cuối ngày
+        Instant endOfDay = startOfDay.plus(1, ChronoUnit.DAYS).minusNanos(1);
 
-        // Lấy các booking hiện có của nhân viên trong ngày đó
-        List<Booking> existingBookings = bookingRepository.findByUserIdAndIsActiveTrueAndBookingDateTimeBetween(
-                userId,
-                startOfDay, // Hoặc một khoảng thời gian hẹp hơn nếu muốn tối ưu
-                endOfDay
-        );
+        // Lấy các booking hiện có, loại trừ booking của appointmentIdToExclude (nếu được cung cấp)
+        List<Booking> existingBookings;
+        if (appointmentIdToExclude != null) {
+            // Bạn cần một phương thức repository tùy chỉnh ở đây
+            existingBookings = bookingRepository.findConflictingBookingsWithExclusion(
+                    userId,
+                    startOfDay,
+                    endOfDay,
+                    appointmentIdToExclude
+            );
+        } else {
+            existingBookings = bookingRepository.findByUserIdAndIsActiveTrueAndBookingDateTimeBetween(
+                    userId,
+                    startOfDay,
+                    endOfDay
+            );
+        }
 
-        // Kiểm tra xung đột với từng booking hiện có
+        // System.out.println("DEBUG: isStaffAvailable (exclude " + appointmentIdToExclude + ") found " + existingBookings.size() + " bookings to check.");
+
         for (Booking existingBooking : existingBookings) {
+            // Nếu dùng query đã loại trừ rồi thì không cần check lại existingBooking.getAppointment().getId().equals(appointmentIdToExclude)
+            // Tuy nhiên, nếu query không loại trừ được ở mức DB, bạn có thể lọc ở đây:
+            // if (appointmentIdToExclude != null && existingBooking.getAppointment() != null && existingBooking.getAppointment().getId().equals(appointmentIdToExclude)) {
+            //     continue; // Bỏ qua booking của chính appointment đang được cập nhật
+            // }
+
             Instant existingBookingStartTime = existingBooking.getBookingDateTime();
             Integer existingDuration = existingBooking.getDurationMinutes();
-            if (existingDuration == null || existingDuration <=0) continue; // Bỏ qua nếu booking không có thời lượng hợp lệ
+            if (existingDuration == null || existingDuration <= 0) continue;
 
             Instant existingBookingEndTime = existingBookingStartTime.plus(existingDuration, ChronoUnit.MINUTES);
 
-            // Điều kiện xung đột: (StartA < EndB) and (EndA > StartB)
-            // StartA = requestedStartTime, EndA = requestedEndTime
-            // StartB = existingBookingStartTime, EndB = existingBookingEndTime
             boolean overlaps = requestedStartTime.isBefore(existingBookingEndTime) &&
                     requestedEndTime.isAfter(existingBookingStartTime);
 
             if (overlaps) {
-                return false; // Nhân viên bận vì có lịch xung đột
+                // System.out.println("DEBUG: Overlap detected with Booking ID: " + existingBooking.getId());
+                return false; // Nhân viên bận
             }
         }
-
         return true; // Nhân viên rảnh
+    }
+
+    // Triển khai phương thức cũ (gọi phương thức mới với exclusion là null)
+    @Override
+    public boolean isStaffAvailable(Integer userId, Instant requestedStartTime, Integer durationMinutes) {
+        return this.isStaffAvailable(userId, requestedStartTime, durationMinutes, null); // Gọi hàm mới, không loại trừ appointment nào
     }
 
 }

@@ -39,4 +39,5 @@ public class Service {
     @Column(name = "is_active")
     private Boolean isActive;
 
+
 }
