@@ -359,17 +359,25 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         // Cập nhật User (nhân viên) nếu có thay đổi
-        User staffToBook = appointment.getUser();
+        User staffToBook = appointment.getUser(); // Nhân viên hiện tại
         boolean staffChanged = false;
-        if (dto.getUserId() != null && (staffToBook == null || !dto.getUserId().equals(staffToBook.getId()))) {
-            System.out.println("Phát hiện yêu cầu thay đổi User (nhân viên). Old User ID: " + (staffToBook != null ? staffToBook.getId() : "null") + ", New User ID: " + dto.getUserId());
-            staffToBook = userRepository.findById(dto.getUserId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy User (nhân viên) với ID: " + dto.getUserId()));
-            appointment.setUser(staffToBook);
-            staffChanged = true;
-            System.out.println("Đã cập nhật User sang ID: " + staffToBook.getId());
-        }
 
+        if (dto.getUserId() != null) { // Nếu có User ID mới được cung cấp
+            if (staffToBook == null || !dto.getUserId().equals(staffToBook.getId())) { // Nếu khác nhân viên cũ hoặc chưa có
+                staffToBook = userRepository.findById(dto.getUserId())
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy User (nhân viên) với ID: " + dto.getUserId()));
+                appointment.setUser(staffToBook);
+                staffChanged = true;
+                System.out.println("Đã cập nhật User sang ID: " + staffToBook.getId());
+            }
+        } else { // Nếu dto.getUserId() là null -> nghĩa là "bỏ gán" (unassign)
+            if (staffToBook != null) { // Chỉ đánh dấu thay đổi nếu trước đó có người được gán
+                appointment.setUser(null);
+                staffToBook = null; // Cập nhật staffToBook để logic kiểm tra lịch rảnh (nếu có) dùng đúng
+                staffChanged = true;
+                System.out.println("Đã bỏ gán User (nhân viên).");
+            }
+        }
 
         // 3. KIỂM TRA NHÂN VIÊN RẢNH (NẾU THỜI GIAN HOẶC NHÂN VIÊN HOẶC DỊCH VỤ THAY ĐỔI)
         boolean recheckStaffAvailability = timeChanged || staffChanged || serviceChanged;
