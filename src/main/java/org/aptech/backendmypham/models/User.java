@@ -9,6 +9,7 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
@@ -77,7 +78,12 @@ public class User {
 
     @Column(name = "total_reviews")
     private Integer totalReviews;
+    // --- CÁC TRƯỜỜNG MỚI CHO TÍNH LƯƠNG ---
+    @Column(name = "standard_base_salary", precision = 10, scale = 2)
+    private BigDecimal standardBaseSalary; // Lương cứng chuẩn
 
+    @Column(name = "number_of_dependents")
+    private Integer numberOfDependents; // Số người phụ thuộc
     @ColumnDefault("(now())")
     @Column(name = "created_at")
     private Instant createdAt;
@@ -85,6 +91,7 @@ public class User {
     @ColumnDefault("(now())")
     @Column(name = "updated_at")
     private Instant updatedAt;
+
 
 
 }
