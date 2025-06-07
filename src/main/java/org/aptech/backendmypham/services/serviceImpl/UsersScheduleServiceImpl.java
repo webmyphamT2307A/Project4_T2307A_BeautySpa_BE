@@ -24,7 +24,7 @@ public class UsersScheduleServiceImpl implements UsersScheduleService {
     private final UserRepository userRepository;
 
     @Override
-    @Transactional // Sử dụng transactional của Spring
+    @Transactional
     public UsersScheduleResponseDto createSchedule(UsersScheduleRequestDto requestDto) {
         User user = userRepository.findById(requestDto.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy User với ID: " + requestDto.getUserId()));

@@ -98,6 +98,19 @@ public class AdminController {
             );
         }
     }
+    @GetMapping("/find-all-deleted")
+    @Operation(summary = "tìm tất cả cái mà admin đã xóa hẳn(-1)")
+    public ResponseEntity<ResponseObject> findAllDeleted() {
+        try {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Tìm  thành công", adminService.findALlDeteleted())
+            );
+        } catch (Exception e) {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.ERROR, "Lỗi khi tìm : " + e.getMessage(), null)
+            );
+        }
+    }
 
     @GetMapping("/find-by-email/{email}")
     @Operation(summary = "api tìm tài khoản admin, nhân viên theo email")

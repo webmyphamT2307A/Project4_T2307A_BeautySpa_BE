@@ -11,7 +11,7 @@ public interface AdminService {
     void createAdmin(UserRequestDto userRequestDto);
 
 
-    void updateAdmin(Long userId, String fullName, String password, String email, String phone, String address, Integer roleId, Integer branchId,String imageUrl,Boolean isActive);
+    void updateAdmin(Long userId, String fullName, String password, String email, String phone, String address, Integer roleId, Integer branchId,String imageUrl,Integer isActive);
 
     void deleteAdmin(Long userId);
 
@@ -22,6 +22,7 @@ public interface AdminService {
     User findByPhoneNumber(String phoneNumber);
 
     List<User> findAll();
+    List<User> findALlDeteleted();
 
 
 

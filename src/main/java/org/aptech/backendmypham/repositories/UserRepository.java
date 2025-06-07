@@ -40,6 +40,9 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
             @Param("specificRoleId") Integer specificRoleId,
             @Param("skillId") Long skillId
     );
-
+    @Query("SELECT u FROM User u WHERE u.isActive IN (0, 1)")
+    List<User> findAllActiveAndInactive();
+    @Query("SELECT u FROM User u WHERE u.isActive = -1")
+    List<User> findAllDeleted();
 
 }

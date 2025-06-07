@@ -13,6 +13,7 @@ import java.time.Instant;
 @Table(name = "branches")
 public class Branch {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "branch_id", nullable = false)
     private Integer id;
 
