@@ -60,7 +60,7 @@ public class ServiceController {
         }
     }
 
-    @PutMapping("/deletec")
+    @PutMapping("/delete/{id}")
     @Operation(summary = "Xóa service")
     public ResponseEntity<ResponseObject> softDeleteService(@PathVariable Integer id) {
         try {

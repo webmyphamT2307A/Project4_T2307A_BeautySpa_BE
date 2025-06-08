@@ -44,5 +44,11 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     List<User> findAllActiveAndInactive();
     @Query("SELECT u FROM User u WHERE u.isActive = -1")
     List<User> findAllDeleted();
+    @Query("SELECT COALESCE(AVG(u.averageRating), 0.0) FROM User u WHERE u.isActive = 1 AND u.averageRating > 0")
+    double getOverallAverageRating();
+
+    // Lấy tất cả user active có role để tính toán ở Service
+    @Query("SELECT u FROM User u WHERE u.isActive = 1 AND u.role IS NOT NULL")
+    List<User> findAllActiveWithRoles();
 
 }

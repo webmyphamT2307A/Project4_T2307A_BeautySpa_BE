@@ -164,17 +164,29 @@ public class UsersScheduleServiceImpl implements UsersScheduleService {
     private UsersScheduleResponseDto mapToResponseDto(UsersSchedule entity) {
         UsersScheduleResponseDto dto = new UsersScheduleResponseDto();
         dto.setId(entity.getId());
+
         if (entity.getUser() != null) {
-            dto.setUserId(Long.valueOf(entity.getUser().getId()));
-            // Giả sử User entity có getFullName() hoặc getUsername() và getEmail()
-            // Ưu tiên getFullName() nếu có, nếu không thì dùng getUsername()
-            if (entity.getUser().getFullName() != null && !entity.getUser().getFullName().isEmpty()) {
-                dto.setUserName(entity.getUser().getFullName());
-            } else {
-                dto.setUserName(entity.getUser().getFullName()); // Cần có trường getUsername() trong User entity
+            User user = entity.getUser();
+            dto.setUserId(Long.valueOf(user.getId()));
+            dto.setUserName(user.getFullName());
+            dto.setUserEmail(user.getEmail());
+
+            // --- PHẦN CẬP NHẬT QUAN TRỌNG ---
+            // Lấy ImageUrl từ User và gán vào DTO
+            dto.setUserImageUrl(user.getImageUrl());
+
+            // Lấy Role Name từ User
+            if (user.getRole() != null) {
+                dto.setRoleName(user.getRole().getName());
             }
-            dto.setUserEmail(entity.getUser().getEmail());   // Cần có trường getEmail() trong User entity
+
+            // Lấy Branch Name từ User
+            if (user.getBranch() != null) {
+                dto.setBranchName(user.getBranch().getName());
+            }
+            // ---------------------------------
         }
+
         dto.setShift(entity.getShift());
         dto.setWorkDate(entity.getWorkDate());
         dto.setCheckInTime(entity.getCheckInTime());
@@ -182,10 +194,7 @@ public class UsersScheduleServiceImpl implements UsersScheduleService {
         dto.setStatus(entity.getStatus());
         dto.setIsLastTask(entity.getIsLastTask());
         dto.setIsActive(entity.getIsActive());
-        // Nếu UsersSchedule có trường createdAt và bạn muốn trả về:
-        // if (entity.getCreatedAt() != null) { // Giả sử UsersSchedule có getCreatedAt()
-        //    dto.setCreatedAt(entity.getCreatedAt());
-        // }
+
         return dto;
     }
 }
