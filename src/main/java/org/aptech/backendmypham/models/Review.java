@@ -45,5 +45,11 @@ public class Review {
     @ColumnDefault("1")
     @Column(name = "is_active")
     private Boolean isActive;
+    @Column(name = "guest_name", length = 100)
+    private String guestName;
+
+    @Column(name = "guest_email", length = 100)
+    private String guestEmail;
+
 
 }

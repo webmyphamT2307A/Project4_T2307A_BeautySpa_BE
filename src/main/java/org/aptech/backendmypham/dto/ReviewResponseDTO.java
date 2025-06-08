@@ -17,7 +17,5 @@ public class ReviewResponseDTO {
     private String comment;
     private Instant createdAt;
 
-    private Long customerId;
-    private String customerName;
-    private String customerAvatarUrl;
+    private String authorName;
 }
