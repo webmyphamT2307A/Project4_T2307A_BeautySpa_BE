@@ -21,8 +21,8 @@ public class Review {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "user_id")
-    private org.aptech.backendmypham.models.User user;
+    @JoinColumn(name = "customer_id")
+    private org.aptech.backendmypham.models.Customer customer;
 
     @Lob
     @Column(name = "type", nullable = false)
