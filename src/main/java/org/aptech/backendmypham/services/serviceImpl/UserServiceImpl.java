@@ -79,7 +79,7 @@ public class UserServiceImpl implements UserService {
             user.setPhone(finalPhoneNumber);
             user.setAddress(address);
             user.setRole(roleOpt.get());
-            user.setIsActive(true);
+            user.setIsActive(1);
             branchOpt.ifPresent(user::setBranch);
 
 
@@ -146,7 +146,7 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Chỉ có thể vô hiệu hóa tài khoản khách hàng!");
         }
 
-        user.setIsActive(false);
+        user.setIsActive(0);
         userRepository.save(user);
     }
     public List<User> getUsersByRole(String roleName) {

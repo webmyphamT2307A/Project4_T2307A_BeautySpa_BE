@@ -27,6 +27,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     List<User> findAllIsActive();
 
+
     @Modifying
     @Query(nativeQuery = true, value = "UPDATE users SET is_active = :isActive WHERE id = :id")
     void updateIsActiveById(@Param("id") Long id, @Param("isActive") int isActive);
@@ -39,6 +40,15 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
             @Param("specificRoleId") Integer specificRoleId,
             @Param("skillId") Long skillId
     );
+    @Query("SELECT u FROM User u WHERE u.isActive IN (0, 1)")
+    List<User> findAllActiveAndInactive();
+    @Query("SELECT u FROM User u WHERE u.isActive = -1")
+    List<User> findAllDeleted();
+    @Query("SELECT COALESCE(AVG(u.averageRating), 0.0) FROM User u WHERE u.isActive = 1 AND u.averageRating > 0")
+    double getOverallAverageRating();
 
+    // Lấy tất cả user active có role để tính toán ở Service
+    @Query("SELECT u FROM User u WHERE u.isActive = 1 AND u.role IS NOT NULL")
+    List<User> findAllActiveWithRoles();
 
 }

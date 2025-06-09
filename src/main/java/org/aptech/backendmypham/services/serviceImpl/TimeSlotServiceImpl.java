@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -26,8 +27,9 @@ public class TimeSlotServiceImpl implements TimeSlotService {
     @Override
     public int getAvailableSlot(LocalDate date, Long serviceId, Long timeSlotId) {
         int totalSlot = 10;
-        Instant startOfDay = date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
-        Instant endOfDay = date.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+        ZoneId vietnamZoneId = ZoneId.of("Asia/Ho_Chi_Minh");
+        Instant startOfDay = date.atStartOfDay(vietnamZoneId).toInstant();
+        Instant endOfDay = date.plusDays(1).atStartOfDay(vietnamZoneId).toInstant();
 
         int booked = appointmentRepository.countByAppointmentDateBetweenAndServiceIdAndTimeSlot_SlotId(
                 startOfDay, endOfDay, serviceId, timeSlotId
