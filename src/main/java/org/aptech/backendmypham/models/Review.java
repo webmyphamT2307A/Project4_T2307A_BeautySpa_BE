@@ -23,7 +23,9 @@ public class Review {
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "customer_id")
     private org.aptech.backendmypham.models.Customer customer;
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
     @Lob
     @Column(name = "type", nullable = false)
     private String type;

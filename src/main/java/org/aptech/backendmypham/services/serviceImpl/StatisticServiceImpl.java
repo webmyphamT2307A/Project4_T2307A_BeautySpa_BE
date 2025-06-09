@@ -1,20 +1,17 @@
 package org.aptech.backendmypham.services.serviceImpl;
 
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import org.aptech.backendmypham.dto.ChartDataDto;
-import org.aptech.backendmypham.dto.DashboardSummaryDto;
-import org.aptech.backendmypham.dto.RoleRatingDto;
+import org.aptech.backendmypham.dto.*;
 import org.aptech.backendmypham.models.User;
 import org.aptech.backendmypham.repositories.AppointmentRepository;
+import org.aptech.backendmypham.repositories.ReviewRepository;
 import org.aptech.backendmypham.repositories.UserRepository;
 import org.aptech.backendmypham.services.StatisticService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.*;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -23,9 +20,10 @@ import java.util.stream.IntStream;
 public class StatisticServiceImpl implements StatisticService {
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
+    private final ReviewRepository reviewRepository;
     private final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     @Override
-    public DashboardSummaryDto getDashboardSummary() {
+    public DashboardSummaryDto getDashboardSummary(Long userId) {
         LocalDate today = LocalDate.now(VIETNAM_ZONE);
         Instant startOfDay = today.atStartOfDay(VIETNAM_ZONE).toInstant();
         Instant endOfDay = today.atTime(LocalTime.MAX).atZone(VIETNAM_ZONE).toInstant();
@@ -34,18 +32,44 @@ public class StatisticServiceImpl implements StatisticService {
         Instant startOfMonth = currentMonth.atDay(1).atStartOfDay(VIETNAM_ZONE).toInstant();
         Instant endOfMonth = currentMonth.atEndOfMonth().atTime(LocalTime.MAX).atZone(VIETNAM_ZONE).toInstant();
 
-        long waiting = appointmentRepository.countWaitingCustomers(startOfDay, endOfDay);
-        long served = appointmentRepository.countServedCustomersToday(startOfDay, endOfDay);
-        BigDecimal revenue = appointmentRepository.sumTodayRevenue(startOfDay, endOfDay);
-        long monthlyServices = appointmentRepository.countServicesPerformedThisMonth(startOfMonth, endOfMonth);
-        double avgRating = userRepository.getOverallAverageRating();
+        long waiting, served, monthlyServices;
+        BigDecimal revenue;
+        double avgRating;
+
+        if (userId != null) {
+            // === LOGIC CHO DASHBOARD NHÂN VIÊN ===
+            waiting = appointmentRepository.countWaitingCustomersForUser(userId, startOfDay, endOfDay);
+            served = appointmentRepository.countServedCustomersTodayForUser(userId, startOfDay, endOfDay);
+            revenue = appointmentRepository.sumTodayRevenueForUser(userId, startOfDay, endOfDay);
+            monthlyServices = appointmentRepository.countServicesPerformedThisMonthForUser(userId, startOfMonth, endOfMonth);
+
+            // Lấy rating của chính nhân viên đó
+            avgRating = userRepository.findById(userId)
+                    .map(User::getAverageRating)
+                    .orElse(0.0);
+        } else {
+            // === LOGIC CHO DASHBOARD ADMIN (như cũ) ===
+            waiting = appointmentRepository.countWaitingCustomers(startOfDay, endOfDay);
+            served = appointmentRepository.countServedCustomersToday(startOfDay, endOfDay);
+            revenue = appointmentRepository.sumTodayRevenue(startOfDay, endOfDay);
+            monthlyServices = appointmentRepository.countServicesPerformedThisMonth(startOfMonth, endOfMonth);
+            avgRating = userRepository.getOverallAverageRating();
+        }
 
         return new DashboardSummaryDto(waiting, served, revenue, monthlyServices, avgRating);
     }
-
     @Override
-    public List<ChartDataDto> getRevenueByMonth(int year) {
-        List<Object[]> results = appointmentRepository.getMonthlyRevenue(year);
+    public List<ChartDataDto> getRevenueByMonth(int year, Long userId) {
+        List<Object[]> results;
+
+        if (userId != null) {
+            // Lấy doanh thu cho một nhân viên cụ thể
+            results = appointmentRepository.getMonthlyRevenueForUser(year, userId);
+        } else {
+            // Lấy doanh thu cho toàn công ty (Admin)
+            results = appointmentRepository.getMonthlyRevenue(year);
+        }
+
         Map<Integer, BigDecimal> revenueMap = results.stream()
                 .collect(Collectors.toMap(
                         res -> (Integer) res[0],
@@ -54,7 +78,7 @@ public class StatisticServiceImpl implements StatisticService {
 
         // Tạo đủ 12 tháng, tháng nào không có doanh thu thì mặc định là 0
         return IntStream.rangeClosed(1, 12).mapToObj(month -> {
-            String monthLabel = Month.of(month).name().substring(0, 3); // JAN, FEB,...
+            String monthLabel = Month.of(month).name().substring(0, 3);
             BigDecimal value = revenueMap.getOrDefault(month, BigDecimal.ZERO);
             return new ChartDataDto(monthLabel, value);
         }).collect(Collectors.toList());
@@ -95,8 +119,14 @@ public class StatisticServiceImpl implements StatisticService {
         }).collect(Collectors.toList());
     }
     @Override
-    public List<ChartDataDto> getCustomerCountByMonth(int year) {
+    public List<ChartDataDto> getCustomerCountByMonth(int year,Long userId) {
+
         List<Object[]> results = appointmentRepository.getMonthlyCustomerCount(year);
+        if (userId != null) {
+            results = appointmentRepository.getMonthlyCustomerCountForUser(year, userId);
+        } else {
+            results = appointmentRepository.getMonthlyCustomerCount(year);
+        }
         Map<Integer, BigDecimal> customerMap = results.stream()
                 .collect(Collectors.toMap(
                         res -> (Integer) res[0],
@@ -118,5 +148,61 @@ public class StatisticServiceImpl implements StatisticService {
                 new BigDecimal((Long) res[1]) // customer count
         )).collect(Collectors.toList());
     }
+    @Override
+    public List<ChartDataDto> getMyMonthlyRatings(int year, Long userId) {
+        // Gọi đến câu query đã tạo trong ReviewRepository
+        List<Object[]> results = reviewRepository.getMonthlyRatingsForUser(year, userId);
+
+        // Chuyển kết quả từ List<Object[]> thành Map<Tháng, Rating> để dễ xử lý
+        Map<Integer, BigDecimal> ratingMap = results.stream()
+                .collect(Collectors.toMap(
+                        res -> (Integer) res[0], // Key là tháng (Integer)
+                        // Value là rating (Double), chuyển sang BigDecimal để đồng nhất
+                        res -> BigDecimal.valueOf((Double) res[1])
+                ));
+
+        // Tạo danh sách 12 tháng, tháng nào không có dữ liệu trong map thì rating = 0
+        return IntStream.rangeClosed(1, 12).mapToObj(month -> {
+            String monthLabel = Month.of(month).name().substring(0, 3); // Chuyển 1 -> "JAN", 2 -> "FEB"
+            BigDecimal value = ratingMap.getOrDefault(month, BigDecimal.ZERO);
+            return new ChartDataDto(monthLabel, value);
+        }).collect(Collectors.toList());
+    }
+    @Override
+    public List<DailyCustomerReportDto> getDailyCustomerReport(int year, int month) {
+        List<Object[]> results = appointmentRepository.getDailyCustomerCountByShift(year, month);
+
+        // Sử dụng Map để nhóm các ca theo từng ngày
+        // Key: Ngày trong tháng (Integer), Value: Danh sách các ca trong ngày đó (List<ShiftReportDto>)
+        Map<Integer, List<ShiftReportDto>> shiftsByDay = new HashMap<>();
+
+        for (Object[] row : results) {
+            Integer day = (Integer) row[0];
+            String shiftName = (String) row[1];
+            long count = (Long) row[2];
+
+            // Nếu ngày chưa có trong map, tạo một list mới
+            shiftsByDay.computeIfAbsent(day, k -> new ArrayList<>())
+                    .add(new ShiftReportDto(shiftName, count));
+        }
+
+        // Chuyển Map đã nhóm thành List<DailyCustomerReportDto> theo đúng định dạng FE cần
+        return shiftsByDay.entrySet().stream()
+                .map(entry -> {
+                    Integer day = entry.getKey();
+                    List<ShiftReportDto> shifts = entry.getValue();
+
+                    // Tính tổng số khách trong ngày từ các ca
+                    long totalCount = shifts.stream().mapToLong(ShiftReportDto::getCount).sum();
+
+                    // Định dạng ngày thành chuỗi "yyyy-MM-dd"
+                    String dateStr = String.format("%d-%02d-%02d", year, month, day);
+
+                    return new DailyCustomerReportDto(dateStr, totalCount, shifts);
+                })
+                .sorted(Comparator.comparing(DailyCustomerReportDto::getDate)) // Sắp xếp kết quả theo ngày
+                .collect(Collectors.toList());
+    }
+
 
 }
