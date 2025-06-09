@@ -21,6 +21,7 @@ public class StatisticServiceImpl implements StatisticService {
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
+
     private final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     @Override
     public DashboardSummaryDto getDashboardSummary(Long userId) {
@@ -151,7 +152,7 @@ public class StatisticServiceImpl implements StatisticService {
     @Override
     public List<ChartDataDto> getMyMonthlyRatings(int year, Long userId) {
         // Gọi đến câu query đã tạo trong ReviewRepository
-        List<Object[]> results = reviewRepository.getMonthlyRatingsForUser(year, userId);
+        List<Object[]> results = userRepository.getMonthlyRatingsForUser(year, userId);
 
         // Chuyển kết quả từ List<Object[]> thành Map<Tháng, Rating> để dễ xử lý
         Map<Integer, BigDecimal> ratingMap = results.stream()

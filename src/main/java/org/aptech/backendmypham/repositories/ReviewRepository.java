@@ -20,9 +20,9 @@ public interface ReviewRepository extends JpaRepository<Review,Integer> {
 
     // Tìm tất cả review có phân trang và đang hoạt động
     Page<Review> findByIsActiveTrue(Pageable pageable);
-    @Query("SELECT FUNCTION('MONTH', r.createdAt) as month, AVG(r.rating) as avgRating " +
-            "FROM Review r " +
-            "WHERE r.user.id = :userId AND r.rating IS NOT NULL AND FUNCTION('YEAR', r.createdAt) = :year " +
-            "GROUP BY FUNCTION('MONTH', r.createdAt)")
-    List<Object[]> getMonthlyRatingsForUser(@Param("year") int year, @Param("userId") Long userId);
+//    @Query("SELECT FUNCTION('MONTH', r.createdAt) as month, AVG(r.rating) as avgRating " +
+//            "FROM Review r " +
+//            "WHERE r.user.id = :userId AND r.rating IS NOT NULL AND FUNCTION('YEAR', r.createdAt) = :year " +
+//            "GROUP BY FUNCTION('MONTH', r.createdAt)")
+//    List<Object[]> getMonthlyRatingsForUser(@Param("year") int year, @Param("userId") Long userId);
 }
