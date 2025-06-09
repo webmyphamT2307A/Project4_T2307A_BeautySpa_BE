@@ -61,7 +61,7 @@ public class User {
 
     @ColumnDefault("1")
     @Column(name = "is_active")
-    private Boolean isActive;
+    private Integer isActive;
 
 //    @Lob
     @Column(name = "skills_text")

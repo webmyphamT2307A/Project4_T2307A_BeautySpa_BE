@@ -71,7 +71,7 @@ public class AdminServiceImpl implements AdminService {
             user.setPhone(userRequestDto.getPhone());
             user.setAddress(userRequestDto.getAddress());
             user.setImageUrl(userRequestDto.getImageUrl());
-            user.setIsActive(true);
+            user.setIsActive(1);
             user.setRole(roleOpt.get());
             user.setCreatedAt(Instant.now());
             branchOpt.ifPresent(user::setBranch);
@@ -88,7 +88,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    public void updateAdmin(Long userId, String fullName, String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId,String imageUrl,Boolean isActive) {
+    public void updateAdmin(Long userId, String fullName, String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId,String imageUrl,Integer isActive) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
             throw new RuntimeException("Người dùng không tồn tại!");
@@ -159,11 +159,9 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Người dùng không tồn tại!");
         }
 
-        if (user.getRole().getId() != 3) {
-            throw new RuntimeException("Chỉ có thể vô hiệu hóa tài khoản khách hàng!");
-        }
 
-        user.setIsActive(false);
+
+        user.setIsActive(-1);
         userRepository.save(user);
     }
 
@@ -195,6 +193,8 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public List<User> findAll() {
-        return userRepository.findAllIsActive();
+        return userRepository.findAllActiveAndInactive();
     }
+     @Override
+    public  List<User> findALlDeteleted(){return userRepository.findAllDeleted();}
 }

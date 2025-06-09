@@ -51,7 +51,7 @@ public class BranchController {
             );
         }
     }
-    @GetMapping("/findById")
+    @GetMapping("/findById/{id}")
     @Operation(summary = "Lấy branch theo id")
     public ResponseEntity<ResponseObject> findById(@RequestParam Long BiD) {
         Branch branch = branchService.findByID(BiD);
@@ -65,7 +65,7 @@ public class BranchController {
             );
         }
     }
-    @PutMapping("/update/")
+    @PutMapping("/update/{id}")
     @Operation(summary = "Cập nhật branch")
     public ResponseEntity<ResponseObject> updateBranch(
             @RequestParam Long BiD,
@@ -82,7 +82,7 @@ public class BranchController {
            );
        }
     }
-    @PutMapping("/delete")
+    @PutMapping("/delete/{id}")
     @Operation(summary = "Xóa branch")
     public ResponseEntity<ResponseObject> deleteBranch(@RequestParam Long BiD) {
         try{

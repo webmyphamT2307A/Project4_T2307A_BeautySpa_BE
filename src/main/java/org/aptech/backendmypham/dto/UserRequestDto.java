@@ -19,7 +19,7 @@ public class UserRequestDto {
     Integer roleId;
     Integer branchId;
     String description;
-    Boolean isActive;
+    Integer isActive;
     private Set<Long> skillIds;
     Double averageRating;
     Integer totalReviews;

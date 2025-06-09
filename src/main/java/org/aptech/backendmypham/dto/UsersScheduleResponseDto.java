@@ -17,7 +17,9 @@ public class UsersScheduleResponseDto {
     private Long userId;
     private String userName;
     private String userEmail;
-
+    private String userImageUrl;
+    private String roleName;
+    private String branchName;
     private String shift;
     private LocalDate workDate;
     private LocalTime checkInTime;

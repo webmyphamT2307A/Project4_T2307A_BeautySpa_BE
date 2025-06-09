@@ -3,10 +3,11 @@ package org.aptech.backendmypham.repositories;
 import org.aptech.backendmypham.models.Salary;
 import org.aptech.backendmypham.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-
+@Repository
 public interface SalaryRepository extends JpaRepository<Salary,Integer> {
     Optional<Salary> findByUserAndMonthAndYear(User user, Integer month, Integer year);
 

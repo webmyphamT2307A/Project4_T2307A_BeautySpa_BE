@@ -54,7 +54,7 @@ public class userDetailServiceImpl implements userDetailService {
         user.setPhone(userRegisterDto.getPhone());
         user.setAddress(userRegisterDto.getAddress());
         user.setBranch(branch);
-        user.setIsActive(true);
+        user.setIsActive(1);
         user.setRole(role);
 
         // Lưu người dùng vào cơ sở dữ liệu
