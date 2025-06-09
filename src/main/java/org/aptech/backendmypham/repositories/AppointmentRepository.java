@@ -99,5 +99,5 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             "AND a.isActive = true " +
             "GROUP BY day, shiftName ")
     List<Object[]> getDailyCustomerCountByShift(@Param("year") int year, @Param("month") int month);
-
+    List<Appointment> findByAppointmentDateBetweenAndIsActiveTrue(Instant startOfDay, Instant endOfDay);
 }
