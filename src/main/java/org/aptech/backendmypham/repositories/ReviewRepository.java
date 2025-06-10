@@ -13,7 +13,9 @@ import java.util.Optional;
 
 @Repository
 public interface ReviewRepository extends JpaRepository<Review,Integer> {
-    Optional<Review> findByIdAndIsActiveTrue(Integer id);
+    @Query("SELECT r FROM Review r WHERE r.id = :id AND r.isActive = true")
+    Optional<Review> findByIdAndIsActiveTrue(@Param("id") Integer id);
+
 
     // Tìm tất cả review theo relatedId (ví dụ: ID dịch vụ), có phân trang và phải đang hoạt động
     Page<Review> findByRelatedIdAndIsActiveTrue(Integer relatedId, Pageable pageable);
