@@ -4,9 +4,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.aptech.backendmypham.configs.CustomUserDetails;
 import org.aptech.backendmypham.dto.ResponseObject;
 import org.aptech.backendmypham.dto.ReviewCreateRequestDTO;
 import org.aptech.backendmypham.dto.ReviewResponseDTO;
@@ -31,32 +33,29 @@ public class ReviewController {
 
     private final ReviewService reviewService;
 
-    @Operation(summary = "Tạo một đánh giá mới (cho cả khách và người dùng đăng nhập)")
+    @Operation(
+            summary = "Tạo một đánh giá mới (Yêu cầu đăng nhập)",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Tạo đánh giá thành công"),
-            @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ (validation failed)"),
-            @ApiResponse(responseCode = "404", description = "Không tìm thấy dịch vụ/nhân viên được đánh giá")
+            @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực"),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy đối tượng được đánh giá")
     })
     @PostMapping("")
     public ResponseEntity<ResponseObject> createReview(@Valid @RequestBody ReviewCreateRequestDTO createDTO) {
-        // 1. Lấy thông tin xác thực một cách an toàn
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Long customerId = null;
 
-        // 2. Kiểm tra xem người dùng có thực sự đăng nhập hay không
-        if (authentication != null && !(authentication instanceof AnonymousAuthenticationToken) && authentication.isAuthenticated()) {
-            // Nếu đã đăng nhập, lấy ID.
-            // Giả định rằng principal's name chính là customer ID dưới dạng String.
-            // Bạn cần điều chỉnh cho phù hợp với cách bạn cấu hình UserDetails.
-            customerId = Long.parseLong(authentication.getName());
+        if (authentication == null || !authentication.isAuthenticated() || (authentication instanceof AnonymousAuthenticationToken)) {
+            return new ResponseEntity<>(new ResponseObject(Status.ERROR, "Yêu cầu đăng nhập...", null), HttpStatus.UNAUTHORIZED);
         }
 
-        // 3. Gọi service với customerId (có thể là null nếu là khách vãng lai)
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long customerId = Long.valueOf(userDetails.getId());
+
         ReviewResponseDTO createdReview = reviewService.createReview(customerId, createDTO);
-        return new ResponseEntity<>(
-                new ResponseObject(Status.SUCCESS, "", createdReview),
-                HttpStatus.CREATED
-        );
+        return new ResponseEntity<>(new ResponseObject(Status.SUCCESS, "...", createdReview), HttpStatus.CREATED);
     }
 
     @Operation(summary = "Lấy danh sách đánh giá theo ID liên quan")
@@ -94,18 +93,17 @@ public class ReviewController {
             @Parameter(description = "ID của đánh giá") @PathVariable Integer reviewId,
             @Valid @RequestBody ReviewUpdateRequestDTO updateDTO
     ) {
-        // 4. Các API update/delete bắt buộc phải xác thực
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || (authentication instanceof AnonymousAuthenticationToken)) {
-            // Ném lỗi hoặc trả về response 401 Unauthorized
             return new ResponseEntity<>(new ResponseObject(Status.ERROR, "Yêu cầu đăng nhập để thực hiện chức năng này.", null), HttpStatus.UNAUTHORIZED);
         }
-        Long customerId = Long.parseLong(authentication.getName());
 
-        // 5. Gọi service với customerId để kiểm tra quyền
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long customerId = Long.valueOf(userDetails.getId());
+
         ReviewResponseDTO updatedReview = reviewService.updateReview(customerId, reviewId, updateDTO);
         return ResponseEntity.ok(
-                new ResponseObject(Status.SUCCESS, "", updatedReview)
+                new ResponseObject(Status.SUCCESS, "Cập nhật đánh giá thành công.", updatedReview)
         );
     }
 
@@ -114,16 +112,18 @@ public class ReviewController {
     public ResponseEntity<ResponseObject> deleteReview(
             @Parameter(description = "ID của đánh giá") @PathVariable Integer reviewId
     ) {
-        // Tương tự như update, bắt buộc phải xác thực
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || (authentication instanceof AnonymousAuthenticationToken)) {
             return new ResponseEntity<>(new ResponseObject(Status.ERROR, "Yêu cầu đăng nhập để thực hiện chức năng này.", null), HttpStatus.UNAUTHORIZED);
         }
-        Long customerId = Long.parseLong(authentication.getName());
+
+        // SỬA LẠI CÁCH LẤY ID GIỐNG NHƯ HÀM createReview
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long customerId = Long.valueOf(userDetails.getId());
 
         reviewService.deleteReview(customerId, reviewId);
         return ResponseEntity.ok(
-                new ResponseObject(Status.SUCCESS, "", null)
+                new ResponseObject(Status.SUCCESS, "Xóa đánh giá thành công.", null)
         );
     }
 }

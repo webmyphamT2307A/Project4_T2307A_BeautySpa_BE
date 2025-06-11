@@ -60,7 +60,7 @@ public class CustomerDetailServiceImpl implements CustomerDetailService {
                 return new ResponseObject(Status.SUCCESS, "Đăng ký thành công", saved);
             }
         }
-        String phone = registerRequestDto.getPhone();    
+        String phone = registerRequestDto.getPhone();
         // Tạo mới khách hàng hoàn toàn
         Customer customer = new Customer();
         customer.setFullName(registerRequestDto.getFullName());

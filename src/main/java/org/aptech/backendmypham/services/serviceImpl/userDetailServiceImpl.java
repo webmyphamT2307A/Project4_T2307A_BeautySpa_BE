@@ -65,8 +65,6 @@ public class userDetailServiceImpl implements userDetailService {
     }
     @Override
     public ResponseObject login(LoginRequestDto dto) {
-
-
         // Tìm người dùng trong cơ sở dữ liệu
         Optional<User> userOptional = userRepository.findByEmail(dto.getEmail());
         if (userOptional.isEmpty()) {
@@ -74,24 +72,29 @@ public class userDetailServiceImpl implements userDetailService {
         }
         User user = userOptional.get();
 
-        // Log mật khẩu người dùng nhập vào và mật khẩu đã lưu trong cơ sở dữ liệu
-        System.out.println("Match? " + passwordEncoder.matches(dto.getPassword(), user.getPassword()));
+        // =======================================================
+        // THÊM BƯỚC KIỂM TRA STATUS (isActive) TẠI ĐÂY
+        // =======================================================
+        if (user.getIsActive() != 1) {
+            logger.warn("Nỗ lực đăng nhập vào tài khoản bị khóa hoặc chưa kích hoạt: {}", dto.getEmail());
+            // Trả về lỗi thay vì tiếp tục
+            return new ResponseObject(Status.ERROR, "Tài khoản của bạn đã bị khóa hoặc chưa được kích hoạt.", null);
+        }
+        // =======================================================
 
         // So sánh mật khẩu
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
             logger.error("Mật khẩu không đúng cho email: {}", dto.getEmail());
-            throw new RuntimeException("Mật khẩu không đúng");
-
+            // Bạn có thể trả về ResponseObject thay vì throw exception để thân thiện hơn với FE
+            return new ResponseObject(Status.ERROR, "Mật khẩu không đúng", null);
         }
 
-
-        // Nếu mật khẩu đúng, tạo token
+        // Nếu mật khẩu đúng và tài khoản hoạt động, tạo token
         String token = jwtService.generateTokenForUser(user);
         return new ResponseObject(Status.SUCCESS, "Đăng nhập thành công", Map.of(
                 "user", user,
                 "token", token
         ));
-
     }
 
 

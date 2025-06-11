@@ -1,24 +1,18 @@
 package org.aptech.backendmypham.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.Instant;
 
-@Getter
-@Setter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ReviewResponseDTO {
+public class FeedbackResponseDTO {
     private Integer id;
-    private Integer customerId;
-    private Integer rating;
-    private String comment;
+    private String message;
     private Instant createdAt;
-
-    private String authorName;
-
-
+    private String customerName;
+    private Integer customerId;
 }

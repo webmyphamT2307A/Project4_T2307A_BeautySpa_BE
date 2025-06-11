@@ -12,4 +12,5 @@ import lombok.Setter;
 public class ShiftReportDto {
     private String name; // "Morning", "Afternoon", "Evening"
     private long count;  // Số lượng khách
+    private double percentage;
 }
