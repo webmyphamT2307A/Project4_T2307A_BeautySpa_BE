@@ -1,3 +1,4 @@
+
 package org.aptech.backendmypham.services.serviceImpl;
 
 import lombok.RequiredArgsConstructor;
@@ -60,8 +61,14 @@ public class userDetailServiceImpl implements userDetailService {
         // Lưu người dùng vào cơ sở dữ liệu
         User savedUser = userRepository.save(user);
 
-        // Trả về đối tượng ResponseObject với thông tin người dùng mới đã đăng ký
-        return new ResponseObject(Status.SUCCESS, "Đăng ký thành công", savedUser);
+        // Tạo JWT token cho user mới
+        String token = jwtService.generateTokenForUser(savedUser);
+
+        // Trả về cả user và token cho FE
+        return new ResponseObject(Status.SUCCESS, "Đăng ký thành công", Map.of(
+                "user", savedUser,
+                "token", token
+        ));
     }
     @Override
     public ResponseObject login(LoginRequestDto dto) {

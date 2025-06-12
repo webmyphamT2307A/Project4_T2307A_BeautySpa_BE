@@ -31,7 +31,7 @@ public class ServiceHistoryServiceImpl implements ServiceHistoryService {
     private ServiceHistoryDTO mapToDTO(Servicehistory history) {
         return new ServiceHistoryDTO(
                 history.getId(),
-                history.getUser().getId(),
+                Math.toIntExact(history.getUser().getId()),
                 history.getCustomer().getId(),
                 history.getAppointment().getId(),
                 history.getService().getId(),

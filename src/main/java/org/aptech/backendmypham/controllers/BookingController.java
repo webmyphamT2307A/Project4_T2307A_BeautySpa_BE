@@ -25,7 +25,7 @@ public class BookingController {
     @GetMapping("/staff-availability")
     @Operation(summary = "xem nhân viên có rảnh hay bận (maybe)")
     public ResponseEntity<ResponseObject> checkStaffAvailability(
-            @RequestParam Integer userId,
+            @RequestParam Long userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant requestedDateTime, // VD: 2025-12-25T10:00:00Z
             @RequestParam Integer durationMinutes) {
         try {

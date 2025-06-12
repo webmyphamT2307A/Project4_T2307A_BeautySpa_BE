@@ -1,10 +1,14 @@
 package org.aptech.backendmypham.services;
 
 import org.aptech.backendmypham.dto.ReviewCreateRequestDTO;
+import org.aptech.backendmypham.dto.ReviewDTO;
 import org.aptech.backendmypham.dto.ReviewResponseDTO;
 import org.aptech.backendmypham.dto.ReviewUpdateRequestDTO;
+import org.aptech.backendmypham.models.Review;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 public interface ReviewService {
     // customerId có thể là null (cho khách vãng lai)
@@ -19,4 +23,5 @@ public interface ReviewService {
 
     // Cần customerId để kiểm tra quyền
     void deleteReview(Long customerId, Integer reviewId);
+    List<ReviewDTO> findALL();
 }
