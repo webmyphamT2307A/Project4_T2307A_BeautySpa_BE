@@ -126,4 +126,12 @@ public class ReviewController {
                 new ResponseObject(Status.SUCCESS, "Xóa đánh giá thành công.", null)
         );
     }
+    @GetMapping("/findAll")
+    @Operation(summary = "Lấy hết review của khách")
+    public ResponseEntity<ResponseObject> findAll() {
+        return ResponseEntity.ok(
+                new ResponseObject(Status.SUCCESS, "Thành công", reviewService.findALL())
+        );
+
+    }
 }

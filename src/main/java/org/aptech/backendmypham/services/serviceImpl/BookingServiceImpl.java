@@ -22,7 +22,7 @@ public class BookingServiceImpl implements BookingService {
     private final org.aptech.backendmypham.repositories.ServiceRepository serviceRepository;
     private  final BookingRepository bookingRepository;
     @Override
-    public boolean isStaffAvailable(Integer userId, Instant requestedStartTime, Integer durationMinutes, Long appointmentIdToExclude) {
+    public boolean isStaffAvailable(Long userId, Instant requestedStartTime, Integer durationMinutes, Long appointmentIdToExclude) {
         if (durationMinutes == null || durationMinutes <= 0) {
             throw new IllegalArgumentException("Thời lượng phải là số dương.");
         }
@@ -77,7 +77,7 @@ public class BookingServiceImpl implements BookingService {
 
     // Triển khai phương thức cũ (gọi phương thức mới với exclusion là null)
     @Override
-    public boolean isStaffAvailable(Integer userId, Instant requestedStartTime, Integer durationMinutes) {
+    public boolean isStaffAvailable(Long userId, Instant requestedStartTime, Integer durationMinutes) {
         return this.isStaffAvailable(userId, requestedStartTime, durationMinutes, null); // Gọi hàm mới, không loại trừ appointment nào
     }
 

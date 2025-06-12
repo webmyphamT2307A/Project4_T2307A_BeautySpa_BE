@@ -2,6 +2,7 @@ package org.aptech.backendmypham.services.serviceImpl;
 
 import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.ReviewCreateRequestDTO;
+import org.aptech.backendmypham.dto.ReviewDTO;
 import org.aptech.backendmypham.dto.ReviewResponseDTO;
 import org.aptech.backendmypham.dto.ReviewUpdateRequestDTO;
 import org.aptech.backendmypham.exception.ResourceNotFoundException;
@@ -17,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -120,7 +123,7 @@ public class ReviewServiceImpl implements ReviewService {
                 throw new ResourceNotFoundException("Service not found with id: " + relatedId);
             }
         } else if ("user".equalsIgnoreCase(type)) {
-            exists = userRepository.existsById(relatedId.longValue()); // Giả sử ID của User là Long
+            exists = userRepository.existsById(relatedId.longValue());
             if (!exists) {
                 throw new ResourceNotFoundException("User (Staff) not found with id: " + relatedId);
             }
@@ -155,6 +158,15 @@ public class ReviewServiceImpl implements ReviewService {
 
         logger.info(">>> [checkOwnership] Kiểm tra quyền sở hữu thành công cho review ID: {}", review.getId());
     }
+    @Override
+    public List<ReviewDTO> findALL() {
+        List<Review> reviews = reviewRepository.findAll();
+        List<ReviewDTO> dtos = new ArrayList<>();
+        for (Review review : reviews) {
+            dtos.add(convertToReviewDTO(review));
+        }
+        return dtos;
+    }
 
 
 
@@ -174,5 +186,24 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         return dto;
+    }
+    private ReviewDTO convertToReviewDTO(Review review) {
+        ReviewDTO dto = new ReviewDTO();
+        dto.setId(review.getId());
+
+        dto.setRating(review.getRating());
+        dto.setComment(review.getComment());
+        dto.setCreatedAt(review.getCreatedAt());
+        dto.setType(review.getType());
+        dto.setRelatedId(review.getRelatedId());
+        dto.setActive(review.getIsActive());
+        if (review.getCustomer() != null) {
+            dto.setAuthorName(review.getCustomer().getFullName());
+            dto.setCustomerId(Long.valueOf(review.getCustomer().getId()));
+        } else {
+            dto.setAuthorName("Anonymous");
+        }
+        return dto;
+
     }
 }

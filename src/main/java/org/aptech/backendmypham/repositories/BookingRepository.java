@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByUserIdAndIsActiveTrueAndBookingDateTimeBetween(
-            Integer userId,
+            Long userId,
             Instant startTimeWindow,
             Instant endTimeWindow
     );
@@ -21,7 +21,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "AND b.bookingDateTime BETWEEN :startTimeWindow AND :endTimeWindow " +
             "AND (b.appointment IS NULL OR b.appointment.id != :appointmentIdToExclude)")
     List<Booking> findConflictingBookingsWithExclusion(
-            @Param("userId") Integer userId,
+            @Param("userId") Long userId,
             @Param("startTimeWindow") Instant startTimeWindow,
             @Param("endTimeWindow") Instant endTimeWindow,
             @Param("appointmentIdToExclude") Long appointmentIdToExclude
@@ -29,14 +29,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     // Các phương thức bạn đã có để tìm booking theo User, Service, DateTime
     List<Booking> findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
-            Integer userId,
-            Long serviceId, // Hoặc Integer tùy kiểu ID của Service entity
+            Long userId,
+            Integer serviceId, // Hoặc Integer tùy kiểu ID của Service entity
             Instant bookingDateTime
     );
 
-    List<Booking> findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
-            Integer userId,
-            Integer serviceId,
-            Instant bookingDateTime
-    );
+//    List<Booking> findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
+//            Integer userId,
+//            Integer serviceId,
+//            Instant bookingDateTime
+//    );
 }
