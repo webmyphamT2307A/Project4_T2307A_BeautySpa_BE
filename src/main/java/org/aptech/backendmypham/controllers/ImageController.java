@@ -1,6 +1,7 @@
 package org.aptech.backendmypham.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -20,7 +21,8 @@ import java.util.Map;
 @RestController
 public class ImageController {
 
-    private static final String UPLOAD_DIR = "uploads";
+    private static final String UPLOAD_DIR = System.getProperty("user.dir") + File.separator + "uploads";
+
 
     @GetMapping("/uploads/{filename}")
     @Operation(summary = "Upload ảnh lên")
@@ -43,7 +45,7 @@ public class ImageController {
                 .body(resource);
     }
     @PostMapping(value = "/api/v1/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body("File is empty");
         }
@@ -55,11 +57,12 @@ public class ImageController {
             File dest = new File(uploadDir, fileName);
             file.transferTo(dest);
 
+            String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
             Map<String, String> result = new HashMap<>();
-            result.put("url", "/uploads/" + fileName);
+            result.put("url", baseUrl + "/uploads/" + fileName); 
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            e.printStackTrace(); // In log lỗi ra console để dễ debug
+            e.printStackTrace();
             return ResponseEntity.status(500).body("Upload failed: " + e.getMessage());
         }
     }
