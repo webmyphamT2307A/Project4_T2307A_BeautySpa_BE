@@ -32,7 +32,6 @@ public class FeedbackController {
         );
     }
     @PostMapping("/created")
-// BỎ @PreAuthorize đi để cho phép khách gửi feedback
     public ResponseEntity<ResponseObject> createFeedback(@Valid @RequestBody FeedbackCreateRequestDTO requestDTO) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
