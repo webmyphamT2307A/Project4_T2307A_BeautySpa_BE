@@ -35,14 +35,13 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public ReviewResponseDTO createReview(Long customerId, ReviewCreateRequestDTO createDTO) {
-        // THAY ĐỔI: Bỏ hoàn toàn logic cho khách vãng lai. customerId giờ là bắt buộc.
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + customerId));
 
         validateRelatedObject(createDTO.getType(), createDTO.getRelatedId());
 
         Review review = new Review();
-        review.setCustomer(customer); // Gán trực tiếp customer đã xác thực
+        review.setCustomer(customer);
         review.setRelatedId(createDTO.getRelatedId());
         review.setType(createDTO.getType());
         review.setRating(createDTO.getRating());
