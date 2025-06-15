@@ -31,8 +31,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(req -> req
                         // Các endpoint CÔNG KHAI, không cần đăng nhập
                         .requestMatchers(
-                                "/api/v1/auth/**", // Đăng nhập, đăng ký,...
-                                "/uploads/**"      // Cho phép xem ảnh public
+                                "/**"
                         ).permitAll()
                         // Cho phép mọi request GET (xem sản phẩm, dịch vụ, review,...)
                         .requestMatchers(HttpMethod.GET).permitAll()
