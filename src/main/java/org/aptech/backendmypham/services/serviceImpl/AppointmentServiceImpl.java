@@ -173,6 +173,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         return convertToDto(appointment);
     }
 
+    // Sửa lại hàm này
     private AppointmentResponseDto convertToDto(Appointment appointment) {
         AppointmentResponseDto dto = new AppointmentResponseDto();
         dto.setId(appointment.getId());
@@ -181,23 +182,42 @@ public class AppointmentServiceImpl implements AppointmentService {
         dto.setStatus(appointment.getStatus());
         dto.setSlot(appointment.getSlot());
         dto.setNotes(appointment.getNotes());
-        dto.setAppointmentDate(appointment.getAppointmentDate().toString());
-        dto.setEndTime(appointment.getEndTime().toString());
-        dto.setCustomerImageUrl(appointment.getCustomer() != null ? appointment.getCustomer().getImageUrl() : null);
+        // Luôn set giá trị, không bị ảnh hưởng bởi lỗi khác
         dto.setPrice(appointment.getPrice());
-        dto.setUserImageUrl(appointment.getUser() != null ? appointment.getUser().getImageUrl() : null);
 
-        dto.setServiceName(appointment.getService().getName());
-        dto.setBranchName(appointment.getBranch().getName());
-        dto.setCustomerName(appointment.getCustomer().getFullName());
+        // Kiểm tra null an toàn trước khi truy cập
+        if (appointment.getAppointmentDate() != null) {
+            dto.setAppointmentDate(appointment.getAppointmentDate().toString());
+        }
+        if (appointment.getEndTime() != null) {
+            dto.setEndTime(appointment.getEndTime().toString());
+        }
+
+        // Xử lý Service
+        if (appointment.getService() != null) {
+            dto.setServiceName(appointment.getService().getName());
+        } else {
+            dto.setServiceName("N/A");
+        }
+
+        // Xử lý Branch
+        if (appointment.getBranch() != null) {
+            dto.setBranchName(appointment.getBranch().getName());
+        } else {
+            dto.setBranchName("N/A");
+        }
 
         if (appointment.getCustomer() != null) {
             dto.setCustomerName(appointment.getCustomer().getFullName());
+            dto.setCustomerEmail(appointment.getCustomer().getEmail());
             dto.setCustomerImageUrl(appointment.getCustomer().getImageUrl());
         } else {
             dto.setCustomerName("N/A");
+            dto.setCustomerEmail(null);
             dto.setCustomerImageUrl(null);
         }
+
+        // Xử lý User (Nhân viên)
         if (appointment.getUser() != null) {
             dto.setUserName(appointment.getUser().getFullName());
             dto.setUserImageUrl(appointment.getUser().getImageUrl());
@@ -208,7 +228,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         return dto;
     }
-
 
     @Override
     @Transactional
@@ -478,78 +497,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointments.sort((a1, a2) -> a2.getId().compareTo(a1.getId()));
 
         return appointments.stream()
-                .map(appointment -> {
-                    try {
-                        AppointmentResponseDto dto = new AppointmentResponseDto();
-                        dto.setId(appointment.getId());
-                        dto.setFullName(appointment.getFullName());
-                        dto.setPhoneNumber(appointment.getPhoneNumber());
-                        dto.setStatus(appointment.getStatus());
-                        dto.setSlot(appointment.getSlot());
-                        dto.setNotes(appointment.getNotes());
-                        dto.setAppointmentDate(appointment.getAppointmentDate().toString());
-                        dto.setEndTime(appointment.getEndTime().toString());
-                        dto.setPrice(appointment.getPrice());
-
-                        if (appointment.getUser() != null) {
-                            dto.setUserName(appointment.getUser().getFullName());
-                        } else {
-                            dto.setUserName("N/A");
-                        }
-
-                        // Set service name if available
-                        if (appointment.getService() != null) {
-                            dto.setServiceName(appointment.getService().getName());
-                        } else {
-                            dto.setServiceName("N/A");
-                        }
-
-                        // Set branch name if available
-                        if (appointment.getBranch() != null) {
-                            dto.setBranchName(appointment.getBranch().getName());
-                        } else {
-                            dto.setBranchName("N/A");
-                        }
-
-                        // Set customer name & image if available
-                        if (appointment.getCustomer() != null) {
-                            dto.setCustomerName(appointment.getCustomer().getFullName());
-                            dto.setCustomerImageUrl(appointment.getCustomer().getImageUrl()); // <-- BỔ SUNG DÒNG NÀY
-                        } else {
-                            dto.setCustomerName("N/A");
-                            dto.setCustomerImageUrl(null);
-                        }
-                        if(appointment.getUser() != null) {
-                            dto.setUserName(appointment.getUser().getFullName());
-                            dto.setUserImageUrl(appointment.getUser().getImageUrl());
-                        }else{
-                            dto.setUserName("N/A");
-                            dto.setUserImageUrl(null);
-                        }
-
-                        return dto;
-                    } catch (Exception e) {
-                        // Create a basic DTO with available information
-                        AppointmentResponseDto dto = new AppointmentResponseDto();
-                        dto.setId(appointment.getId());
-                        dto.setFullName(appointment.getFullName());
-                        dto.setPhoneNumber(appointment.getPhoneNumber());
-                        dto.setStatus(appointment.getStatus());
-                        dto.setSlot(appointment.getSlot());
-                        dto.setNotes(appointment.getNotes());
-                        dto.setAppointmentDate(appointment.getAppointmentDate().toString());
-                        dto.setEndTime(appointment.getEndTime().toString());
-                        dto.setPrice(appointment.getPrice());
-
-                        dto.setUserName("N/A");
-                        dto.setServiceName("N/A");
-                        dto.setBranchName("N/A");
-                        dto.setCustomerName("N/A");
-                        dto.setCustomerImageUrl(null);
-
-                        return dto;
-                    }
-                })
+                .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 
