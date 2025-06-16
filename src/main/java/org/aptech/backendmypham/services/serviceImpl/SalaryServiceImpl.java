@@ -1,17 +1,14 @@
 package org.aptech.backendmypham.services.serviceImpl;
 
+import org.aptech.backendmypham.dto.SalaryDetails;
+import org.aptech.backendmypham.models.*;
+import org.aptech.backendmypham.repositories.*;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.AllArgsConstructor;
 import org.aptech.backendmypham.dto.CalculateSalaryRequestDto;
 import org.aptech.backendmypham.dto.SalaryRequestDto;
 import org.aptech.backendmypham.dto.SalaryResponseDto;
 import org.aptech.backendmypham.exception.ResourceNotFoundException;
-import org.aptech.backendmypham.models.Salary;
-import org.aptech.backendmypham.models.User;
-import org.aptech.backendmypham.models.UsersSchedule;
-import org.aptech.backendmypham.repositories.SalaryRepository;
-import org.aptech.backendmypham.repositories.UserRepository;
-import org.aptech.backendmypham.repositories.UsersScheduleRepository;
 import org.aptech.backendmypham.services.SalaryService;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +18,9 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
 // import java.time.temporal.ChronoUnit; // Không còn dùng ChronoUnit nếu không tính giờ làm việc chi tiết
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +29,9 @@ public class SalaryServiceImpl implements SalaryService {
     private final SalaryRepository salaryRepository;
     private final UserRepository userRepository;
     private final UsersScheduleRepository usersScheduleRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final AttendanceRepository attendanceRepository;
+    private  final BookingRepository bookingRepository;
 
     // Các hằng số cho giảm trừ thuế TNCN
     // TODO: Cập nhật các giá trị này theo quy định mới nhất của Việt Nam
@@ -282,5 +284,45 @@ public class SalaryServiceImpl implements SalaryService {
         salaryToDelete.setIsActive(false);
         salaryRepository.save(salaryToDelete);
         return true;
+    }
+
+    @Override
+    public SalaryDetails getEstimatedSalary(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+
+        // Fetch base salary
+        Long baseSalary = user.getStandardBaseSalary().longValue();
+
+        // Calculate worked days and total workdays
+        int workedDays = Math.toIntExact(attendanceRepository.countWorkedDays(userId, LocalDate.now().getMonthValue()));
+        int totalWorkdays = Math.toIntExact(attendanceRepository.getTotalWorkdays(userId, LocalDate.now().getMonthValue()));
+
+        // Calculate total hours
+        long totalHours = Optional.ofNullable(attendanceRepository.sumTotalHours(userId, LocalDate.now().getMonthValue()))
+                .orElse(0L);
+        // Fetch bookings for the current month
+        List<Booking> bookings = bookingRepository.findBookingsByUserIdAndMonthAndYear(userId, LocalDate.now().getMonthValue(), LocalDate.now().getYear());
+
+        // Calculate total tip
+        Long moneyTip = 0L;
+        for (Booking booking : bookings) {
+            if (booking.getTotalPrice() != null) {
+                moneyTip += booking.getTotalPrice().longValue() * 10 / 100; // Assume tip is 10% of total booking price
+            }
+        }
+        Long totalTip = moneyTip;
+
+        // Calculate total salary
+        double totalSalary = baseSalary + totalTip.doubleValue();
+
+        return new SalaryDetails(
+                baseSalary,
+                workedDays,
+                totalWorkdays,
+                totalHours,
+                totalTip,
+                totalSalary
+        );
     }
 }

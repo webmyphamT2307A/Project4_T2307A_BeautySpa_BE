@@ -34,6 +34,23 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             Instant bookingDateTime
     );
 
+    @Query(value = "SELECT * FROM bookings b WHERE b.user_id = ?1 " +
+            "AND MONTH(b.booking_date_time) = ?2 " +
+            "AND YEAR(b.booking_date_time) = ?3 " +
+            "AND b.is_active = true", nativeQuery = true)
+    List<Booking> findBookingsByUserIdAndMonth(Long userId, int month, int year);
+
+
+    //findBookingsByUserIdAndMonthAndYear theo hql
+    @Query("SELECT b FROM Booking b WHERE b.user.id = :userId " +
+            "AND MONTH(b.bookingDateTime) = :month " +
+            "AND YEAR(b.bookingDateTime) = :year " +
+            "AND b.isActive = true")
+    List<Booking> findBookingsByUserIdAndMonthAndYear(
+            @Param("userId") Long userId,
+            @Param("month") int month,
+            @Param("year") int year
+    );
 //    List<Booking> findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
 //            Integer userId,
 //            Integer serviceId,
