@@ -1,5 +1,5 @@
 # Stage 1: Build with Maven + Java 21
-FROM maven:3.9.3-eclipse-temurin-21 AS build
+FROM maven:3.9.9-amazoncorretto-21 AS build
 WORKDIR /app
 
 # Copy source code
