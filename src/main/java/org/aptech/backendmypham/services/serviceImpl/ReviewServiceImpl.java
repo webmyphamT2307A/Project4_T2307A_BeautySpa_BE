@@ -1,13 +1,12 @@
 package org.aptech.backendmypham.services.serviceImpl;
 
 import lombok.RequiredArgsConstructor;
-import org.aptech.backendmypham.dto.ReviewCreateRequestDTO;
-import org.aptech.backendmypham.dto.ReviewDTO;
-import org.aptech.backendmypham.dto.ReviewResponseDTO;
-import org.aptech.backendmypham.dto.ReviewUpdateRequestDTO;
+import org.aptech.backendmypham.dto.*;
 import org.aptech.backendmypham.exception.ResourceNotFoundException;
 import org.aptech.backendmypham.models.Customer;
 import org.aptech.backendmypham.models.Review;
+import org.aptech.backendmypham.models.ReviewReply;
+import org.aptech.backendmypham.models.User;
 import org.aptech.backendmypham.repositories.*;
 import org.aptech.backendmypham.services.ReviewService;
 import org.slf4j.Logger;
@@ -31,6 +30,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final CustomerRepository customerRepository;
     private final ServiceRepository serviceRepository;
     private final UserRepository userRepository;
+    private final ReviewReplyRepository reviewReplyRepository;
 
     @Override
     @Transactional
@@ -166,7 +166,30 @@ public class ReviewServiceImpl implements ReviewService {
         }
         return dtos;
     }
+    @Override
+    @Transactional
+    public ReviewResponseDTO addReplyToReview(Integer reviewId, Long staffId, ReplyCreateRequestDTO replyDTO) {
+        Review review = reviewRepository.findByIdAndIsActiveTrue(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
 
+        if(review.getReply() != null) {
+            throw new IllegalStateException("This review has already been replied to.");
+        }
+
+        User staff = userRepository.findById(staffId)
+                .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + staffId));
+
+        ReviewReply reply = new ReviewReply();
+        reply.setReview(review);
+        reply.setStaff(staff);
+        reply.setComment(replyDTO.getComment());
+        reply.setCreatedAt(Instant.now());
+
+        reviewReplyRepository.save(reply);
+
+        // Trả về review đã được cập nhật với thông tin reply
+        return getReviewById(reviewId);
+    }
 
 
 
@@ -182,6 +205,17 @@ public class ReviewServiceImpl implements ReviewService {
             dto.setCustomerId(review.getCustomer().getId());
         } else {
             dto.setAuthorName("Anonymous");
+        }
+
+        if (review.getReply() != null) {
+            ReviewReply reply = review.getReply();
+            ReplyResponseDTO replyDTO = new ReplyResponseDTO(
+                    reply.getId(),
+                    reply.getComment(),
+                    reply.getStaff().getFullName(),
+                    reply.getCreatedAt()
+            );
+            dto.setReply(replyDTO);
         }
 
         return dto;
@@ -205,4 +239,5 @@ public class ReviewServiceImpl implements ReviewService {
         return dto;
 
     }
+
 }

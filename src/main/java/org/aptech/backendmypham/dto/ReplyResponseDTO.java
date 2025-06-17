@@ -9,16 +9,11 @@ import java.time.Instant;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-public class ReviewResponseDTO {
+@AllArgsConstructor
+public class ReplyResponseDTO {
     private Integer id;
-    private Integer customerId;
-    private Integer rating;
     private String comment;
+    private String staffName;
     private Instant createdAt;
-    private ReplyResponseDTO reply;
-    private String authorName;
-
-
 }

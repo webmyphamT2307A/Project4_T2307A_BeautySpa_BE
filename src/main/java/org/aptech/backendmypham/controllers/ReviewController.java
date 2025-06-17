@@ -9,10 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.configs.CustomUserDetails;
-import org.aptech.backendmypham.dto.ResponseObject;
-import org.aptech.backendmypham.dto.ReviewCreateRequestDTO;
-import org.aptech.backendmypham.dto.ReviewResponseDTO;
-import org.aptech.backendmypham.dto.ReviewUpdateRequestDTO;
+import org.aptech.backendmypham.dto.*;
 import org.aptech.backendmypham.enums.Status;
 import org.aptech.backendmypham.services.ReviewService;
 import org.springdoc.core.annotations.ParameterObject;
@@ -22,8 +19,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.Collection;
 
 @RestController
 @RequestMapping("/api/v1/reviews")
@@ -134,4 +136,51 @@ public class ReviewController {
         );
 
     }
+    @Operation(
+            summary = "Thêm phản hồi cho một đánh giá (Yêu cầu quyền Admin/Staff)",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @PostMapping("/{reviewId}/reply")
+    public ResponseEntity<ResponseObject> addReply(
+            @PathVariable Integer reviewId,
+            @Valid @RequestBody ReplyCreateRequestDTO replyDTO
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // --- BƯỚC SỬA LỖI: KIỂM TRA XÁC THỰC TOÀN DIỆN ---
+        // 1. Kiểm tra xem người dùng đã đăng nhập hay chưa
+        if (authentication == null ||
+                !authentication.isAuthenticated() ||
+                authentication instanceof AnonymousAuthenticationToken ||
+                "anonymousUser".equals(authentication.getPrincipal().toString()))
+        {
+            return new ResponseEntity<>(
+                    new ResponseObject(Status.ERROR, "Yêu cầu đăng nhập với vai trò Admin hoặc Staff.", null),
+                    HttpStatus.UNAUTHORIZED // Lỗi 401
+            );
+        }
+
+        // 2. Kiểm tra vai trò (ROLE) của người dùng đã đăng nhập
+        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+        boolean isAdminOrStaff = authorities.contains(new SimpleGrantedAuthority("ROLE_ADMIN")) ||
+                authorities.contains(new SimpleGrantedAuthority("ROLE_STAFF"));
+
+        if (!isAdminOrStaff) {
+            // Nếu không có quyền, trả về lỗi 403 Forbidden
+            return new ResponseEntity<>(
+                    new ResponseObject(Status.ERROR, "Bạn không có quyền thực hiện chức năng này.", null),
+                    HttpStatus.FORBIDDEN // Lỗi 403
+            );
+        }
+        // --- KẾT THÚC BƯỚC SỬA LỖI ---
+
+
+        // 3. Nếu đã qua tất cả các bước kiểm tra, principal sẽ là một String chứa ID
+        String staffIdString = authentication.getPrincipal().toString();
+        Long staffId = Long.parseLong(staffIdString);
+
+        ReviewResponseDTO updatedReview = reviewService.addReplyToReview(reviewId, staffId, replyDTO);
+        return new ResponseEntity<>(new ResponseObject(Status.SUCCESS, "Đã gửi phản hồi.", updatedReview), HttpStatus.CREATED);
+    }
+
 }

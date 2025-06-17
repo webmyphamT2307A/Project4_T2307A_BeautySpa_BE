@@ -8,7 +8,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
-
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 @Getter
 @Setter
 @Entity
@@ -41,7 +41,9 @@ public class Review {
     @ColumnDefault("(now())")
     @Column(name = "created_at")
     private Instant createdAt;
-
+    @OneToOne(mappedBy = "review", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @JsonManagedReference // Giúp tránh lỗi đệ quy vô hạn khi serialize JSON
+    private ReviewReply reply;
     @ColumnDefault("1")
     @Column(name = "is_active")
     private Boolean isActive;
