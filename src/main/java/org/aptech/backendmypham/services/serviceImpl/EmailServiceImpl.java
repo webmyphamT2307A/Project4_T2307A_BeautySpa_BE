@@ -172,7 +172,6 @@ public class EmailServiceImpl implements EmailService {
             """,
                 companyName,
                 request.getCustomerName(),
-                request.getAppointmentId(),
                 request.getServiceName(),
                 formatDate(request.getAppointmentDate()),
                 request.getAppointmentTime(),

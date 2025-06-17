@@ -160,9 +160,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         serviceHistory.setIsActive(true);
         serviceHistoryRepository.save(serviceHistory);
 
-        // Không cần gọi appointmentRepository.save(appointment) lần nữa ở cuối
-        // vì `savedAppointment` đã là đối tượng được quản lý sau lần save đầu tiên.
-        // Nếu bạn có thay đổi gì trên `savedAppointment` sau đó thì JPA sẽ tự động flush khi giao dịch kết thúc.
     }
 
     @Override

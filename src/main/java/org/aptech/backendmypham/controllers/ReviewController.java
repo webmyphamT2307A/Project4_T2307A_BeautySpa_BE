@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.configs.CustomUserDetails;
 import org.aptech.backendmypham.dto.*;
 import org.aptech.backendmypham.enums.Status;
+import org.aptech.backendmypham.models.User;
+import org.aptech.backendmypham.repositories.UserRepository;
 import org.aptech.backendmypham.services.ReviewService;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -34,6 +36,7 @@ import java.util.Collection;
 public class ReviewController {
 
     private final ReviewService reviewService;
+    private final UserRepository userRepository;
 
     @Operation(
             summary = "Tạo một đánh giá mới (Yêu cầu đăng nhập)",
@@ -128,14 +131,15 @@ public class ReviewController {
                 new ResponseObject(Status.SUCCESS, "Xóa đánh giá thành công.", null)
         );
     }
+
     @GetMapping("/findAll")
     @Operation(summary = "Lấy hết review của khách")
     public ResponseEntity<ResponseObject> findAll() {
         return ResponseEntity.ok(
                 new ResponseObject(Status.SUCCESS, "Thành công", reviewService.findALL())
         );
-
     }
+
     @Operation(
             summary = "Thêm phản hồi cho một đánh giá (Yêu cầu quyền Admin/Staff)",
             security = @SecurityRequirement(name = "bearerAuth")
@@ -174,13 +178,16 @@ public class ReviewController {
         }
         // --- KẾT THÚC BƯỚC SỬA LỖI ---
 
+        // 3. Lấy staff ID từ username - SỬA LẠI LOGIC NÀY
+        String username = authentication.getPrincipal().toString();
 
-        // 3. Nếu đã qua tất cả các bước kiểm tra, principal sẽ là một String chứa ID
-        String staffIdString = authentication.getPrincipal().toString();
-        Long staffId = Long.parseLong(staffIdString);
+        // Tìm user theo username để lấy ID
+        User staff = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Staff not found with username: " + username));
+
+        Long staffId = staff.getId();
 
         ReviewResponseDTO updatedReview = reviewService.addReplyToReview(reviewId, staffId, replyDTO);
         return new ResponseEntity<>(new ResponseObject(Status.SUCCESS, "Đã gửi phản hồi.", updatedReview), HttpStatus.CREATED);
     }
-
 }
