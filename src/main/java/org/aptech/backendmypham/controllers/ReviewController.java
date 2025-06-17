@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.configs.CustomUserDetails;
 import org.aptech.backendmypham.dto.*;
 import org.aptech.backendmypham.enums.Status;
+import org.aptech.backendmypham.models.ReviewReply;
 import org.aptech.backendmypham.models.User;
 import org.aptech.backendmypham.repositories.UserRepository;
 import org.aptech.backendmypham.services.ReviewService;
@@ -19,11 +20,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -122,7 +125,6 @@ public class ReviewController {
             return new ResponseEntity<>(new ResponseObject(Status.ERROR, "Yêu cầu đăng nhập để thực hiện chức năng này.", null), HttpStatus.UNAUTHORIZED);
         }
 
-        // SỬA LẠI CÁCH LẤY ID GIỐNG NHƯ HÀM createReview
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         Long customerId = Long.valueOf(userDetails.getId());
 
@@ -141,53 +143,126 @@ public class ReviewController {
     }
 
     @Operation(
-            summary = "Thêm phản hồi cho một đánh giá (Yêu cầu quyền Admin/Staff)",
+            summary = "Thêm phản hồi cho một đánh giá (Cho phép tất cả user đã đăng nhập)",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @PostMapping("/{reviewId}/reply")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     public ResponseEntity<ResponseObject> addReply(
             @PathVariable Integer reviewId,
-            @Valid @RequestBody ReplyCreateRequestDTO replyDTO
+            @Valid @RequestBody ReplyCreateRequestDTO replyDTO,
+            Authentication authentication
     ) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        try {
+            // Xác định loại user và userId
+            Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+            boolean isStaff = authorities.contains(new SimpleGrantedAuthority("ROLE_ADMIN")) ||
+                    authorities.contains(new SimpleGrantedAuthority("ROLE_STAFF"));
 
-        // --- BƯỚC SỬA LỖI: KIỂM TRA XÁC THỰC TOÀN DIỆN ---
-        // 1. Kiểm tra xem người dùng đã đăng nhập hay chưa
-        if (authentication == null ||
-                !authentication.isAuthenticated() ||
-                authentication instanceof AnonymousAuthenticationToken ||
-                "anonymousUser".equals(authentication.getPrincipal().toString()))
-        {
+            ReviewResponseDTO updatedReview;
+
+            if (isStaff) {
+                // Staff/Admin reply
+                String username = authentication.getName();
+                User staff = userRepository.findByEmail(username)
+                        .orElseThrow(() -> new RuntimeException("Staff not found"));
+                updatedReview = reviewService.addReplyToReview(reviewId, staff.getId(), replyDTO);
+            } else {
+                // Customer reply
+                CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                Long customerId = Long.valueOf(userDetails.getId());
+                updatedReview = reviewService.addCustomerReplyToReview(reviewId, customerId, replyDTO);
+            }
+
             return new ResponseEntity<>(
-                    new ResponseObject(Status.ERROR, "Yêu cầu đăng nhập với vai trò Admin hoặc Staff.", null),
-                    HttpStatus.UNAUTHORIZED // Lỗi 401
+                    new ResponseObject(Status.SUCCESS, "Đã gửi phản hồi.", updatedReview),
+                    HttpStatus.CREATED
+            );
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, e.getMessage(), null)
             );
         }
+    }
 
-        // 2. Kiểm tra vai trò (ROLE) của người dùng đã đăng nhập
-        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-        boolean isAdminOrStaff = authorities.contains(new SimpleGrantedAuthority("ROLE_ADMIN")) ||
-                authorities.contains(new SimpleGrantedAuthority("ROLE_STAFF"));
+    @Operation(summary = "Thêm phản hồi đa cấp cho review")
+    @PostMapping("/{reviewId}/threaded-reply")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
+    public ResponseEntity<ResponseObject> addThreadedReply(
+            @PathVariable Integer reviewId,
+            @Valid @RequestBody ThreadedReplyCreateRequestDTO replyDTO,
+            Authentication authentication
+    ) {
+        try {
+            String userType;
+            Long userId;
 
-        if (!isAdminOrStaff) {
-            // Nếu không có quyền, trả về lỗi 403 Forbidden
+            // Determine user type and ID
+            Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+            boolean isStaff = authorities.contains(new SimpleGrantedAuthority("ROLE_ADMIN")) ||
+                    authorities.contains(new SimpleGrantedAuthority("ROLE_STAFF"));
+
+            if (isStaff) {
+                String username = authentication.getName();
+                User staff = userRepository.findByEmail(username)
+                        .orElseThrow(() -> new RuntimeException("Staff not found"));
+                userType = "STAFF";
+                userId = staff.getId();
+            } else {
+                CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                userType = "CUSTOMER";
+                userId = Long.valueOf(userDetails.getId());
+            }
+
+            ReviewResponseDTO updatedReview = reviewService.addThreadedReply(reviewId, userId, userType, replyDTO);
             return new ResponseEntity<>(
-                    new ResponseObject(Status.ERROR, "Bạn không có quyền thực hiện chức năng này.", null),
-                    HttpStatus.FORBIDDEN // Lỗi 403
+                    new ResponseObject(Status.SUCCESS, "Đã gửi phản hồi.", updatedReview),
+                    HttpStatus.CREATED
+            );
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, e.getMessage(), null)
             );
         }
-        // --- KẾT THÚC BƯỚC SỬA LỖI ---
+    }
 
-        // 3. Lấy staff ID từ username - SỬA LẠI LOGIC NÀY
-        String username = authentication.getPrincipal().toString();
+    @PostMapping("/replies/{replyId}/reply")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
+    public ResponseEntity<ResponseObject> addReplyToReply(
+            @PathVariable Integer replyId,
+            @RequestBody ReplyCreateRequestDTO replyRequest,
+            Authentication authentication) {
 
-        // Tìm user theo username để lấy ID
-        User staff = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Staff not found with username: " + username));
+        try {
+            Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+            boolean isStaff = authorities.contains(new SimpleGrantedAuthority("ROLE_ADMIN")) ||
+                    authorities.contains(new SimpleGrantedAuthority("ROLE_STAFF"));
 
-        Long staffId = staff.getId();
+            ReviewResponseDTO updatedReview;
 
-        ReviewResponseDTO updatedReview = reviewService.addReplyToReview(reviewId, staffId, replyDTO);
-        return new ResponseEntity<>(new ResponseObject(Status.SUCCESS, "Đã gửi phản hồi.", updatedReview), HttpStatus.CREATED);
+            if (isStaff) {
+                // Staff reply to reply
+                String username = authentication.getName();
+                User staff = userRepository.findByEmail(username)
+                        .orElseThrow(() -> new RuntimeException("Staff not found"));
+                updatedReview = reviewService.addStaffReplyToReply(replyId, staff.getId(), replyRequest);
+            } else {
+                // Customer reply to reply
+                CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                Long customerId = Long.valueOf(userDetails.getId());
+                updatedReview = reviewService.addCustomerReplyToReply(replyId, customerId, replyRequest);
+            }
+
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Phản hồi đã được thêm thành công", updatedReview)
+            );
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, e.getMessage(), null)
+            );
+        }
     }
 }

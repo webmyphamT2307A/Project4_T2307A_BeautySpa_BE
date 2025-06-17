@@ -22,4 +22,11 @@ public interface ReviewService {
     void deleteReview(Long customerId, Integer reviewId);
     ReviewResponseDTO addReplyToReview(Integer reviewId, Long staffId, ReplyCreateRequestDTO replyDTO);
     List<ReviewDTO> findALL();
+    ReviewResponseDTO addThreadedReply(Integer reviewId, Long userId, String userType, ThreadedReplyCreateRequestDTO replyDTO);
+    ReviewResponseDTO addReplyToReply(Integer parentReplyId, Long userId, String userType, ThreadedReplyCreateRequestDTO replyDTO);
+    public ReviewResponseDTO addStaffReplyToReply(Integer parentReplyId, Long staffId, ReplyCreateRequestDTO replyDTO);
+    public ReviewResponseDTO addCustomerReplyToReply(Integer parentReplyId, Long customerId, ReplyCreateRequestDTO replyDTO);
+
+    public ReviewResponseDTO addCustomerReplyToReview(Integer reviewId, Long customerId, ReplyCreateRequestDTO replyDTO);
+
 }
