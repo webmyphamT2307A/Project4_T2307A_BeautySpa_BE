@@ -18,5 +18,6 @@ public interface AppointmentService {
 
       public List<AppointmentResponseDto> getAppointmentsByUserId(Long userId);
     void cancelAppointment(Long appointmentId);
+    public Map<String, Object> getAppointmentsGroupedByShift(LocalDate date, Long userId);
 
 }
