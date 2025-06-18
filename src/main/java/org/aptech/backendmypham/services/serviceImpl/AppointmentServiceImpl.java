@@ -600,14 +600,47 @@ public class AppointmentServiceImpl implements AppointmentService {
             }
         }
 
-        // 5. Lưu lại lịch hẹn đã được cập nhật trạng thái
-        appointmentRepository.save(appointment);
+        // 5. Lưu lại lịch hẹn đã được cập nhật trạng thái (quan trọng: lưu trước khi gửi mail)
+        Appointment cancelledAppointment = appointmentRepository.save(appointment);
         log.info("Đã hủy thành công lịch hẹn ID: {}", appointmentId);
 
-        // GỢI Ý BƯỚC TIẾP THEO: Gửi email thông báo hủy lịch cho khách hàng
-        // Bạn có thể tạo một phương thức mới trong EmailService
-        // và gọi nó ở đây trong một khối try-catch tương tự như khi tạo lịch hẹn.
-        // Ví dụ: emailService.sendCancellationEmail(appointment);
+        // ===== BẮT ĐẦU PHẦN GỬI EMAIL THÔNG BÁO HỦY =====
+        // Kiểm tra xem khách hàng có tồn tại và có email không
+        if (cancelledAppointment.getCustomer() != null && cancelledAppointment.getCustomer().getEmail() != null) {
+            try {
+                log.info("Chuẩn bị gửi email thông báo hủy cho lịch hẹn ID: {}", cancelledAppointment.getId());
+
+                // Tái sử dụng DTO để gửi thông tin cần thiết cho EmailService
+                EmailConfirmationRequestDto emailRequest = new EmailConfirmationRequestDto();
+                emailRequest.setAppointmentId(cancelledAppointment.getId());
+                emailRequest.setCustomerName(cancelledAppointment.getFullName());
+                emailRequest.setCustomerEmail(cancelledAppointment.getCustomer().getEmail());
+
+                if (cancelledAppointment.getService() != null) {
+                    emailRequest.setServiceName(cancelledAppointment.getService().getName());
+                }
+
+                if (cancelledAppointment.getAppointmentDate() != null) {
+                    emailRequest.setAppointmentDate(cancelledAppointment.getAppointmentDate().toString());
+                }
+
+                if (cancelledAppointment.getTimeSlot() != null) {
+                    emailRequest.setAppointmentTime(cancelledAppointment.getTimeSlot().getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                    emailRequest.setEndTime(cancelledAppointment.getTimeSlot().getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                }
+
+                // Gọi phương thức gửi mail hủy đã tạo trong EmailService
+                emailService.sendAppointmentCancellation(emailRequest);
+
+            } catch (Exception e) {
+                // QUAN TRỌNG: Chỉ ghi log lỗi, không ném exception ra ngoài.
+                // Việc hủy lịch hẹn đã thành công, không nên roll back transaction chỉ vì gửi mail thất bại.
+                log.error("Gửi email thông báo hủy thất bại cho lịch hẹn ID: {}. Lỗi: {}", cancelledAppointment.getId(), e.getMessage());
+            }
+        } else {
+            log.warn("Không thể gửi email thông báo hủy cho lịch hẹn ID: {} do khách hàng không có địa chỉ email.", cancelledAppointment.getId());
+        }
+        // ===== KẾT THÚC PHẦN GỬI EMAIL =====
     }
     @Override
     public List<AppointmentResponseDto> getALlAppointment() {
