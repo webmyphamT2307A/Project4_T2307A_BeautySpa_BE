@@ -7,10 +7,13 @@ import org.aptech.backendmypham.dto.AppointmentResponseDto;
 import org.aptech.backendmypham.dto.ResponseObject;
 import org.aptech.backendmypham.enums.Status;
 import org.aptech.backendmypham.services.AppointmentService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin/appointment")
@@ -101,6 +104,18 @@ public class AppointmentController {
             );
         }
     }
-
+    @GetMapping("/today")
+    public Map<String, Object> getTodayServices(
+            @RequestParam(value = "date", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(value = "userId", required = false) Long userId
+        ) {
+        if (date == null) {
+            date = LocalDate.now();
+        }
+        Map<String, Object> response = appointmentService.getAppointmentsGroupedByShift(date, userId);
+        System.out.println("Response: " + response);
+        return response;
+    }
 
 }

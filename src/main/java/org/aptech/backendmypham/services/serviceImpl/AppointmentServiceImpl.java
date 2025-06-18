@@ -16,6 +16,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.aptech.backendmypham.dto.EmailConfirmationRequestDto;
 import org.aptech.backendmypham.services.EmailService;
@@ -547,6 +548,47 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new RuntimeException("Xóa mềm thất bại: " + e.getMessage());
         }
     }
+
+    public Map<String, Object> getAppointmentsGroupedByShift(LocalDate date, Long userId) {
+        ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
+        Instant startOfDay = date.atStartOfDay(zoneId).toInstant();
+        Instant endOfDay = date.plusDays(1).atStartOfDay(zoneId).toInstant();
+        List<Appointment> appointments = null;
+        if (userId != null) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy User với ID: " + userId));
+            appointments = appointmentRepository.findByAppointmentDateBetweenAndUser(startOfDay, endOfDay, user);
+        } else {
+            appointments = appointmentRepository.findByAppointmentDateBetween(startOfDay, endOfDay);
+        }
+
+        Map<String, List<Map<String, Object>>> groupedAppointments = appointments.stream()
+                .collect(Collectors.groupingBy(appointment -> {
+                    LocalTime startTime = appointment.getAppointmentDate().atZone(zoneId).toLocalTime();
+                    return startTime.isBefore(LocalTime.NOON) ? "Sáng" : "Chiều";
+                }, Collectors.mapping(appointment -> Map.of(
+                        "id", "service-" + appointment.getId(),
+                        "service", appointment.getService() != null ? appointment.getService().getName() : null,
+                        "customerName", appointment.getCustomer() != null ? appointment.getCustomer().getFullName() : null,
+                        "startTime", appointment.getAppointmentDate(),
+                        "endTime", appointment.getEndTime(),
+                        "timeDisplay", appointment.getSlot(),
+                        "rating", appointment.getUser() != null ? appointment.getUser().getAverageRating() : null,
+                        "commission", appointment.getPrice(),
+                        "status", appointment.getStatus()
+                ), Collectors.toList())));
+
+
+        if (groupedAppointments.isEmpty()) {
+            return Map.of();
+        }
+
+        return Map.of(
+                "Sáng", groupedAppointments.getOrDefault("Sáng", List.of()),
+                "Chiều", groupedAppointments.getOrDefault("Chiều", List.of())
+        );
+    }
+
     @Override
     public List<AppointmentResponseDto> getAppointmentsByUserId(Long userId) {
         List<Appointment> appointments = appointmentRepository.findAllByUserIdAndIsActive(userId);
