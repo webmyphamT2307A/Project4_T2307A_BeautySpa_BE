@@ -14,6 +14,9 @@ public interface AppointmentService {
     AppointmentResponseDto findByIdAndIsActive(Long AiD);
     void updateAppointment(Long Aid,AppointmentDto appointmentDto);
     void deleteAppointment(Long AiD);
-    Map<String, Object> getAppointmentsGroupedByShift(LocalDate date, Long userId);
-    List<AppointmentResponseDto> getAppointmentsByUserId(Long userId);
+
+
+      public List<AppointmentResponseDto> getAppointmentsByUserId(Long userId);
+    void cancelAppointment(Long appointmentId);
+
 }

@@ -49,6 +49,20 @@ public class AppointmentController {
             );
         }
     }
+    @PutMapping("/{id}/cancel")
+    @Operation(summary = "Hủy một lịch hẹn theo ID")
+    public ResponseEntity<ResponseObject> cancelAppointment(@PathVariable("id") Long id) {
+        try {
+            appointmentService.cancelAppointment(id);
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Hủy lịch hẹn thành công", null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, "Lỗi khi hủy lịch hẹn: " + e.getMessage(), null)
+            );
+        }
+    }
     @PutMapping("/update")
     @Operation(summary = "Cập nhật thông tin appointment theo ID")
     public ResponseEntity<ResponseObject> updateAppointment(@RequestParam Long AiD, @RequestBody AppointmentDto dto) {

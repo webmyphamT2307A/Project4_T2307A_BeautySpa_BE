@@ -597,6 +597,93 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
+    // THÊM PHƯƠNG THỨC NÀY VÀO CUỐI FILE
+    @Override
+    @Transactional
+    public void cancelAppointment(Long appointmentId) {
+        log.info("Bắt đầu xử lý hủy cho lịch hẹn ID: {}", appointmentId);
+
+        // 1. Tìm lịch hẹn trong DB, nếu không có thì báo lỗi
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn với ID: " + appointmentId));
+
+        // 2. Kiểm tra trạng thái hiện tại của lịch hẹn
+        // Không cho phép hủy lịch đã hoàn thành hoặc đã bị hủy trước đó.
+        if ("completed".equalsIgnoreCase(appointment.getStatus()) || "cancelled".equalsIgnoreCase(appointment.getStatus())) {
+            throw new IllegalStateException("Không thể hủy lịch hẹn đã '" + appointment.getStatus() + "'.");
+        }
+
+        // 3. Cập nhật trạng thái của Appointment
+        appointment.setStatus("cancelled");
+        appointment.setIsActive(false); // Đánh dấu là không còn active
+        appointment.setUpdatedAt(Instant.now());
+
+        // 4. Tìm và hủy các bản ghi Booking liên quan để giải phóng slot
+        // Điều này rất quan trọng để nhân viên có thể nhận lịch khác vào giờ đó.
+        if (appointment.getUser() != null) {
+            log.info("Tìm và giải phóng booking cho nhân viên ID: {} vào lúc: {}",
+                    appointment.getUser().getId(), appointment.getAppointmentDate());
+
+            List<Booking> relatedBookings = bookingRepository.findByUserIdAndBookingDateTimeAndIsActiveTrue(
+                    appointment.getUser().getId(),
+                    appointment.getAppointmentDate()
+            );
+
+            if (!relatedBookings.isEmpty()) {
+                for (Booking booking : relatedBookings) {
+                    booking.setStatus("cancelled");
+                    booking.setIsActive(false);
+                    booking.setUpdatedAt(Instant.now());
+                    bookingRepository.save(booking);
+                    log.info("Đã giải phóng booking ID: {}", booking.getId());
+                }
+            } else {
+                log.warn("Không tìm thấy booking active nào để giải phóng cho lịch hẹn ID: {}", appointmentId);
+            }
+        }
+
+        // 5. Lưu lại lịch hẹn đã được cập nhật trạng thái (quan trọng: lưu trước khi gửi mail)
+        Appointment cancelledAppointment = appointmentRepository.save(appointment);
+        log.info("Đã hủy thành công lịch hẹn ID: {}", appointmentId);
+
+        // ===== BẮT ĐẦU PHẦN GỬI EMAIL THÔNG BÁO HỦY =====
+        // Kiểm tra xem khách hàng có tồn tại và có email không
+        if (cancelledAppointment.getCustomer() != null && cancelledAppointment.getCustomer().getEmail() != null) {
+            try {
+                log.info("Chuẩn bị gửi email thông báo hủy cho lịch hẹn ID: {}", cancelledAppointment.getId());
+
+                // Tái sử dụng DTO để gửi thông tin cần thiết cho EmailService
+                EmailConfirmationRequestDto emailRequest = new EmailConfirmationRequestDto();
+                emailRequest.setAppointmentId(cancelledAppointment.getId());
+                emailRequest.setCustomerName(cancelledAppointment.getFullName());
+                emailRequest.setCustomerEmail(cancelledAppointment.getCustomer().getEmail());
+
+                if (cancelledAppointment.getService() != null) {
+                    emailRequest.setServiceName(cancelledAppointment.getService().getName());
+                }
+
+                if (cancelledAppointment.getAppointmentDate() != null) {
+                    emailRequest.setAppointmentDate(cancelledAppointment.getAppointmentDate().toString());
+                }
+
+                if (cancelledAppointment.getTimeSlot() != null) {
+                    emailRequest.setAppointmentTime(cancelledAppointment.getTimeSlot().getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                    emailRequest.setEndTime(cancelledAppointment.getTimeSlot().getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                }
+
+                // Gọi phương thức gửi mail hủy đã tạo trong EmailService
+                emailService.sendAppointmentCancellation(emailRequest);
+
+            } catch (Exception e) {
+                // QUAN TRỌNG: Chỉ ghi log lỗi, không ném exception ra ngoài.
+                // Việc hủy lịch hẹn đã thành công, không nên roll back transaction chỉ vì gửi mail thất bại.
+                log.error("Gửi email thông báo hủy thất bại cho lịch hẹn ID: {}. Lỗi: {}", cancelledAppointment.getId(), e.getMessage());
+            }
+        } else {
+            log.warn("Không thể gửi email thông báo hủy cho lịch hẹn ID: {} do khách hàng không có địa chỉ email.", cancelledAppointment.getId());
+        }
+        // ===== KẾT THÚC PHẦN GỬI EMAIL =====
+    }
     @Override
     public List<AppointmentResponseDto> getALlAppointment() {
         List<Appointment> appointments = appointmentRepository.findAll();
