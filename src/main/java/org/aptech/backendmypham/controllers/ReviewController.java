@@ -4,24 +4,33 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.aptech.backendmypham.dto.ResponseObject;
-import org.aptech.backendmypham.dto.ReviewCreateRequestDTO;
-import org.aptech.backendmypham.dto.ReviewResponseDTO;
-import org.aptech.backendmypham.dto.ReviewUpdateRequestDTO;
+import org.aptech.backendmypham.configs.CustomUserDetails;
+import org.aptech.backendmypham.dto.*;
 import org.aptech.backendmypham.enums.Status;
+import org.aptech.backendmypham.models.ReviewReply;
+import org.aptech.backendmypham.models.User;
+import org.aptech.backendmypham.repositories.UserRepository;
 import org.aptech.backendmypham.services.ReviewService;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.Collection;
 
 @RestController
 @RequestMapping("/api/v1/reviews")
@@ -30,33 +39,31 @@ import org.springframework.web.bind.annotation.*;
 public class ReviewController {
 
     private final ReviewService reviewService;
+    private final UserRepository userRepository;
 
-    @Operation(summary = "Tạo một đánh giá mới (cho cả khách và người dùng đăng nhập)")
+    @Operation(
+            summary = "Tạo một đánh giá mới (Yêu cầu đăng nhập)",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Tạo đánh giá thành công"),
-            @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ (validation failed)"),
-            @ApiResponse(responseCode = "404", description = "Không tìm thấy dịch vụ/nhân viên được đánh giá")
+            @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực"),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy đối tượng được đánh giá")
     })
     @PostMapping("")
     public ResponseEntity<ResponseObject> createReview(@Valid @RequestBody ReviewCreateRequestDTO createDTO) {
-        // 1. Lấy thông tin xác thực một cách an toàn
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Long customerId = null;
 
-        // 2. Kiểm tra xem người dùng có thực sự đăng nhập hay không
-        if (authentication != null && !(authentication instanceof AnonymousAuthenticationToken) && authentication.isAuthenticated()) {
-            // Nếu đã đăng nhập, lấy ID.
-            // Giả định rằng principal's name chính là customer ID dưới dạng String.
-            // Bạn cần điều chỉnh cho phù hợp với cách bạn cấu hình UserDetails.
-            customerId = Long.parseLong(authentication.getName());
+        if (authentication == null || !authentication.isAuthenticated() || (authentication instanceof AnonymousAuthenticationToken)) {
+            return new ResponseEntity<>(new ResponseObject(Status.ERROR, "Yêu cầu đăng nhập...", null), HttpStatus.UNAUTHORIZED);
         }
 
-        // 3. Gọi service với customerId (có thể là null nếu là khách vãng lai)
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long customerId = Long.valueOf(userDetails.getId());
+
         ReviewResponseDTO createdReview = reviewService.createReview(customerId, createDTO);
-        return new ResponseEntity<>(
-                new ResponseObject(Status.SUCCESS, "", createdReview),
-                HttpStatus.CREATED
-        );
+        return new ResponseEntity<>(new ResponseObject(Status.SUCCESS, "...", createdReview), HttpStatus.CREATED);
     }
 
     @Operation(summary = "Lấy danh sách đánh giá theo ID liên quan")
@@ -94,18 +101,17 @@ public class ReviewController {
             @Parameter(description = "ID của đánh giá") @PathVariable Integer reviewId,
             @Valid @RequestBody ReviewUpdateRequestDTO updateDTO
     ) {
-        // 4. Các API update/delete bắt buộc phải xác thực
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || (authentication instanceof AnonymousAuthenticationToken)) {
-            // Ném lỗi hoặc trả về response 401 Unauthorized
             return new ResponseEntity<>(new ResponseObject(Status.ERROR, "Yêu cầu đăng nhập để thực hiện chức năng này.", null), HttpStatus.UNAUTHORIZED);
         }
-        Long customerId = Long.parseLong(authentication.getName());
 
-        // 5. Gọi service với customerId để kiểm tra quyền
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long customerId = Long.valueOf(userDetails.getId());
+
         ReviewResponseDTO updatedReview = reviewService.updateReview(customerId, reviewId, updateDTO);
         return ResponseEntity.ok(
-                new ResponseObject(Status.SUCCESS, "", updatedReview)
+                new ResponseObject(Status.SUCCESS, "Cập nhật đánh giá thành công.", updatedReview)
         );
     }
 
@@ -114,16 +120,149 @@ public class ReviewController {
     public ResponseEntity<ResponseObject> deleteReview(
             @Parameter(description = "ID của đánh giá") @PathVariable Integer reviewId
     ) {
-        // Tương tự như update, bắt buộc phải xác thực
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || (authentication instanceof AnonymousAuthenticationToken)) {
             return new ResponseEntity<>(new ResponseObject(Status.ERROR, "Yêu cầu đăng nhập để thực hiện chức năng này.", null), HttpStatus.UNAUTHORIZED);
         }
-        Long customerId = Long.parseLong(authentication.getName());
+
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long customerId = Long.valueOf(userDetails.getId());
 
         reviewService.deleteReview(customerId, reviewId);
         return ResponseEntity.ok(
-                new ResponseObject(Status.SUCCESS, "", null)
+                new ResponseObject(Status.SUCCESS, "Xóa đánh giá thành công.", null)
         );
+    }
+
+    @GetMapping("/findAll")
+    @Operation(summary = "Lấy hết review của khách")
+    public ResponseEntity<ResponseObject> findAll() {
+        return ResponseEntity.ok(
+                new ResponseObject(Status.SUCCESS, "Thành công", reviewService.findALL())
+        );
+    }
+
+    @Operation(
+            summary = "Thêm phản hồi cho một đánh giá (Cho phép tất cả user đã đăng nhập)",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @PostMapping("/{reviewId}/reply")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
+    public ResponseEntity<ResponseObject> addReply(
+            @PathVariable Integer reviewId,
+            @Valid @RequestBody ReplyCreateRequestDTO replyDTO,
+            Authentication authentication
+    ) {
+        try {
+            // Xác định loại user và userId
+            Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+            boolean isStaff = authorities.contains(new SimpleGrantedAuthority("ROLE_ADMIN")) ||
+                    authorities.contains(new SimpleGrantedAuthority("ROLE_STAFF"));
+
+            ReviewResponseDTO updatedReview;
+
+            if (isStaff) {
+                // Staff/Admin reply
+                String username = authentication.getName();
+                User staff = userRepository.findByEmail(username)
+                        .orElseThrow(() -> new RuntimeException("Staff not found"));
+                updatedReview = reviewService.addReplyToReview(reviewId, staff.getId(), replyDTO);
+            } else {
+                // Customer reply
+                CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                Long customerId = Long.valueOf(userDetails.getId());
+                updatedReview = reviewService.addCustomerReplyToReview(reviewId, customerId, replyDTO);
+            }
+
+            return new ResponseEntity<>(
+                    new ResponseObject(Status.SUCCESS, "Đã gửi phản hồi.", updatedReview),
+                    HttpStatus.CREATED
+            );
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, e.getMessage(), null)
+            );
+        }
+    }
+
+    @Operation(summary = "Thêm phản hồi đa cấp cho review")
+    @PostMapping("/{reviewId}/threaded-reply")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
+    public ResponseEntity<ResponseObject> addThreadedReply(
+            @PathVariable Integer reviewId,
+            @Valid @RequestBody ThreadedReplyCreateRequestDTO replyDTO,
+            Authentication authentication
+    ) {
+        try {
+            String userType;
+            Long userId;
+
+            // Determine user type and ID
+            Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+            boolean isStaff = authorities.contains(new SimpleGrantedAuthority("ROLE_ADMIN")) ||
+                    authorities.contains(new SimpleGrantedAuthority("ROLE_STAFF"));
+
+            if (isStaff) {
+                String username = authentication.getName();
+                User staff = userRepository.findByEmail(username)
+                        .orElseThrow(() -> new RuntimeException("Staff not found"));
+                userType = "STAFF";
+                userId = staff.getId();
+            } else {
+                CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                userType = "CUSTOMER";
+                userId = Long.valueOf(userDetails.getId());
+            }
+
+            ReviewResponseDTO updatedReview = reviewService.addThreadedReply(reviewId, userId, userType, replyDTO);
+            return new ResponseEntity<>(
+                    new ResponseObject(Status.SUCCESS, "Đã gửi phản hồi.", updatedReview),
+                    HttpStatus.CREATED
+            );
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, e.getMessage(), null)
+            );
+        }
+    }
+
+    @PostMapping("/replies/{replyId}/reply")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
+    public ResponseEntity<ResponseObject> addReplyToReply(
+            @PathVariable Integer replyId,
+            @RequestBody ReplyCreateRequestDTO replyRequest,
+            Authentication authentication) {
+
+        try {
+            Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+            boolean isStaff = authorities.contains(new SimpleGrantedAuthority("ROLE_ADMIN")) ||
+                    authorities.contains(new SimpleGrantedAuthority("ROLE_STAFF"));
+
+            ReviewResponseDTO updatedReview;
+
+            if (isStaff) {
+                // Staff reply to reply
+                String username = authentication.getName();
+                User staff = userRepository.findByEmail(username)
+                        .orElseThrow(() -> new RuntimeException("Staff not found"));
+                updatedReview = reviewService.addStaffReplyToReply(replyId, staff.getId(), replyRequest);
+            } else {
+                // Customer reply to reply
+                CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                Long customerId = Long.valueOf(userDetails.getId());
+                updatedReview = reviewService.addCustomerReplyToReply(replyId, customerId, replyRequest);
+            }
+
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Phản hồi đã được thêm thành công", updatedReview)
+            );
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, e.getMessage(), null)
+            );
+        }
     }
 }

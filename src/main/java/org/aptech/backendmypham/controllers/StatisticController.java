@@ -3,9 +3,11 @@ package org.aptech.backendmypham.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.ChartDataDto;
+import org.aptech.backendmypham.dto.DailyReportDto;
 import org.aptech.backendmypham.dto.ResponseObject;
 import org.aptech.backendmypham.enums.Status;
 import org.aptech.backendmypham.services.StatisticService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,12 +24,19 @@ public class StatisticController {
 
     private final StatisticService statisticService;
 
-    @GetMapping("/summary")
-    @Operation(summary = "Lấy các số liệu thống kê nhanh cho dashboard (Admin/Nhân viên)")
-    public ResponseEntity<ResponseObject> getDashboardSummary(
-            @RequestParam(required = false) Long userId) {
+    @GetMapping("/admin/summary")
+    @Operation(summary = "Lấy các số liệu thống kê nhanh cho dashboard ADMIN")
+    public ResponseEntity<ResponseObject> getAdminDashboardSummary() {
         return ResponseEntity.ok(
-                new ResponseObject(Status.SUCCESS, "Lấy dữ liệu tóm tắt thành công.", statisticService.getDashboardSummary(userId))
+                new ResponseObject(Status.SUCCESS, "Lấy dữ liệu tóm tắt cho admin thành công.", statisticService.getAdminDashboardSummary())
+        );
+    }
+
+    @GetMapping("/staff/summary")
+    @Operation(summary = "Lấy các số liệu thống kê nhanh cho dashboard NHÂN VIÊN")
+    public ResponseEntity<ResponseObject> getStaffDashboardSummary(@RequestParam Long userId) {
+        return ResponseEntity.ok(
+                new ResponseObject(Status.SUCCESS, "Lấy dữ liệu tóm tắt cho nhân viên thành công.", statisticService.getStaffDashboardSummary(userId))
         );
     }
 
@@ -104,6 +113,16 @@ public class StatisticController {
                 new ResponseObject(Status.SUCCESS,
                         "Lấy báo cáo khách hàng hàng ngày thành công.",
                         statisticService.getDailyCustomerReport(targetYear, targetMonth))
+        );
+    }
+    @GetMapping("/daily-report")
+    @Operation(summary = "Lấy báo cáo thống kê chi tiết cho một ngày cụ thể")
+    public ResponseEntity<ResponseObject> getDailyDetailedReport(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+
+        DailyReportDto report = statisticService.getDailyDetailedReport(date);
+        return ResponseEntity.ok(
+                new ResponseObject(Status.SUCCESS, "Lấy báo cáo ngày thành công.", report)
         );
     }
 }

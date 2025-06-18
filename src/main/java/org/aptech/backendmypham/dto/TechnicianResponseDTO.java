@@ -24,7 +24,7 @@ public class TechnicianResponseDTO {
     public TechnicianResponseDTO() {}
 
     public TechnicianResponseDTO(User user) {
-        this.id = user.getId();
+        this.id = Math.toIntExact(user.getId());
         this.fullName = user.getFullName();
         this.imageUrl = user.getImageUrl();
         this.averageRating = user.getAverageRating();

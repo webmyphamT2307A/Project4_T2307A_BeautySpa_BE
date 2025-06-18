@@ -19,12 +19,7 @@ public class ReviewCreateRequestDTO {
     @Max(value = 5, message = "Rating must be at most 5")
     @NotNull(message = "Rating is required")
     private Integer rating;
-    @Size(max = 100, message = "Guest name cannot exceed 100 characters")
-    private String guestName;
 
-    @Email(message = "Invalid email format")
-    @Size(max = 100, message = "Guest email cannot exceed 100 characters")
-    private String guestEmail;
 
     @Size(max = 1000, message = "Comment cannot exceed 1000 characters")
     private String comment;

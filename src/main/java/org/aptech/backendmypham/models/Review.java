@@ -8,7 +8,9 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
+import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 @Getter
 @Setter
 @Entity
@@ -23,9 +25,7 @@ public class Review {
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "customer_id")
     private org.aptech.backendmypham.models.Customer customer;
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
+
     @Lob
     @Column(name = "type", nullable = false)
     private String type;
@@ -43,15 +43,12 @@ public class Review {
     @ColumnDefault("(now())")
     @Column(name = "created_at")
     private Instant createdAt;
-
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<ReviewReply> replies;
     @ColumnDefault("1")
     @Column(name = "is_active")
     private Boolean isActive;
-    @Column(name = "guest_name", length = 100)
-    private String guestName;
-
-    @Column(name = "guest_email", length = 100)
-    private String guestEmail;
+  
 
 
 }

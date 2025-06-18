@@ -50,5 +50,11 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     // Lấy tất cả user active có role để tính toán ở Service
     @Query("SELECT u FROM User u WHERE u.isActive = 1 AND u.role IS NOT NULL")
     List<User> findAllActiveWithRoles();
+    @Query("SELECT FUNCTION('MONTH', r.createdAt) as month, AVG(r.rating) as avgRating " +
+            "FROM Review r " +
+            "JOIN Appointment a ON r.relatedId = a.service.id " +
+            "WHERE a.user.id = :userId AND r.rating IS NOT NULL AND FUNCTION('YEAR', r.createdAt) = :year " +
+            "GROUP BY FUNCTION('MONTH', r.createdAt)")
+    List<Object[]> getMonthlyRatingsForUser(@Param("year") int year, @Param("userId") Long userId);
 
 }

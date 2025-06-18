@@ -16,11 +16,17 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+import org.aptech.backendmypham.dto.EmailConfirmationRequestDto;
+import org.aptech.backendmypham.services.EmailService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
 public class AppointmentServiceImpl implements AppointmentService {
+    private static final Logger log = LoggerFactory.getLogger(AppointmentServiceImpl.class);
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
     private final ServiceRepository serviceRepository;
@@ -30,6 +36,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final BranchRepository branchRepository;
     private final TimeSlotsRepository timeSlotsRepository;
     private  final ServiceHistoryRepository serviceHistoryRepository;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -147,6 +154,67 @@ public class AppointmentServiceImpl implements AppointmentService {
             // Hoặc bạn có thể ném lỗi nếu việc không tạo được Booking là không chấp nhận được
             // throw new RuntimeException("Không thể tạo Booking do thiếu thông tin User hoặc Customer.");
         }
+        // 9.5. GỬI EMAIL XÁC NHẬN (LOGIC MỚI)
+        // Chỉ gửi email nếu có thông tin email của khách hàng
+        if (savedAppointment.getCustomer() != null && savedAppointment.getCustomer().getEmail() != null) {
+            try {
+                log.info("Chuẩn bị gửi email xác nhận cho lịch hẹn ID: {}", savedAppointment.getId());
+
+                // Tạo đối tượng DTO cho request gửi mail
+                EmailConfirmationRequestDto emailRequest = new EmailConfirmationRequestDto();
+
+                // Lấy dữ liệu từ `savedAppointment` để điền vào emailRequest
+                emailRequest.setAppointmentId(savedAppointment.getId());
+                emailRequest.setCustomerName(savedAppointment.getFullName());
+                emailRequest.setCustomerEmail(savedAppointment.getCustomer().getEmail());
+
+                if (savedAppointment.getService() != null) {
+                    emailRequest.setServiceName(savedAppointment.getService().getName());
+                    // Chuyển BigDecimal thành float/double cho DTO
+                    if(savedAppointment.getService().getPrice() != null) {
+                        emailRequest.setPrice((double) savedAppointment.getService().getPrice().floatValue());
+                    }
+                }
+
+                // Chuyển đổi Instant sang String cho DTO
+                DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
+                DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
+
+                if(savedAppointment.getAppointmentDate() != null) {
+                    // Truyền chuỗi nguyên gốc để EmailService tự xử lý
+                    emailRequest.setAppointmentDate(savedAppointment.getAppointmentDate().toString());
+                }
+
+                if (savedAppointment.getTimeSlot() != null) {
+                    emailRequest.setAppointmentTime(savedAppointment.getTimeSlot().getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                    emailRequest.setEndTime(savedAppointment.getTimeSlot().getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                }
+
+                if(savedAppointment.getUser() != null){
+                    emailRequest.setStaffName(savedAppointment.getUser().getFullName());
+                } else {
+                    emailRequest.setStaffName("Sẽ được chỉ định sau");
+                }
+
+                if(savedAppointment.getBranch() != null){
+                    emailRequest.setBranchName(savedAppointment.getBranch().getName());
+                }
+
+                emailRequest.setNotes(savedAppointment.getNotes());
+
+                // Gọi service để gửi mail
+                emailService.sendAppointmentConfirmation(emailRequest);
+
+                log.info("Gửi email xác nhận thành công cho lịch hẹn ID: {}", savedAppointment.getId());
+
+            } catch (Exception e) {
+                // Quan trọng: Chỉ log lỗi, không ném exception ra ngoài
+                // để không làm rollback giao dịch đã tạo lịch hẹn thành công.
+                log.error("Lỗi khi gửi email xác nhận cho lịch hẹn ID: {} - Lỗi: {}", savedAppointment.getId(), e.getMessage());
+            }
+        } else {
+            log.warn("Không thể gửi email cho lịch hẹn ID: {} do không có thông tin email khách hàng.", savedAppointment.getId());
+        }
 
         // 10. TẠO VÀ LƯU SERVICE HISTORY
         Servicehistory serviceHistory = new Servicehistory();
@@ -160,9 +228,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         serviceHistory.setIsActive(true);
         serviceHistoryRepository.save(serviceHistory);
 
-        // Không cần gọi appointmentRepository.save(appointment) lần nữa ở cuối
-        // vì `savedAppointment` đã là đối tượng được quản lý sau lần save đầu tiên.
-        // Nếu bạn có thay đổi gì trên `savedAppointment` sau đó thì JPA sẽ tự động flush khi giao dịch kết thúc.
     }
 
     @Override
@@ -173,6 +238,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         return convertToDto(appointment);
     }
 
+    // Sửa lại hàm này
     private AppointmentResponseDto convertToDto(Appointment appointment) {
         AppointmentResponseDto dto = new AppointmentResponseDto();
         dto.setId(appointment.getId());
@@ -181,23 +247,42 @@ public class AppointmentServiceImpl implements AppointmentService {
         dto.setStatus(appointment.getStatus());
         dto.setSlot(appointment.getSlot());
         dto.setNotes(appointment.getNotes());
-        dto.setAppointmentDate(appointment.getAppointmentDate().toString());
-        dto.setEndTime(appointment.getEndTime().toString());
-        dto.setCustomerImageUrl(appointment.getCustomer() != null ? appointment.getCustomer().getImageUrl() : null);
+        // Luôn set giá trị, không bị ảnh hưởng bởi lỗi khác
         dto.setPrice(appointment.getPrice());
-        dto.setUserImageUrl(appointment.getUser() != null ? appointment.getUser().getImageUrl() : null);
 
-        dto.setServiceName(appointment.getService().getName());
-        dto.setBranchName(appointment.getBranch().getName());
-        dto.setCustomerName(appointment.getCustomer().getFullName());
+        // Kiểm tra null an toàn trước khi truy cập
+        if (appointment.getAppointmentDate() != null) {
+            dto.setAppointmentDate(appointment.getAppointmentDate().toString());
+        }
+        if (appointment.getEndTime() != null) {
+            dto.setEndTime(appointment.getEndTime().toString());
+        }
+
+        // Xử lý Service
+        if (appointment.getService() != null) {
+            dto.setServiceName(appointment.getService().getName());
+        } else {
+            dto.setServiceName("N/A");
+        }
+
+        // Xử lý Branch
+        if (appointment.getBranch() != null) {
+            dto.setBranchName(appointment.getBranch().getName());
+        } else {
+            dto.setBranchName("N/A");
+        }
 
         if (appointment.getCustomer() != null) {
             dto.setCustomerName(appointment.getCustomer().getFullName());
+            dto.setCustomerEmail(appointment.getCustomer().getEmail());
             dto.setCustomerImageUrl(appointment.getCustomer().getImageUrl());
         } else {
             dto.setCustomerName("N/A");
+            dto.setCustomerEmail(null);
             dto.setCustomerImageUrl(null);
         }
+
+        // Xử lý User (Nhân viên)
         if (appointment.getUser() != null) {
             dto.setUserName(appointment.getUser().getFullName());
             dto.setUserImageUrl(appointment.getUser().getImageUrl());
@@ -208,7 +293,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         return dto;
     }
-
 
     @Override
     @Transactional
@@ -464,6 +548,47 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new RuntimeException("Xóa mềm thất bại: " + e.getMessage());
         }
     }
+
+    public Map<String, Object> getAppointmentsGroupedByShift(LocalDate date, Long userId) {
+        ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
+        Instant startOfDay = date.atStartOfDay(zoneId).toInstant();
+        Instant endOfDay = date.plusDays(1).atStartOfDay(zoneId).toInstant();
+        List<Appointment> appointments = null;
+        if (userId != null) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy User với ID: " + userId));
+            appointments = appointmentRepository.findByAppointmentDateBetweenAndUser(startOfDay, endOfDay, user);
+        } else {
+            appointments = appointmentRepository.findByAppointmentDateBetween(startOfDay, endOfDay);
+        }
+
+        Map<String, List<Map<String, Object>>> groupedAppointments = appointments.stream()
+                .collect(Collectors.groupingBy(appointment -> {
+                    LocalTime startTime = appointment.getAppointmentDate().atZone(zoneId).toLocalTime();
+                    return startTime.isBefore(LocalTime.NOON) ? "Sáng" : "Chiều";
+                }, Collectors.mapping(appointment -> Map.of(
+                        "id", "service-" + appointment.getId(),
+                        "service", appointment.getService() != null ? appointment.getService().getName() : null,
+                        "customerName", appointment.getCustomer() != null ? appointment.getCustomer().getFullName() : null,
+                        "startTime", appointment.getAppointmentDate(),
+                        "endTime", appointment.getEndTime(),
+                        "timeDisplay", appointment.getSlot(),
+                        "rating", appointment.getUser() != null ? appointment.getUser().getAverageRating() : null,
+                        "commission", appointment.getPrice(),
+                        "status", appointment.getStatus()
+                ), Collectors.toList())));
+
+
+        if (groupedAppointments.isEmpty()) {
+            return Map.of();
+        }
+
+        return Map.of(
+                "Sáng", groupedAppointments.getOrDefault("Sáng", List.of()),
+                "Chiều", groupedAppointments.getOrDefault("Chiều", List.of())
+        );
+    }
+
     @Override
     public List<AppointmentResponseDto> getAppointmentsByUserId(Long userId) {
         List<Appointment> appointments = appointmentRepository.findAllByUserIdAndIsActive(userId);
@@ -478,78 +603,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointments.sort((a1, a2) -> a2.getId().compareTo(a1.getId()));
 
         return appointments.stream()
-                .map(appointment -> {
-                    try {
-                        AppointmentResponseDto dto = new AppointmentResponseDto();
-                        dto.setId(appointment.getId());
-                        dto.setFullName(appointment.getFullName());
-                        dto.setPhoneNumber(appointment.getPhoneNumber());
-                        dto.setStatus(appointment.getStatus());
-                        dto.setSlot(appointment.getSlot());
-                        dto.setNotes(appointment.getNotes());
-                        dto.setAppointmentDate(appointment.getAppointmentDate().toString());
-                        dto.setEndTime(appointment.getEndTime().toString());
-                        dto.setPrice(appointment.getPrice());
-
-                        if (appointment.getUser() != null) {
-                            dto.setUserName(appointment.getUser().getFullName());
-                        } else {
-                            dto.setUserName("N/A");
-                        }
-
-                        // Set service name if available
-                        if (appointment.getService() != null) {
-                            dto.setServiceName(appointment.getService().getName());
-                        } else {
-                            dto.setServiceName("N/A");
-                        }
-
-                        // Set branch name if available
-                        if (appointment.getBranch() != null) {
-                            dto.setBranchName(appointment.getBranch().getName());
-                        } else {
-                            dto.setBranchName("N/A");
-                        }
-
-                        // Set customer name & image if available
-                        if (appointment.getCustomer() != null) {
-                            dto.setCustomerName(appointment.getCustomer().getFullName());
-                            dto.setCustomerImageUrl(appointment.getCustomer().getImageUrl()); // <-- BỔ SUNG DÒNG NÀY
-                        } else {
-                            dto.setCustomerName("N/A");
-                            dto.setCustomerImageUrl(null);
-                        }
-                        if(appointment.getUser() != null) {
-                            dto.setUserName(appointment.getUser().getFullName());
-                            dto.setUserImageUrl(appointment.getUser().getImageUrl());
-                        }else{
-                            dto.setUserName("N/A");
-                            dto.setUserImageUrl(null);
-                        }
-
-                        return dto;
-                    } catch (Exception e) {
-                        // Create a basic DTO with available information
-                        AppointmentResponseDto dto = new AppointmentResponseDto();
-                        dto.setId(appointment.getId());
-                        dto.setFullName(appointment.getFullName());
-                        dto.setPhoneNumber(appointment.getPhoneNumber());
-                        dto.setStatus(appointment.getStatus());
-                        dto.setSlot(appointment.getSlot());
-                        dto.setNotes(appointment.getNotes());
-                        dto.setAppointmentDate(appointment.getAppointmentDate().toString());
-                        dto.setEndTime(appointment.getEndTime().toString());
-                        dto.setPrice(appointment.getPrice());
-
-                        dto.setUserName("N/A");
-                        dto.setServiceName("N/A");
-                        dto.setBranchName("N/A");
-                        dto.setCustomerName("N/A");
-                        dto.setCustomerImageUrl(null);
-
-                        return dto;
-                    }
-                })
+                .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 

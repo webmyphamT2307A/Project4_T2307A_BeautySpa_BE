@@ -13,16 +13,18 @@ import java.util.Optional;
 
 @Repository
 public interface ReviewRepository extends JpaRepository<Review,Integer> {
-    Optional<Review> findByIdAndIsActiveTrue(Integer id);
+    @Query("SELECT r FROM Review r WHERE r.id = :id AND r.isActive = true")
+    Optional<Review> findByIdAndIsActiveTrue(@Param("id") Integer id);
+
 
     // Tìm tất cả review theo relatedId (ví dụ: ID dịch vụ), có phân trang và phải đang hoạt động
     Page<Review> findByRelatedIdAndIsActiveTrue(Integer relatedId, Pageable pageable);
 
     // Tìm tất cả review có phân trang và đang hoạt động
     Page<Review> findByIsActiveTrue(Pageable pageable);
-    @Query("SELECT FUNCTION('MONTH', r.createdAt) as month, AVG(r.rating) as avgRating " +
-            "FROM Review r " +
-            "WHERE r.user.id = :userId AND r.rating IS NOT NULL AND FUNCTION('YEAR', r.createdAt) = :year " +
-            "GROUP BY FUNCTION('MONTH', r.createdAt)")
-    List<Object[]> getMonthlyRatingsForUser(@Param("year") int year, @Param("userId") Long userId);
+//    @Query("SELECT FUNCTION('MONTH', r.createdAt) as month, AVG(r.rating) as avgRating " +
+//            "FROM Review r " +
+//            "WHERE r.user.id = :userId AND r.rating IS NOT NULL AND FUNCTION('YEAR', r.createdAt) = :year " +
+//            "GROUP BY FUNCTION('MONTH', r.createdAt)")
+//    List<Object[]> getMonthlyRatingsForUser(@Param("year") int year, @Param("userId") Long userId);
 }
