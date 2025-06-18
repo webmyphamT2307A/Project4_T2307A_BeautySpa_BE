@@ -35,6 +35,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final BranchRepository branchRepository;
     private final TimeSlotsRepository timeSlotsRepository;
     private  final ServiceHistoryRepository serviceHistoryRepository;
+    private final UsersScheduleRepository usersScheduleRepository;
     private final EmailService emailService;
 
     @Override
@@ -104,8 +105,29 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setEndTime(bookingStartInstant.plus(durationMinutes, ChronoUnit.MINUTES));
 
 
-        // 6. KIỂM TRA NHÂN VIÊN RẢNH (NGAY TRƯỚC KHI LƯU)
+
+        // 6. KIỂM TRA LỊCH LÀM VIỆC VÀ LỊCH RẢNH CỦA NHÂN VIÊN
         if (appointment.getUser() != null) { // Chỉ kiểm tra nếu có nhân viên được chỉ định
+
+            // ===== BƯỚC KIỂM TRA MỚI: Nhân viên có lịch làm việc (có ca) vào ngày này không? =====
+            log.info("Kiểm tra lịch làm việc của nhân viên ID {} vào ngày {}", appointment.getUser().getId(), parsedDate);
+            boolean isScheduledToWork = usersScheduleRepository.existsByUserAndWorkDateAndIsActiveTrue(
+                    appointment.getUser(),
+                    parsedDate // sử dụng LocalDate đã parse
+            );
+
+            if (!isScheduledToWork) {
+                // Nếu không có lịch làm việc, bắn ra lỗi ngay lập tức
+                throw new RuntimeException(
+                        "Nhân viên " + appointment.getUser().getFullName() +
+                                " không có lịch làm việc vào ngày " + dto.getAppointmentDate() +
+                                ". Vui lòng chọn nhân viên hoặc ngày khác."
+                );
+            }
+            log.info("Xác nhận: Nhân viên ID {} có lịch làm việc vào ngày {}. Tiếp tục kiểm tra booking.", appointment.getUser().getId(), parsedDate);
+            // =========================================================================
+
+            // Bước kiểm tra cũ: Nhân viên có bận (đã có booking khác) vào khung giờ này không?
             boolean staffIsActuallyAvailable = bookingService.isStaffAvailable(
                     appointment.getUser().getId(),
                     bookingStartInstant,
@@ -115,7 +137,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 throw new RuntimeException("Nhân viên " + appointment.getUser().getFullName() + " đã có lịch vào thời điểm này. Vui lòng chọn thời gian hoặc nhân viên khác.");
             }
         }
-        // (Tùy chọn: Kiểm tra số slot còn trống cho TimeSlot + Date nếu cần)
 
 
         // 7. Các thông tin khác cho Appointment
