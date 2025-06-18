@@ -23,8 +23,6 @@ import java.time.format.DateTimeParseException;
 @Slf4j
 public class EmailServiceImpl implements EmailService {
 
-    // private final CustomerRepository customerRepository; // ĐÃ XÓA vì không dùng đến
-
     private final JavaMailSender mailSender;
 
     @Value("${spring.mail.username}")
@@ -39,7 +37,7 @@ public class EmailServiceImpl implements EmailService {
     @Value("${app.company.phone:+84 123 456 789}")
     private String companyPhone;
 
-    @Override // Thêm @Override cho rõ ràng
+    @Override
     public boolean sendAppointmentConfirmation(EmailConfirmationRequestDto request) {
         try {
             String emailContent = createEmailHtml(request);
@@ -50,7 +48,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setFrom(fromEmail, companyName);
             helper.setTo(request.getCustomerEmail());
             helper.setSubject("Xác Nhận Lịch Hẹn - " + companyName + " #" + request.getAppointmentId());
-            helper.setText(emailContent, true); // true để kích hoạt HTML
+            helper.setText(emailContent, true);
 
             mailSender.send(message);
 
@@ -58,7 +56,6 @@ public class EmailServiceImpl implements EmailService {
 
         } catch (MessagingException | UnsupportedEncodingException e) {
             log.error("Failed to send appointment confirmation email to: {}", request.getCustomerEmail(), e);
-            // Throw exception để controller có thể bắt và xử lý
             throw new RuntimeException("Error occurred while sending email: " + e.getMessage());
         }
         return false;
@@ -74,6 +71,7 @@ public class EmailServiceImpl implements EmailService {
                             "</div>", request.getNotes());
         }
 
+        // SỬA LỖI TẠI ĐÂY: Sắp xếp lại danh sách tham số để khớp với các placeholder trong HTML
         return String.format("""
             <!DOCTYPE html>
             <html>
@@ -85,20 +83,17 @@ public class EmailServiceImpl implements EmailService {
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background-color: #f4f4f4;">
                 <div style="background-color: #ffffff; margin: 20px auto; padding: 0; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); overflow: hidden;">
                     
-                    <!-- Header -->
                     <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); color: white; padding: 30px 40px; text-align: center;">
                         <h1 style="margin: 0; font-size: 28px; font-weight: 300;">%s</h1>
                         <p style="margin: 10px 0 0 0; font-size: 16px;">Appointment Confirmation</p>
                     </div>
 
-                    <!-- Content -->
                     <div style="padding: 40px;">
                         <div style="font-size: 18px; margin-bottom: 30px; color: #2c3e50;">
                             <p>Dear <strong>%s</strong>,</p>
                             <p>Thank you for booking an appointment with us! We're excited to serve you and help you look and feel your best.</p>
                         </div>
 
-                        <!-- Appointment Details -->
                         <div style="background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 25px; margin: 30px 0; border-radius: 5px;">
                             <h2 style="margin-top: 0; color: #667eea;">📅 Appointment Details</h2>
                             
@@ -136,7 +131,6 @@ public class EmailServiceImpl implements EmailService {
 
                         %s
 
-                        <!-- Important Information -->
                         <div style="background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 5px; margin: 25px 0;">
                             <h3 style="color: #0c5460; margin-top: 0;">📋 Important Information</h3>
                             <ul style="color: #0c5460; margin: 10px 0; padding-left: 20px;">
@@ -153,7 +147,6 @@ public class EmailServiceImpl implements EmailService {
                         </p>
                     </div>
 
-                    <!-- Footer -->
                     <div style="background-color: #2c3e50; color: #ecf0f1; padding: 30px 40px; text-align: center;">
                         <div style="margin: 15px 0;">
                             <h3 style="margin: 0 0 10px 0;">%s</h3>
@@ -172,10 +165,11 @@ public class EmailServiceImpl implements EmailService {
             """,
                 companyName,
                 request.getCustomerName(),
+                request.getAppointmentId(), // FIX 1: Thêm tham số ID bị thiếu
                 request.getServiceName(),
                 formatDate(request.getAppointmentDate()),
-                request.getAppointmentTime(),
-                request.getEndTime() != null ? request.getEndTime() : "N/A",
+                request.getAppointmentTime(), // FIX 2: Tham số cho startTime
+                request.getEndTime() != null ? request.getEndTime() : "N/A", // FIX 2: Tham số cho endTime
                 request.getStaffName() != null ? request.getStaffName() : "Sẽ được chỉ định",
                 request.getBranchName(),
                 request.getPrice(),
