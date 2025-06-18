@@ -2,6 +2,7 @@ package org.aptech.backendmypham.services.serviceImpl;
 
 import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.*;
+import org.aptech.backendmypham.models.Appointment;
 import org.aptech.backendmypham.models.User;
 import org.aptech.backendmypham.repositories.AppointmentRepository;
 import org.aptech.backendmypham.repositories.ReviewRepository;
@@ -21,9 +22,9 @@ public class StatisticServiceImpl implements StatisticService {
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
+
     private final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
-    @Override
-    public DashboardSummaryDto getDashboardSummary(Long userId) {
+    public DashboardSummaryDto getAdminDashboardSummary() {
         LocalDate today = LocalDate.now(VIETNAM_ZONE);
         Instant startOfDay = today.atStartOfDay(VIETNAM_ZONE).toInstant();
         Instant endOfDay = today.atTime(LocalTime.MAX).atZone(VIETNAM_ZONE).toInstant();
@@ -32,29 +33,33 @@ public class StatisticServiceImpl implements StatisticService {
         Instant startOfMonth = currentMonth.atDay(1).atStartOfDay(VIETNAM_ZONE).toInstant();
         Instant endOfMonth = currentMonth.atEndOfMonth().atTime(LocalTime.MAX).atZone(VIETNAM_ZONE).toInstant();
 
-        long waiting, served, monthlyServices;
-        BigDecimal revenue;
-        double avgRating;
+        // === LOGIC CHỈ DÀNH CHO ADMIN ===
+        long waiting = appointmentRepository.countWaitingCustomers(startOfDay, endOfDay);
+        long served = appointmentRepository.countServedCustomersToday(startOfDay, endOfDay);
+        BigDecimal revenue = appointmentRepository.sumTodayRevenue(startOfDay, endOfDay);
+        long monthlyServices = appointmentRepository.countServicesPerformedThisMonth(startOfMonth, endOfMonth);
+        double avgRating = userRepository.getOverallAverageRating();
 
-        if (userId != null) {
-            // === LOGIC CHO DASHBOARD NHÂN VIÊN ===
-            waiting = appointmentRepository.countWaitingCustomersForUser(userId, startOfDay, endOfDay);
-            served = appointmentRepository.countServedCustomersTodayForUser(userId, startOfDay, endOfDay);
-            revenue = appointmentRepository.sumTodayRevenueForUser(userId, startOfDay, endOfDay);
-            monthlyServices = appointmentRepository.countServicesPerformedThisMonthForUser(userId, startOfMonth, endOfMonth);
+        return new DashboardSummaryDto(waiting, served, revenue, monthlyServices, avgRating);
+    }
 
-            // Lấy rating của chính nhân viên đó
-            avgRating = userRepository.findById(userId)
-                    .map(User::getAverageRating)
-                    .orElse(0.0);
-        } else {
-            // === LOGIC CHO DASHBOARD ADMIN (như cũ) ===
-            waiting = appointmentRepository.countWaitingCustomers(startOfDay, endOfDay);
-            served = appointmentRepository.countServedCustomersToday(startOfDay, endOfDay);
-            revenue = appointmentRepository.sumTodayRevenue(startOfDay, endOfDay);
-            monthlyServices = appointmentRepository.countServicesPerformedThisMonth(startOfMonth, endOfMonth);
-            avgRating = userRepository.getOverallAverageRating();
-        }
+    public DashboardSummaryDto getStaffDashboardSummary(Long userId) {
+        LocalDate today = LocalDate.now(VIETNAM_ZONE);
+        Instant startOfDay = today.atStartOfDay(VIETNAM_ZONE).toInstant();
+        Instant endOfDay = today.atTime(LocalTime.MAX).atZone(VIETNAM_ZONE).toInstant();
+
+        YearMonth currentMonth = YearMonth.now(VIETNAM_ZONE);
+        Instant startOfMonth = currentMonth.atDay(1).atStartOfDay(VIETNAM_ZONE).toInstant();
+        Instant endOfMonth = currentMonth.atEndOfMonth().atTime(LocalTime.MAX).atZone(VIETNAM_ZONE).toInstant();
+
+        // === LOGIC CHỈ DÀNH CHO NHÂN VIÊN ===
+        long waiting = appointmentRepository.countWaitingCustomersForUser(userId, startOfDay, endOfDay);
+        long served = appointmentRepository.countServedCustomersTodayForUser(userId, startOfDay, endOfDay);
+        BigDecimal revenue = appointmentRepository.sumTodayRevenueForUser(userId, startOfDay, endOfDay);
+        long monthlyServices = appointmentRepository.countServicesPerformedThisMonthForUser(userId, startOfMonth, endOfMonth);
+        double avgRating = userRepository.findById(userId)
+                .map(User::getAverageRating)
+                .orElse(0.0);
 
         return new DashboardSummaryDto(waiting, served, revenue, monthlyServices, avgRating);
     }
@@ -151,7 +156,7 @@ public class StatisticServiceImpl implements StatisticService {
     @Override
     public List<ChartDataDto> getMyMonthlyRatings(int year, Long userId) {
         // Gọi đến câu query đã tạo trong ReviewRepository
-        List<Object[]> results = reviewRepository.getMonthlyRatingsForUser(year, userId);
+        List<Object[]> results = userRepository.getMonthlyRatingsForUser(year, userId);
 
         // Chuyển kết quả từ List<Object[]> thành Map<Tháng, Rating> để dễ xử lý
         Map<Integer, BigDecimal> ratingMap = results.stream()
@@ -183,7 +188,7 @@ public class StatisticServiceImpl implements StatisticService {
 
             // Nếu ngày chưa có trong map, tạo một list mới
             shiftsByDay.computeIfAbsent(day, k -> new ArrayList<>())
-                    .add(new ShiftReportDto(shiftName, count));
+                    .add(new ShiftReportDto(shiftName, count,0.0));
         }
 
         // Chuyển Map đã nhóm thành List<DailyCustomerReportDto> theo đúng định dạng FE cần
@@ -202,6 +207,57 @@ public class StatisticServiceImpl implements StatisticService {
                 })
                 .sorted(Comparator.comparing(DailyCustomerReportDto::getDate)) // Sắp xếp kết quả theo ngày
                 .collect(Collectors.toList());
+    }
+    public DailyReportDto getDailyDetailedReport(LocalDate date) {
+        // 1. Xác định khoảng thời gian bắt đầu và kết thúc của ngày được chọn
+        Instant startOfDay = date.atStartOfDay(VIETNAM_ZONE).toInstant();
+        Instant endOfDay = date.atTime(LocalTime.MAX).atZone(VIETNAM_ZONE).toInstant();
+
+        // 2. Lấy tất cả các lịch hẹn trong ngày đó từ DB
+        List<Appointment> appointments = appointmentRepository.findByAppointmentDateBetweenAndIsActiveTrue(startOfDay, endOfDay);
+
+        long totalCustomers = appointments.size();
+
+        // Nếu không có khách, trả về báo cáo rỗng
+        if (totalCustomers == 0) {
+            return new DailyReportDto(date.toString(), 0, false, Arrays.asList());
+        }
+
+        // 3. Đếm số lượng khách theo từng ca
+        long morningCount = 0;
+        long afternoonCount = 0;
+        long eveningCount = 0;
+
+        for (Appointment app : appointments) {
+            String shiftValue = app.getSlot();
+
+            if (shiftValue != null) {
+                switch (shiftValue) {
+                    case "1":
+                        morningCount++;
+                        break;
+                    case "2":
+                        afternoonCount++;
+                        break;
+                    case "3":
+                        eveningCount++;
+                        break;
+                }
+            }
+        }
+
+        // 4. Xây dựng danh sách các ca và tính toán phần trăm
+        List<ShiftReportDto> shiftReports = Arrays.asList(
+                new ShiftReportDto("Morning Shift", morningCount, (double) morningCount / totalCustomers * 100),
+                new ShiftReportDto("Afternoon Shift", afternoonCount, (double) afternoonCount / totalCustomers * 100),
+                new ShiftReportDto("Evening Shift", eveningCount, (double) eveningCount / totalCustomers * 100)
+        );
+
+        // 5. Kiểm tra xem có phải cuối tuần không
+        boolean isWeekend = date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY;
+
+        // 6. Tạo và trả về DTO cuối cùng
+        return new DailyReportDto(date.toString(), totalCustomers, isWeekend, shiftReports);
     }
 
 

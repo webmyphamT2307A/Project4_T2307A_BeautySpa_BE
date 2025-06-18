@@ -1,16 +1,28 @@
 package org.aptech.backendmypham.services;
 
-import org.aptech.backendmypham.models.Service;
+import org.aptech.backendmypham.dto.ServiceRequestDto;
+import org.aptech.backendmypham.dto.ServiceResponseDto;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface ServicesService {
-    List<Service> getAllService();
-    Optional<Service> findById(Integer id);
-    Optional<Service> findByName(String name);
 
 
-    Service updateService(Integer id, Service updatedService);
+    List<ServiceResponseDto> getAllService();
+
+
+    Optional<ServiceResponseDto> findById(Integer id);
+
+
+    Optional<ServiceResponseDto> findByName(String name);
+
+
+    ServiceResponseDto createService(ServiceRequestDto serviceRequest);
+
+
+    ServiceResponseDto updateService(Integer id, ServiceRequestDto serviceRequest);
+
+
     void softDeleteService(Integer id);
 }

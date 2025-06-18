@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByUserIdAndIsActiveTrueAndBookingDateTimeBetween(
-            Integer userId,
+            Long userId,
             Instant startTimeWindow,
             Instant endTimeWindow
     );
@@ -21,7 +21,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "AND b.bookingDateTime BETWEEN :startTimeWindow AND :endTimeWindow " +
             "AND (b.appointment IS NULL OR b.appointment.id != :appointmentIdToExclude)")
     List<Booking> findConflictingBookingsWithExclusion(
-            @Param("userId") Integer userId,
+            @Param("userId") Long userId,
             @Param("startTimeWindow") Instant startTimeWindow,
             @Param("endTimeWindow") Instant endTimeWindow,
             @Param("appointmentIdToExclude") Long appointmentIdToExclude
@@ -29,14 +29,31 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     // Các phương thức bạn đã có để tìm booking theo User, Service, DateTime
     List<Booking> findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
-            Integer userId,
-            Long serviceId, // Hoặc Integer tùy kiểu ID của Service entity
+            Long userId,
+            Integer serviceId, // Hoặc Integer tùy kiểu ID của Service entity
             Instant bookingDateTime
     );
 
-    List<Booking> findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
-            Integer userId,
-            Integer serviceId,
-            Instant bookingDateTime
+    @Query(value = "SELECT * FROM bookings b WHERE b.user_id = ?1 " +
+            "AND MONTH(b.booking_date_time) = ?2 " +
+            "AND YEAR(b.booking_date_time) = ?3 " +
+            "AND b.is_active = true", nativeQuery = true)
+    List<Booking> findBookingsByUserIdAndMonth(Long userId, int month, int year);
+
+
+    //findBookingsByUserIdAndMonthAndYear theo hql
+    @Query("SELECT b FROM Booking b WHERE b.user.id = :userId " +
+            "AND MONTH(b.bookingDateTime) = :month " +
+            "AND YEAR(b.bookingDateTime) = :year " +
+            "AND b.isActive = true")
+    List<Booking> findBookingsByUserIdAndMonthAndYear(
+            @Param("userId") Long userId,
+            @Param("month") int month,
+            @Param("year") int year
     );
+//    List<Booking> findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
+//            Integer userId,
+//            Integer serviceId,
+//            Instant bookingDateTime
+//    );
 }

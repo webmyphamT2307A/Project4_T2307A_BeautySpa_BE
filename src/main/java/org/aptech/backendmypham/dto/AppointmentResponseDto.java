@@ -20,6 +20,7 @@ public class AppointmentResponseDto {
     private String serviceName;
     private String branchName;
     private String customerName;
+    private String customerEmail;
     private String UserImageUrl;
     private String customerImageUrl;
 
