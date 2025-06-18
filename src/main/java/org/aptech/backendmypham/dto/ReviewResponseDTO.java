@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.List;
 
 @Getter
 @Setter
@@ -17,8 +18,7 @@ public class ReviewResponseDTO {
     private Integer rating;
     private String comment;
     private Instant createdAt;
-    private ReplyResponseDTO reply;
     private String authorName;
 
-
+    private List<ReplyResponseDTO> replies;
 }

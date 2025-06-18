@@ -18,10 +18,15 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.aptech.backendmypham.dto.EmailConfirmationRequestDto;
+import org.aptech.backendmypham.services.EmailService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
 public class AppointmentServiceImpl implements AppointmentService {
+    private static final Logger log = LoggerFactory.getLogger(AppointmentServiceImpl.class);
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
     private final ServiceRepository serviceRepository;
@@ -31,6 +36,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final BranchRepository branchRepository;
     private final TimeSlotsRepository timeSlotsRepository;
     private  final ServiceHistoryRepository serviceHistoryRepository;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -148,6 +154,67 @@ public class AppointmentServiceImpl implements AppointmentService {
             // Hoặc bạn có thể ném lỗi nếu việc không tạo được Booking là không chấp nhận được
             // throw new RuntimeException("Không thể tạo Booking do thiếu thông tin User hoặc Customer.");
         }
+        // 9.5. GỬI EMAIL XÁC NHẬN (LOGIC MỚI)
+        // Chỉ gửi email nếu có thông tin email của khách hàng
+        if (savedAppointment.getCustomer() != null && savedAppointment.getCustomer().getEmail() != null) {
+            try {
+                log.info("Chuẩn bị gửi email xác nhận cho lịch hẹn ID: {}", savedAppointment.getId());
+
+                // Tạo đối tượng DTO cho request gửi mail
+                EmailConfirmationRequestDto emailRequest = new EmailConfirmationRequestDto();
+
+                // Lấy dữ liệu từ `savedAppointment` để điền vào emailRequest
+                emailRequest.setAppointmentId(savedAppointment.getId());
+                emailRequest.setCustomerName(savedAppointment.getFullName());
+                emailRequest.setCustomerEmail(savedAppointment.getCustomer().getEmail());
+
+                if (savedAppointment.getService() != null) {
+                    emailRequest.setServiceName(savedAppointment.getService().getName());
+                    // Chuyển BigDecimal thành float/double cho DTO
+                    if(savedAppointment.getService().getPrice() != null) {
+                        emailRequest.setPrice((double) savedAppointment.getService().getPrice().floatValue());
+                    }
+                }
+
+                // Chuyển đổi Instant sang String cho DTO
+                DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
+                DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
+
+                if(savedAppointment.getAppointmentDate() != null) {
+                    // Truyền chuỗi nguyên gốc để EmailService tự xử lý
+                    emailRequest.setAppointmentDate(savedAppointment.getAppointmentDate().toString());
+                }
+
+                if (savedAppointment.getTimeSlot() != null) {
+                    emailRequest.setAppointmentTime(savedAppointment.getTimeSlot().getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                    emailRequest.setEndTime(savedAppointment.getTimeSlot().getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                }
+
+                if(savedAppointment.getUser() != null){
+                    emailRequest.setStaffName(savedAppointment.getUser().getFullName());
+                } else {
+                    emailRequest.setStaffName("Sẽ được chỉ định sau");
+                }
+
+                if(savedAppointment.getBranch() != null){
+                    emailRequest.setBranchName(savedAppointment.getBranch().getName());
+                }
+
+                emailRequest.setNotes(savedAppointment.getNotes());
+
+                // Gọi service để gửi mail
+                emailService.sendAppointmentConfirmation(emailRequest);
+
+                log.info("Gửi email xác nhận thành công cho lịch hẹn ID: {}", savedAppointment.getId());
+
+            } catch (Exception e) {
+                // Quan trọng: Chỉ log lỗi, không ném exception ra ngoài
+                // để không làm rollback giao dịch đã tạo lịch hẹn thành công.
+                log.error("Lỗi khi gửi email xác nhận cho lịch hẹn ID: {} - Lỗi: {}", savedAppointment.getId(), e.getMessage());
+            }
+        } else {
+            log.warn("Không thể gửi email cho lịch hẹn ID: {} do không có thông tin email khách hàng.", savedAppointment.getId());
+        }
 
         // 10. TẠO VÀ LƯU SERVICE HISTORY
         Servicehistory serviceHistory = new Servicehistory();
@@ -161,9 +228,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         serviceHistory.setIsActive(true);
         serviceHistoryRepository.save(serviceHistory);
 
-        // Không cần gọi appointmentRepository.save(appointment) lần nữa ở cuối
-        // vì `savedAppointment` đã là đối tượng được quản lý sau lần save đầu tiên.
-        // Nếu bạn có thay đổi gì trên `savedAppointment` sau đó thì JPA sẽ tự động flush khi giao dịch kết thúc.
     }
 
     @Override

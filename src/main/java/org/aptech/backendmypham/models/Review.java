@@ -8,6 +8,8 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 @Getter
 @Setter
@@ -41,9 +43,8 @@ public class Review {
     @ColumnDefault("(now())")
     @Column(name = "created_at")
     private Instant createdAt;
-    @OneToOne(mappedBy = "review", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
-    @JsonManagedReference // Giúp tránh lỗi đệ quy vô hạn khi serialize JSON
-    private ReviewReply reply;
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<ReviewReply> replies;
     @ColumnDefault("1")
     @Column(name = "is_active")
     private Boolean isActive;

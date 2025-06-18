@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -60,9 +61,6 @@ public class ReviewServiceImpl implements ReviewService {
         return reviewPage.map(this::convertToResponseDTO);
     }
 
-    // Các phương thức getReviewById, updateReview, deleteReview không cần thay đổi
-    // vì chúng đã được thiết kế để hoạt động với người dùng có định danh (customerId).
-
     @Override
     @Transactional(readOnly = true)
     public ReviewResponseDTO getReviewById(Integer reviewId) {
@@ -76,19 +74,8 @@ public class ReviewServiceImpl implements ReviewService {
     public ReviewResponseDTO updateReview(Long customerId, Integer reviewId, ReviewUpdateRequestDTO updateDTO) {
         logger.info("===== BẮT ĐẦU QUÁ TRÌNH UPDATE REVIEW ID: {} =====", reviewId);
 
-        Optional<Review> anyReview = reviewRepository.findById(reviewId);
-        if (anyReview.isEmpty()) {
-            logger.error("!!! DEBUG LỖI: Hoàn toàn không tìm thấy review nào có ID = {}", reviewId);
-            throw new ResourceNotFoundException("Review not found with id: " + reviewId);
-        } else {
-            logger.info(">>> DEBUG INFO: Đã tìm thấy review ID = {}. Trạng thái is_active của nó là: {}", reviewId, anyReview.get().getIsActive());
-        }
-
         Review existingReview = reviewRepository.findByIdAndIsActiveTrue(reviewId)
-                .orElseThrow(() -> {
-                    logger.error("!!! DEBUG LỖI: Tìm thấy review ID {} nhưng nó không active, hoặc query findByIdAndIsActiveTrue bị lỗi.", reviewId);
-                    return new ResourceNotFoundException("Review not found or is inactive with id: " + reviewId);
-                });
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found or is inactive with id: " + reviewId));
 
         logger.info(">>> DEBUG INFO: Query thành công! Review ID {} đang active. Bắt đầu kiểm tra quyền sở hữu.", reviewId);
 
@@ -111,13 +98,177 @@ public class ReviewServiceImpl implements ReviewService {
         reviewRepository.save(existingReview);
     }
 
+    @Override
+    public List<ReviewDTO> findALL() {
+        List<Review> reviews = reviewRepository.findAll();
+        return reviews.stream()
+                .map(this::convertToReviewDTO)
+                .collect(Collectors.toList());
+    }
+
+    // ====================== STAFF REPLY METHODS ======================
+    @Override
+    @Transactional
+    public ReviewResponseDTO addReplyToReview(Integer reviewId, Long staffId, ReplyCreateRequestDTO replyDTO) {
+        Review review = reviewRepository.findByIdAndIsActiveTrue(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
+
+        User staff = userRepository.findById(staffId)
+                .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + staffId));
+
+        ReviewReply reply = new ReviewReply();
+        reply.setReview(review);
+        reply.setStaff(staff);
+        reply.setComment(replyDTO.getComment());
+        reply.setCreatedAt(Instant.now());
+        reply.setReplyType("STAFF_TO_CUSTOMER");
+
+        reviewReplyRepository.save(reply);
+        return getReviewById(reviewId);
+    }
+
+    @Override
+    @Transactional
+    public ReviewResponseDTO addStaffReplyToReply(Integer parentReplyId, Long staffId, ReplyCreateRequestDTO replyDTO) {
+        ReviewReply parentReply = reviewReplyRepository.findById(parentReplyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parent reply not found with id: " + parentReplyId));
+
+        User staff = userRepository.findById(staffId)
+                .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + staffId));
+
+        Review review = parentReply.getReview();
+
+        ReviewReply newReply = new ReviewReply();
+        newReply.setReview(review);
+        newReply.setParentReply(parentReply);
+        newReply.setStaff(staff);
+        newReply.setComment(replyDTO.getComment());
+        newReply.setCreatedAt(Instant.now());
+        newReply.setReplyType("STAFF_TO_CUSTOMER");
+
+        reviewReplyRepository.save(newReply);
+        return getReviewById(review.getId());
+    }
+
+    // ====================== CUSTOMER REPLY METHODS ======================
+    @Override
+    @Transactional
+    public ReviewResponseDTO addCustomerReplyToReview(Integer reviewId, Long customerId, ReplyCreateRequestDTO replyDTO) {
+        Review review = reviewRepository.findByIdAndIsActiveTrue(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
+
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + customerId));
+
+        ReviewReply reply = new ReviewReply();
+        reply.setReview(review);
+        reply.setCustomer(customer);
+        reply.setComment(replyDTO.getComment());
+        reply.setCreatedAt(Instant.now());
+        reply.setReplyType("CUSTOMER_TO_STAFF");
+
+        reviewReplyRepository.save(reply);
+        return getReviewById(reviewId);
+    }
+
+    @Override
+    @Transactional
+    public ReviewResponseDTO addCustomerReplyToReply(Integer parentReplyId, Long customerId, ReplyCreateRequestDTO replyDTO) {
+        ReviewReply parentReply = reviewReplyRepository.findById(parentReplyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parent reply not found with id: " + parentReplyId));
+
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + customerId));
+
+        Review review = parentReply.getReview();
+
+        ReviewReply newReply = new ReviewReply();
+        newReply.setReview(review);
+        newReply.setParentReply(parentReply);
+        newReply.setCustomer(customer);
+        newReply.setComment(replyDTO.getComment());
+        newReply.setCreatedAt(Instant.now());
+        newReply.setReplyType("CUSTOMER_TO_STAFF");
+
+        reviewReplyRepository.save(newReply);
+        return getReviewById(review.getId());
+    }
+
+    // ====================== THREADED REPLY METHODS ======================
+    @Override
+    @Transactional
+    public ReviewResponseDTO addThreadedReply(Integer reviewId, Long userId, String userType, ThreadedReplyCreateRequestDTO replyDTO) {
+        Review review = reviewRepository.findByIdAndIsActiveTrue(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
+
+        ReviewReply reply = new ReviewReply();
+        reply.setReview(review);
+        reply.setComment(replyDTO.getComment());
+        reply.setCreatedAt(Instant.now());
+
+        // Set author based on user type
+        if ("STAFF".equals(userType)) {
+            User staff = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + userId));
+            reply.setStaff(staff);
+            reply.setReplyType("STAFF_TO_CUSTOMER");
+        } else if ("CUSTOMER".equals(userType)) {
+            Customer customer = customerRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + userId));
+            reply.setCustomer(customer);
+            reply.setReplyType("CUSTOMER_TO_STAFF");
+        }
+
+        // Handle nested reply
+        if (replyDTO.getParentReplyId() != null) {
+            ReviewReply parentReply = reviewReplyRepository.findById(replyDTO.getParentReplyId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Parent reply not found"));
+            reply.setParentReply(parentReply);
+        }
+
+        reviewReplyRepository.save(reply);
+        return getReviewById(reviewId);
+    }
+
+    @Override
+    @Transactional
+    public ReviewResponseDTO addReplyToReply(Integer parentReplyId, Long userId, String userType, ThreadedReplyCreateRequestDTO replyDTO) {
+        ReviewReply parentReply = reviewReplyRepository.findById(parentReplyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parent reply not found"));
+
+        Review review = parentReply.getReview();
+
+        ReviewReply newReply = new ReviewReply();
+        newReply.setReview(review);
+        newReply.setParentReply(parentReply);
+        newReply.setComment(replyDTO.getComment());
+        newReply.setCreatedAt(Instant.now());
+
+        // Set author based on user type
+        if ("STAFF".equals(userType)) {
+            User staff = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + userId));
+            newReply.setStaff(staff);
+            newReply.setReplyType("STAFF_TO_CUSTOMER");
+        } else if ("CUSTOMER".equals(userType)) {
+            Customer customer = customerRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + userId));
+            newReply.setCustomer(customer);
+            newReply.setReplyType("CUSTOMER_TO_STAFF");
+        }
+
+        reviewReplyRepository.save(newReply);
+        return getReviewById(review.getId());
+    }
+
+    // ====================== HELPER METHODS ======================
     private void validateRelatedObject(String type, Integer relatedId) {
         if (relatedId == null) {
             throw new IllegalArgumentException("Related ID cannot be null.");
         }
         boolean exists;
         if ("service".equalsIgnoreCase(type)) {
-            exists = serviceRepository.existsById(relatedId); // Giả sử ID của Service là Long
+            exists = serviceRepository.existsById(relatedId);
             if (!exists) {
                 throw new ResourceNotFoundException("Service not found with id: " + relatedId);
             }
@@ -132,17 +283,9 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     private void checkOwnership(Review review, Long customerId) {
-        // Log thông tin đầu vào
-        logger.info(">>> [checkOwnership] Bắt đầu kiểm tra quyền cho review ID: {}. Người dùng đang đăng nhập có customerId: {} và role: {}",
-                review.getId(), customerId);
+        logger.info(">>> [checkOwnership] Bắt đầu kiểm tra quyền cho review ID: {}. Người dùng đang đăng nhập có customerId: {}", review.getId(), customerId);
 
-
-
-        // 2. Nếu không phải admin, kiểm tra quyền sở hữu
-        logger.info(">>> [checkOwnership] Người dùng không phải Admin. Bắt đầu so sánh quyền sở hữu.");
-
-        // Lấy ID của người viết review một cách an toàn
-        Long authorId = Long.valueOf((review.getCustomer() != null) ? review.getCustomer().getId() : null);
+        Long authorId = (review.getCustomer() != null) ? Long.valueOf(review.getCustomer().getId()) : null;
         logger.info(">>> [checkOwnership] ID người viết review (Author ID): {}. ID người đang đăng nhập: {}", authorId, customerId);
 
         if (authorId == null) {
@@ -157,41 +300,6 @@ public class ReviewServiceImpl implements ReviewService {
 
         logger.info(">>> [checkOwnership] Kiểm tra quyền sở hữu thành công cho review ID: {}", review.getId());
     }
-    @Override
-    public List<ReviewDTO> findALL() {
-        List<Review> reviews = reviewRepository.findAll();
-        List<ReviewDTO> dtos = new ArrayList<>();
-        for (Review review : reviews) {
-            dtos.add(convertToReviewDTO(review));
-        }
-        return dtos;
-    }
-    @Override
-    @Transactional
-    public ReviewResponseDTO addReplyToReview(Integer reviewId, Long staffId, ReplyCreateRequestDTO replyDTO) {
-        Review review = reviewRepository.findByIdAndIsActiveTrue(reviewId)
-                .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
-
-        if(review.getReply() != null) {
-            throw new IllegalStateException("This review has already been replied to.");
-        }
-
-        User staff = userRepository.findById(staffId)
-                .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + staffId));
-
-        ReviewReply reply = new ReviewReply();
-        reply.setReview(review);
-        reply.setStaff(staff);
-        reply.setComment(replyDTO.getComment());
-        reply.setCreatedAt(Instant.now());
-
-        reviewReplyRepository.save(reply);
-
-        // Trả về review đã được cập nhật với thông tin reply
-        return getReviewById(reviewId);
-    }
-
-
 
     private ReviewResponseDTO convertToResponseDTO(Review review) {
         ReviewResponseDTO dto = new ReviewResponseDTO();
@@ -207,37 +315,69 @@ public class ReviewServiceImpl implements ReviewService {
             dto.setAuthorName("Anonymous");
         }
 
-        if (review.getReply() != null) {
-            ReviewReply reply = review.getReply();
-            ReplyResponseDTO replyDTO = new ReplyResponseDTO(
-                    reply.getId(),
-                    reply.getComment(),
-                    reply.getStaff().getFullName(),
-                    reply.getCreatedAt()
-            );
-            dto.setReply(replyDTO);
-        }
+        // Build threaded replies
+        dto.setReplies(buildThreadedReplies(review.getReplies()));
 
         return dto;
     }
+
     private ReviewDTO convertToReviewDTO(Review review) {
         ReviewDTO dto = new ReviewDTO();
         dto.setId(review.getId());
-
         dto.setRating(review.getRating());
         dto.setComment(review.getComment());
         dto.setCreatedAt(review.getCreatedAt());
         dto.setType(review.getType());
         dto.setRelatedId(review.getRelatedId());
         dto.setActive(review.getIsActive());
+
         if (review.getCustomer() != null) {
             dto.setAuthorName(review.getCustomer().getFullName());
             dto.setCustomerId(Long.valueOf(review.getCustomer().getId()));
         } else {
             dto.setAuthorName("Anonymous");
         }
-        return dto;
 
+        return dto;
     }
 
+    private List<ReplyResponseDTO> buildThreadedReplies(List<ReviewReply> replies) {
+        if (replies == null || replies.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Chỉ lấy top-level replies (không có parent)
+        return replies.stream()
+                .filter(reply -> reply.getParentReply() == null)
+                .map(this::convertToReplyDTO)
+                .collect(Collectors.toList());
+    }
+
+    private ReplyResponseDTO convertToReplyDTO(ReviewReply reply) {
+        ReplyResponseDTO dto = new ReplyResponseDTO();
+        dto.setId(reply.getId());
+        dto.setComment(reply.getComment());
+        dto.setReplyType(reply.getReplyType());
+        dto.setCreatedAt(reply.getCreatedAt());
+
+        // Set author name
+        if (reply.getStaff() != null) {
+            dto.setAuthorName(reply.getStaff().getFullName());
+        } else if (reply.getCustomer() != null) {
+            dto.setAuthorName(reply.getCustomer().getFullName());
+        } else {
+            dto.setAuthorName("Unknown");
+        }
+
+        // Recursively build child replies
+        if (reply.getChildReplies() != null && !reply.getChildReplies().isEmpty()) {
+            dto.setReplies(reply.getChildReplies().stream()
+                    .map(this::convertToReplyDTO)
+                    .collect(Collectors.toList()));
+        } else {
+            dto.setReplies(new ArrayList<>());
+        }
+
+        return dto;
+    }
 }
