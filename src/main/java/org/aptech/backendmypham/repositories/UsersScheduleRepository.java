@@ -32,12 +32,18 @@ public interface UsersScheduleRepository extends JpaRepository<UsersSchedule, In
     // @Query("SELECT us FROM UsersSchedule us WHERE us.isActive = true")
     // List<UsersSchedule> findAllActive();
 
+    List<UsersSchedule> findByUserAndWorkDateAndIsActiveTrue(User user, LocalDate workDate);
 
     @Query("SELECT us FROM UsersSchedule us WHERE us.user = :user AND FUNCTION('YEAR', us.workDate) = :year AND FUNCTION('MONTH', us.workDate) = :month AND us.isActive = true")
     List<UsersSchedule> findByUserAndYearMonthAndIsActiveTrue(@Param("user") User user, @Param("year") int year, @Param("month") int month);
 
     @Query("SELECT us FROM UsersSchedule us WHERE FUNCTION('YEAR', us.workDate) = :year AND FUNCTION('MONTH', us.workDate) = :month AND us.isActive = true")
     List<UsersSchedule> findByYearMonthAndIsActiveTrue(@Param("year") int year, @Param("month") int month);
+
     Optional<UsersSchedule> findByUserAndWorkDateAndIsActiveTrue(User user, LocalDate workDate);
     boolean existsByUserAndWorkDateAndIsActiveTrue(User user, LocalDate workDate);
+
+
+    List<UsersSchedule> findByWorkDateAndIsActive(LocalDate workDate, Boolean isActive);
+
 }

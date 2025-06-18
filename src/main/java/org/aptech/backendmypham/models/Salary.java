@@ -29,6 +29,7 @@ public class Salary {
     @Column(name = "month", nullable = false)
     private Integer month;
 
+
     @Column(name = "year", nullable = false)
     private Integer year;
 

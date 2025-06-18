@@ -2,6 +2,7 @@ package org.aptech.backendmypham.repositories;
 
 import org.aptech.backendmypham.models.Appointment;
 import org.aptech.backendmypham.models.Role;
+import org.aptech.backendmypham.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -99,5 +100,16 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             "AND a.isActive = true " +
             "GROUP BY day, shiftName ")
     List<Object[]> getDailyCustomerCountByShift(@Param("year") int year, @Param("month") int month);
+    List<Appointment> findByAppointmentDate(Instant date);
+
+    List<Appointment> findByAppointmentDateBetween(Instant startOfDay, Instant endOfDay);
+
+    List<Appointment> findByAppointmentDateBetweenAndUser(Instant startOfDay, Instant endOfDay, User user);
     List<Appointment> findByAppointmentDateBetweenAndIsActiveTrue(Instant startOfDay, Instant endOfDay);
+
+    @Query("SELECT SUM(a.price) FROM Appointment a WHERE a.user.id = :userId AND a.appointmentDate BETWEEN :startDate AND :endDate AND a.status = 'completed'")
+    Long sumCommissionByUserAndDateRange(Long userId, LocalDate startDate, LocalDate endDate);
+
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.user.id = :userId AND a.appointmentDate BETWEEN :startDate AND :endDate AND a.status = 'completed'")
+    Integer countCompletedOrdersByUserAndDateRange(Long userId, LocalDate startDate, LocalDate endDate);
 }

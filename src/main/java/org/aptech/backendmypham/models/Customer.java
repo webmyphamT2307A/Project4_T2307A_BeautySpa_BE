@@ -31,7 +31,7 @@ public class Customer {
 
     @Lob
     @Column(name = "image_url")
-    private String imageUrl;
+    private String imageUrl = "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_1280.png";
 
     @Lob
     @Column(name = "address")
