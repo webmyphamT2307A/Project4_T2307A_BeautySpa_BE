@@ -555,6 +555,60 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
+    // THÊM PHƯƠNG THỨC NÀY VÀO CUỐI FILE
+    @Override
+    @Transactional
+    public void cancelAppointment(Long appointmentId) {
+        log.info("Bắt đầu xử lý hủy cho lịch hẹn ID: {}", appointmentId);
+
+        // 1. Tìm lịch hẹn trong DB, nếu không có thì báo lỗi
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn với ID: " + appointmentId));
+
+        // 2. Kiểm tra trạng thái hiện tại của lịch hẹn
+        // Không cho phép hủy lịch đã hoàn thành hoặc đã bị hủy trước đó.
+        if ("completed".equalsIgnoreCase(appointment.getStatus()) || "cancelled".equalsIgnoreCase(appointment.getStatus())) {
+            throw new IllegalStateException("Không thể hủy lịch hẹn đã '" + appointment.getStatus() + "'.");
+        }
+
+        // 3. Cập nhật trạng thái của Appointment
+        appointment.setStatus("cancelled");
+        appointment.setIsActive(false); // Đánh dấu là không còn active
+        appointment.setUpdatedAt(Instant.now());
+
+        // 4. Tìm và hủy các bản ghi Booking liên quan để giải phóng slot
+        // Điều này rất quan trọng để nhân viên có thể nhận lịch khác vào giờ đó.
+        if (appointment.getUser() != null) {
+            log.info("Tìm và giải phóng booking cho nhân viên ID: {} vào lúc: {}",
+                    appointment.getUser().getId(), appointment.getAppointmentDate());
+
+            List<Booking> relatedBookings = bookingRepository.findByUserIdAndBookingDateTimeAndIsActiveTrue(
+                    appointment.getUser().getId(),
+                    appointment.getAppointmentDate()
+            );
+
+            if (!relatedBookings.isEmpty()) {
+                for (Booking booking : relatedBookings) {
+                    booking.setStatus("cancelled");
+                    booking.setIsActive(false);
+                    booking.setUpdatedAt(Instant.now());
+                    bookingRepository.save(booking);
+                    log.info("Đã giải phóng booking ID: {}", booking.getId());
+                }
+            } else {
+                log.warn("Không tìm thấy booking active nào để giải phóng cho lịch hẹn ID: {}", appointmentId);
+            }
+        }
+
+        // 5. Lưu lại lịch hẹn đã được cập nhật trạng thái
+        appointmentRepository.save(appointment);
+        log.info("Đã hủy thành công lịch hẹn ID: {}", appointmentId);
+
+        // GỢI Ý BƯỚC TIẾP THEO: Gửi email thông báo hủy lịch cho khách hàng
+        // Bạn có thể tạo một phương thức mới trong EmailService
+        // và gọi nó ở đây trong một khối try-catch tương tự như khi tạo lịch hẹn.
+        // Ví dụ: emailService.sendCancellationEmail(appointment);
+    }
     @Override
     public List<AppointmentResponseDto> getALlAppointment() {
         List<Appointment> appointments = appointmentRepository.findAll();

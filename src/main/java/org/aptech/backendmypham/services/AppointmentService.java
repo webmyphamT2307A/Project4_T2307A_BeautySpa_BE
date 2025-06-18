@@ -14,4 +14,5 @@ public interface AppointmentService {
     void deleteAppointment(Long AiD);
 
       public List<AppointmentResponseDto> getAppointmentsByUserId(Long userId);
+    void cancelAppointment(Long appointmentId);
 }
