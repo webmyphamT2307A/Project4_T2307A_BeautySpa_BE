@@ -164,7 +164,7 @@ public class UsersScheduleServiceImpl implements UsersScheduleService {
 
         // --- Cập nhật thông tin ---
         schedule.setCheckInTime(LocalTime.now()); // Lấy giờ hiện tại
-        schedule.setStatus("ĐANG LÀM VIỆC");      // Cập nhật trạng thái
+        schedule.setStatus("confirmed");      // Cập nhật trạng thái
 
         UsersSchedule savedSchedule = usersScheduleRepository.save(schedule);
         return mapToResponseDto(savedSchedule);
@@ -189,7 +189,7 @@ public class UsersScheduleServiceImpl implements UsersScheduleService {
 
         // --- Cập nhật thông tin ---
         schedule.setCheckOutTime(LocalTime.now()); // Lấy giờ hiện tại
-        schedule.setStatus("ĐÃ HOÀN THÀNH");     // Cập nhật trạng thái
+        schedule.setStatus("completed");     // Cập nhật trạng thái
 
         UsersSchedule savedSchedule = usersScheduleRepository.save(schedule);
         return mapToResponseDto(savedSchedule);

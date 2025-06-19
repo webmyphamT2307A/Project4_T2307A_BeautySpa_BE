@@ -1,8 +1,10 @@
 package org.aptech.backendmypham.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.aptech.backendmypham.dto.GuestServiceHistoryCreateDTO;
 import org.aptech.backendmypham.dto.ResponseObject;
 import org.aptech.backendmypham.dto.ServiceHistoryDTO;
 import org.aptech.backendmypham.enums.Status;
@@ -39,6 +41,44 @@ public class ServiceHistoryController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                     new ResponseObject(Status.ERROR, "Lỗi khi tìm lịch sử dịch vụ: " + e.getMessage(), null)
+            );
+        }
+    }
+    @PostMapping("/guest")
+    @Operation(summary = "Tạo lịch sử dịch vụ cho khách vãng lai")
+    public ResponseEntity<ResponseObject> createGuestServiceHistory(@Valid @RequestBody GuestServiceHistoryCreateDTO createDTO) {
+        try {
+            ServiceHistoryDTO newHistory = serviceHistoryService.createGuestServiceHistory(createDTO);
+            return new ResponseEntity<>(
+                    new ResponseObject(Status.SUCCESS, "Tạo lịch sử cho khách vãng lai thành công.", newHistory),
+                    HttpStatus.CREATED
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new ResponseObject(Status.ERROR, e.getMessage(), null)
+            );
+        }
+    }
+
+    @GetMapping("/lookup")
+    @Operation(summary = "Tra cứu lịch sử dịch vụ cho khách vãng lai bằng email hoặc SĐT")
+    public ResponseEntity<ResponseObject> lookupServiceHistory(
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String phone) {
+
+        if ((email == null || email.isEmpty()) && (phone == null || phone.isEmpty())) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, "Vui lòng cung cấp email hoặc số điện thoại để tra cứu.", null)
+            );
+        }
+
+        try {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Tìm thành công", serviceHistoryService.lookupHistory(email, phone))
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ResponseObject(Status.ERROR, "Lỗi khi tra cứu lịch sử: " + e.getMessage(), null)
             );
         }
     }

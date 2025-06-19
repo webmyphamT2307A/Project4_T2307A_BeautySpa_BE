@@ -45,4 +45,7 @@ public class Customer {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    @ColumnDefault("0")
+    @Column(name = "is_guest")
+    private Boolean isGuest;
 }

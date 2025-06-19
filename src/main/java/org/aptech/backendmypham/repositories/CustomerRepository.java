@@ -13,6 +13,8 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     Optional<Customer> findByEmail(String email); // cần thiết cho chức năng login
 
     Optional<Customer> findByPhone(String phoneNumber);
+    // Tìm một khách hàng (cả khách chuẩn và khách vãng lai) bằng email hoặc sđt
+    Optional<Customer> findByEmailOrPhone(String email, String phone);
 
     boolean existsByPhone(String phone);
 }
