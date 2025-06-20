@@ -3,11 +3,8 @@ package org.aptech.backendmypham.models;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
-import java.util.List;
 
 @Getter
 @Setter
@@ -23,21 +20,10 @@ public class ReviewReply {
     private Review review;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = true) // Staff reply
+    @JoinColumn(name = "user_id", nullable = false) // Only staff/admin can reply
     private User staff;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id", nullable = true) // Customer reply
-    private Customer customer;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_reply_id", nullable = true) // Reply to reply
-    private ReviewReply parentReply;
-
-    @OneToMany(mappedBy = "parentReply", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<ReviewReply> childReplies;
-
-    @Column(name = "reply_type") // "STAFF_TO_CUSTOMER", "CUSTOMER_TO_STAFF"
+    @Column(name = "reply_type", nullable = false) // "STAFF_TO_CUSTOMER" only
     private String replyType;
 
     @Lob
@@ -46,4 +32,18 @@ public class ReviewReply {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
+        if (isActive == null) {
+            isActive = true;
+        }
+        if (replyType == null) {
+            replyType = "STAFF_TO_CUSTOMER";
+        }
+    }
 }
