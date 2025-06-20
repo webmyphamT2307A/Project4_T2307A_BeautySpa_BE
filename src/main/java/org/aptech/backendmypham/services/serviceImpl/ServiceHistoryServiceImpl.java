@@ -14,6 +14,7 @@ import org.aptech.backendmypham.services.ServiceHistoryService;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +48,7 @@ public class ServiceHistoryServiceImpl implements ServiceHistoryService {
         // --- B1: Tìm hoặc tạo khách hàng vãng lai ---
         // Dùng orElseGet để nếu không tìm thấy thì sẽ thực hiện logic tạo mới
         Customer customer = customerRepository
-                .findByEmailOrPhone(createDTO.getGuestEmail(), createDTO.getGuestPhone())
+                .findFirstByEmailOrPhone(createDTO.getGuestEmail(), createDTO.getGuestPhone())
                 .orElseGet(() -> {
                     // Nếu không tồn tại, tạo một customer mới
                     Customer newGuest = new Customer();
@@ -86,36 +87,49 @@ public class ServiceHistoryServiceImpl implements ServiceHistoryService {
 
         return mapToDTO(savedHistory);
     }
+
+
+    private ServiceHistoryDTO mapToDTO(Servicehistory serviceHistory) {
+        ServiceHistoryDTO dto = new ServiceHistoryDTO();
+
+        dto.setId(serviceHistory.getId());
+        dto.setUserId(serviceHistory.getUser() != null ? serviceHistory.getUser().getId().intValue() : null);
+
+        // ← THÊM DÒNG NÀY để map tên nhân viên
+        dto.setUserName(serviceHistory.getUser() != null ? serviceHistory.getUser().getFullName() : null);
+
+        dto.setCustomerId(serviceHistory.getCustomer() != null ? serviceHistory.getCustomer().getId() : null);
+        dto.setAppointmentId(serviceHistory.getAppointment() != null ? serviceHistory.getAppointment().getId().intValue() : null);
+        dto.setServiceId(serviceHistory.getService() != null ? serviceHistory.getService().getId() : null);
+        dto.setServiceName(serviceHistory.getService() != null ? serviceHistory.getService().getName() : null);
+        dto.setPrice(serviceHistory.getService() != null ? serviceHistory.getService().getPrice() : null);
+        dto.setAppointmentDate(serviceHistory.getAppointment() != null ? serviceHistory.getAppointment().getAppointmentDate() : null);
+        dto.setNotes(serviceHistory.getNotes());
+        dto.setCustomerName(serviceHistory.getCustomer() != null ? serviceHistory.getCustomer().getFullName() : null);
+        dto.setCreatedAt(serviceHistory.getCreatedAt());
+        dto.setIsActive(serviceHistory.getIsActive());
+
+        return dto;
+    }
     @Override
     public List<ServiceHistoryDTO> lookupHistory(String email, String phone) {
-        // Tìm khách hàng (kể cả khách vãng lai) bằng email hoặc sđt
-        Optional<Customer> customerOpt = customerRepository.findByEmailOrPhone(email, phone);
+        // Lấy tất cả customers match email hoặc phone
+        List<Customer> customers = customerRepository.findAllByEmailOrPhone(email, phone);
 
-        if (customerOpt.isPresent()) {
-            Customer customer = customerOpt.get();
-            // Nếu tìm thấy, lấy lịch sử theo customerId
-            return serviceHistoryRepository.findByCustomer_Id(customer.getId()).stream()
-                    .map(this::mapToDTO)
-                    .collect(Collectors.toList());
-        } else {
-            // Nếu không tìm thấy khách hàng, trả về danh sách rỗng
-            return Collections.emptyList();
+        if (!customers.isEmpty()) {
+            List<ServiceHistoryDTO> allHistories = new ArrayList<>();
+
+            // Lấy lịch sử của tất cả customers
+            for (Customer customer : customers) {
+                List<Servicehistory> histories = serviceHistoryRepository.findByCustomer_Id(customer.getId());
+                allHistories.addAll(histories.stream()
+                        .map(this::mapToDTO)
+                        .collect(Collectors.toList()));
+            }
+
+            return allHistories;
         }
-    }
 
-    private ServiceHistoryDTO mapToDTO(Servicehistory history) {
-        return new ServiceHistoryDTO(
-                history.getId(),
-                Math.toIntExact(history.getUser().getId()),
-                history.getCustomer().getId(),
-                history.getAppointment().getId(),
-                history.getService().getId(),
-                history.getService().getName(),
-                history.getService().getPrice(),
-                history.getAppointment().getAppointmentDate(),
-                history.getNotes(),
-                history.getCreatedAt(),
-                history.getIsActive()
-        );
+        return Collections.emptyList();
     }
-}
+    }

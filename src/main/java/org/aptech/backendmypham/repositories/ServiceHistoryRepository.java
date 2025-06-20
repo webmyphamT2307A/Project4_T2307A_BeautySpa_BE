@@ -15,4 +15,5 @@ public interface ServiceHistoryRepository extends JpaRepository<Servicehistory,I
     List<Servicehistory> findBycustomerId(@Param("customerId") Integer customerId);
 
     List<Servicehistory> findByCustomer_Id(Integer customerId);
+
 }

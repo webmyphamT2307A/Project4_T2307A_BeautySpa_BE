@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/serviceHistory")
 @RequiredArgsConstructor
@@ -66,19 +68,26 @@ public class ServiceHistoryController {
             @RequestParam(required = false) String email,
             @RequestParam(required = false) String phone) {
 
-        if ((email == null || email.isEmpty()) && (phone == null || phone.isEmpty())) {
+        if ((email == null || email.trim().isEmpty()) && (phone == null || phone.trim().isEmpty())) {
             return ResponseEntity.badRequest().body(
                     new ResponseObject(Status.ERROR, "Vui lòng cung cấp email hoặc số điện thoại để tra cứu.", null)
             );
         }
 
         try {
-            return ResponseEntity.ok(
-                    new ResponseObject(Status.SUCCESS, "Tìm thành công", serviceHistoryService.lookupHistory(email, phone))
-            );
+            List<ServiceHistoryDTO> histories = serviceHistoryService.lookupHistory(email, phone);
+
+            if (histories.isEmpty()) {
+                return ResponseEntity.ok(new ResponseObject(Status.SUCCESS,
+                        "Không tìm thấy lịch sử dịch vụ với thông tin provided.", histories));
+            }
+
+            return ResponseEntity.ok(new ResponseObject(Status.SUCCESS,
+                    "Tìm thấy " + histories.size() + " lịch sử dịch vụ.", histories));
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                    new ResponseObject(Status.ERROR, "Lỗi khi tra cứu lịch sử: " + e.getMessage(), null)
+                    new ResponseObject(Status.ERROR, "Lỗi hệ thống khi tra cứu lịch sử: " + e.getMessage(), null)
             );
         }
     }
