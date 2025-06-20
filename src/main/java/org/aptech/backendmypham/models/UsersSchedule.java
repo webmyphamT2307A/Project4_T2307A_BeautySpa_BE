@@ -42,7 +42,7 @@ public class UsersSchedule {
     @Column(name = "check_out_time")
     private LocalTime checkOutTime;
 
-    @Column(name = "status", length = 50)
+    @Column(name = "status", length = 250)
     private String status;
 
     @ColumnDefault("0")

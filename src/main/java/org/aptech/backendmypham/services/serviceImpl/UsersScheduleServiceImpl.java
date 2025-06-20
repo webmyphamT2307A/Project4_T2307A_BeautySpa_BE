@@ -14,6 +14,7 @@ import org.aptech.backendmypham.services.UsersScheduleService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -143,6 +144,55 @@ public class UsersScheduleServiceImpl implements UsersScheduleService {
         scheduleToDelete.setIsActive(false);
         usersScheduleRepository.save(scheduleToDelete);
         return true;
+    }
+    @Override
+    @Transactional
+    public UsersScheduleResponseDto checkIn(Integer scheduleId) {
+        // Tìm lịch trình theo ID, nếu không thấy sẽ báo lỗi
+        UsersSchedule schedule = usersScheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch trình với ID: " + scheduleId));
+
+        // --- Logic kiểm tra nghiệp vụ ---
+        // 1. Kiểm tra xem đã check-in chưa
+        if (schedule.getCheckInTime() != null) {
+            throw new IllegalStateException("Bạn đã check-in cho ca làm việc này rồi.");
+        }
+        // 2. Kiểm tra có đúng ngày làm việc không (tùy chọn, nhưng nên có)
+        if (!schedule.getWorkDate().equals(LocalDate.now())) {
+            throw new IllegalStateException("Không thể check-in cho một ngày làm việc khác ngày hôm nay.");
+        }
+
+        // --- Cập nhật thông tin ---
+        schedule.setCheckInTime(LocalTime.now()); // Lấy giờ hiện tại
+        schedule.setStatus("confirmed");      // Cập nhật trạng thái
+
+        UsersSchedule savedSchedule = usersScheduleRepository.save(schedule);
+        return mapToResponseDto(savedSchedule);
+    }
+
+    @Override
+    @Transactional
+    public UsersScheduleResponseDto checkOut(Integer scheduleId) {
+        // Tìm lịch trình theo ID
+        UsersSchedule schedule = usersScheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch trình với ID: " + scheduleId));
+
+        // --- Logic kiểm tra nghiệp vụ ---
+        // 1. Phải check-in trước khi check-out
+        if (schedule.getCheckInTime() == null) {
+            throw new IllegalStateException("Bạn phải check-in trước khi check-out.");
+        }
+        // 2. Kiểm tra xem đã check-out chưa
+        if (schedule.getCheckOutTime() != null) {
+            throw new IllegalStateException("Bạn đã check-out cho ca làm việc này rồi.");
+        }
+
+        // --- Cập nhật thông tin ---
+        schedule.setCheckOutTime(LocalTime.now()); // Lấy giờ hiện tại
+        schedule.setStatus("completed");     // Cập nhật trạng thái
+
+        UsersSchedule savedSchedule = usersScheduleRepository.save(schedule);
+        return mapToResponseDto(savedSchedule);
     }
 
     // --- Helper methods cho việc mapping ---
