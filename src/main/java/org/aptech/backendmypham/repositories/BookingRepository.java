@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByUserIdAndIsActiveTrueAndBookingDateTimeBetween(
@@ -25,13 +26,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("startTimeWindow") Instant startTimeWindow,
             @Param("endTimeWindow") Instant endTimeWindow,
             @Param("appointmentIdToExclude") Long appointmentIdToExclude
-    );
-
-    // Các phương thức bạn đã có để tìm booking theo User, Service, DateTime
-    List<Booking> findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
-            Long userId,
-            Integer serviceId, // Hoặc Integer tùy kiểu ID của Service entity
-            Instant bookingDateTime
     );
 
     @Query(value = "SELECT * FROM bookings b WHERE b.user_id = ?1 " +
@@ -52,10 +46,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("year") int year
     );
     List<Booking> findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
-            Integer userId,
+            Long userId,
             Integer serviceId,
             Instant bookingDateTime
     );
+//    List<Booking> findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
+//            Integer userId,
+//            Integer serviceId,
+//            Instant bookingDateTime
+//    );
+    List<Booking> findByUserAndIsActiveTrue(User user);
+
+    // Tìm tất cả booking của một user, không phân biệt trạng thái
+    List<Booking> findByUser(User user);
 
     List<Booking> findByUserIdAndBookingDateTimeAndIsActiveTrue(Long id, Instant appointmentDate);
 }

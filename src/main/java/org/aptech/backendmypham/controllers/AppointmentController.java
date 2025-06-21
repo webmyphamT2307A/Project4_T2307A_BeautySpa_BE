@@ -118,4 +118,9 @@ public class AppointmentController {
         return response;
     }
 
+    @PutMapping("/{serviceId}/complete")
+    public void markServiceAsComplete(@PathVariable Long serviceId) {
+        appointmentService.markServiceAsComplete(serviceId);
+    }
+
 }

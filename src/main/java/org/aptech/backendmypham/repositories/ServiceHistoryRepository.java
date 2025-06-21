@@ -16,4 +16,11 @@ public interface ServiceHistoryRepository extends JpaRepository<Servicehistory,I
 
     List<Servicehistory> findByCustomer_Id(Integer customerId);
 
+
+//    findByAppointmentIdAndIsActiveTrue
+    @Query("SELECT h FROM Servicehistory h WHERE h.appointment.id = :appointmentId AND h.isActive = true")
+    List<Servicehistory> findByAppointmentIdAndIsActiveTrue(@Param("appointmentId") Integer appointmentId);
+
+    @Query("SELECT h FROM Servicehistory h WHERE h.appointment.id = :appointmentId")
+    List<Servicehistory> findByAppointmentId(@Param("appointmentId") Integer appointmentId);
 }

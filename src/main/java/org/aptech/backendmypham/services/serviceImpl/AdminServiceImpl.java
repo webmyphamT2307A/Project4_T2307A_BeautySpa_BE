@@ -197,4 +197,6 @@ public class AdminServiceImpl implements AdminService {
     }
      @Override
     public  List<User> findALlDeteleted(){return userRepository.findAllDeleted();}
+
+
 }
