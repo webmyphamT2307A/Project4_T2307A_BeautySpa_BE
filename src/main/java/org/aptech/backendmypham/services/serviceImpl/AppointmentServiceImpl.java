@@ -578,7 +578,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (userId != null) {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy User với ID: " + userId));
-            appointments = appointmentRepository.findByAppointmentDateBetweenAndUser(startOfDay, endOfDay, user);
+            appointments = appointmentRepository.findByAppointmentDateBetweenAndUserAndIsActiveTrue(startOfDay, endOfDay, user);
         } else {
             appointments = appointmentRepository.findByAppointmentDateBetween(startOfDay, endOfDay);
         }
@@ -731,12 +731,12 @@ public class AppointmentServiceImpl implements AppointmentService {
             booking.setUpdatedAt(Instant.now());
             bookingRepository.save(booking);
         }
-//        // Cập nhật trạng thái của ServiceHistory liên quan
-//        List<Servicehistory> serviceHistories = serviceHistoryRepository.findByAppointmentIdAndIsActiveTrue(appointment.getId());
-//        for (Servicehistory serviceHistory : serviceHistories) {
-//            serviceHistory.setIsActive(false); // Vô hiệu hóa ServiceHistory
-//            serviceHistoryRepository.save(serviceHistory);
-//        }
+        // Cập nhật trạng thái của ServiceHistory liên quan
+        List<Servicehistory> serviceHistories = serviceHistoryRepository.findByAppointmentIdAndIsActiveTrue(appointment.getId());
+        for (Servicehistory serviceHistory : serviceHistories) {
+            serviceHistory.setIsActive(false); // Vô hiệu hóa ServiceHistory
+            serviceHistoryRepository.save(serviceHistory);
+        }
         System.out.println("Lịch hẹn với ID " + serviceId + " đã được đánh dấu là hoàn thành.");
 
     }

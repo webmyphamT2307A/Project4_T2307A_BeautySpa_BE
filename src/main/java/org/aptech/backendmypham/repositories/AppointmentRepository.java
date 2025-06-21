@@ -104,7 +104,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     List<Appointment> findByAppointmentDateBetween(Instant startOfDay, Instant endOfDay);
 
-    List<Appointment> findByAppointmentDateBetweenAndUser(Instant startOfDay, Instant endOfDay, User user);
+    List<Appointment> findByAppointmentDateBetweenAndUserAndIsActiveTrue(Instant startOfDay, Instant endOfDay, User user);
     List<Appointment> findByAppointmentDateBetweenAndIsActiveTrue(Instant startOfDay, Instant endOfDay);
 
     @Query("SELECT SUM(a.price) FROM Appointment a WHERE a.user.id = :userId AND a.appointmentDate BETWEEN :startDate AND :endDate AND a.status = 'completed'")

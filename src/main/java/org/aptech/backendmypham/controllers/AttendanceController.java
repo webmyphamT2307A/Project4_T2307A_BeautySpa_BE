@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -142,5 +143,10 @@ public class AttendanceController {
             System.err.println("Lỗi khi so sánh tuần: " + e.getMessage());
             return "";
         }
+    }
+
+    @GetMapping("history")
+    public List<Object> getAttendanceHistory() {
+        return List.of();
     }
 }
