@@ -20,7 +20,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -106,15 +105,21 @@ public class ReviewServiceImpl implements ReviewService {
                 .collect(Collectors.toList());
     }
 
-    // ====================== STAFF REPLY METHODS ======================
+    // ====================== BUSINESS REPLY METHOD (SIMPLIFIED) ======================
     @Override
     @Transactional
-    public ReviewResponseDTO addReplyToReview(Integer reviewId, Long staffId, ReplyCreateRequestDTO replyDTO) {
+    public ReviewResponseDTO addBusinessReply(Integer reviewId, Long staffId, ReplyCreateRequestDTO replyDTO) {
         Review review = reviewRepository.findByIdAndIsActiveTrue(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
 
         User staff = userRepository.findById(staffId)
                 .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + staffId));
+
+        // Optional: Kiểm tra xem review đã có business reply chưa (1 reply per review)
+        boolean hasExistingReply = reviewReplyRepository.existsByReviewAndIsActiveTrue(review);
+        if (hasExistingReply) {
+            throw new IllegalStateException("Review này đã có phản hồi từ spa");
+        }
 
         ReviewReply reply = new ReviewReply();
         reply.setReview(review);
@@ -122,143 +127,10 @@ public class ReviewServiceImpl implements ReviewService {
         reply.setComment(replyDTO.getComment());
         reply.setCreatedAt(Instant.now());
         reply.setReplyType("STAFF_TO_CUSTOMER");
+        reply.setIsActive(true);
 
         reviewReplyRepository.save(reply);
         return getReviewById(reviewId);
-    }
-
-    @Override
-    @Transactional
-    public ReviewResponseDTO addStaffReplyToReply(Integer parentReplyId, Long staffId, ReplyCreateRequestDTO replyDTO) {
-        ReviewReply parentReply = reviewReplyRepository.findById(parentReplyId)
-                .orElseThrow(() -> new ResourceNotFoundException("Parent reply not found with id: " + parentReplyId));
-
-        User staff = userRepository.findById(staffId)
-                .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + staffId));
-
-        Review review = parentReply.getReview();
-
-        ReviewReply newReply = new ReviewReply();
-        newReply.setReview(review);
-        newReply.setParentReply(parentReply);
-        newReply.setStaff(staff);
-        newReply.setComment(replyDTO.getComment());
-        newReply.setCreatedAt(Instant.now());
-        newReply.setReplyType("STAFF_TO_CUSTOMER");
-
-        reviewReplyRepository.save(newReply);
-        return getReviewById(review.getId());
-    }
-
-    // ====================== CUSTOMER REPLY METHODS ======================
-    @Override
-    @Transactional
-    public ReviewResponseDTO addCustomerReplyToReview(Integer reviewId, Long customerId, ReplyCreateRequestDTO replyDTO) {
-        Review review = reviewRepository.findByIdAndIsActiveTrue(reviewId)
-                .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
-
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + customerId));
-
-        ReviewReply reply = new ReviewReply();
-        reply.setReview(review);
-        reply.setCustomer(customer);
-        reply.setComment(replyDTO.getComment());
-        reply.setCreatedAt(Instant.now());
-        reply.setReplyType("CUSTOMER_TO_STAFF");
-
-        reviewReplyRepository.save(reply);
-        return getReviewById(reviewId);
-    }
-
-    @Override
-    @Transactional
-    public ReviewResponseDTO addCustomerReplyToReply(Integer parentReplyId, Long customerId, ReplyCreateRequestDTO replyDTO) {
-        ReviewReply parentReply = reviewReplyRepository.findById(parentReplyId)
-                .orElseThrow(() -> new ResourceNotFoundException("Parent reply not found with id: " + parentReplyId));
-
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + customerId));
-
-        Review review = parentReply.getReview();
-
-        ReviewReply newReply = new ReviewReply();
-        newReply.setReview(review);
-        newReply.setParentReply(parentReply);
-        newReply.setCustomer(customer);
-        newReply.setComment(replyDTO.getComment());
-        newReply.setCreatedAt(Instant.now());
-        newReply.setReplyType("CUSTOMER_TO_STAFF");
-
-        reviewReplyRepository.save(newReply);
-        return getReviewById(review.getId());
-    }
-
-    // ====================== THREADED REPLY METHODS ======================
-    @Override
-    @Transactional
-    public ReviewResponseDTO addThreadedReply(Integer reviewId, Long userId, String userType, ThreadedReplyCreateRequestDTO replyDTO) {
-        Review review = reviewRepository.findByIdAndIsActiveTrue(reviewId)
-                .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
-
-        ReviewReply reply = new ReviewReply();
-        reply.setReview(review);
-        reply.setComment(replyDTO.getComment());
-        reply.setCreatedAt(Instant.now());
-
-        // Set author based on user type
-        if ("STAFF".equals(userType)) {
-            User staff = userRepository.findById(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + userId));
-            reply.setStaff(staff);
-            reply.setReplyType("STAFF_TO_CUSTOMER");
-        } else if ("CUSTOMER".equals(userType)) {
-            Customer customer = customerRepository.findById(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + userId));
-            reply.setCustomer(customer);
-            reply.setReplyType("CUSTOMER_TO_STAFF");
-        }
-
-        // Handle nested reply
-        if (replyDTO.getParentReplyId() != null) {
-            ReviewReply parentReply = reviewReplyRepository.findById(replyDTO.getParentReplyId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Parent reply not found"));
-            reply.setParentReply(parentReply);
-        }
-
-        reviewReplyRepository.save(reply);
-        return getReviewById(reviewId);
-    }
-
-    @Override
-    @Transactional
-    public ReviewResponseDTO addReplyToReply(Integer parentReplyId, Long userId, String userType, ThreadedReplyCreateRequestDTO replyDTO) {
-        ReviewReply parentReply = reviewReplyRepository.findById(parentReplyId)
-                .orElseThrow(() -> new ResourceNotFoundException("Parent reply not found"));
-
-        Review review = parentReply.getReview();
-
-        ReviewReply newReply = new ReviewReply();
-        newReply.setReview(review);
-        newReply.setParentReply(parentReply);
-        newReply.setComment(replyDTO.getComment());
-        newReply.setCreatedAt(Instant.now());
-
-        // Set author based on user type
-        if ("STAFF".equals(userType)) {
-            User staff = userRepository.findById(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + userId));
-            newReply.setStaff(staff);
-            newReply.setReplyType("STAFF_TO_CUSTOMER");
-        } else if ("CUSTOMER".equals(userType)) {
-            Customer customer = customerRepository.findById(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + userId));
-            newReply.setCustomer(customer);
-            newReply.setReplyType("CUSTOMER_TO_STAFF");
-        }
-
-        reviewReplyRepository.save(newReply);
-        return getReviewById(review.getId());
     }
 
     // ====================== HELPER METHODS ======================
@@ -315,9 +187,8 @@ public class ReviewServiceImpl implements ReviewService {
             dto.setAuthorName("Anonymous");
         }
 
-        // Build threaded replies
-        dto.setReplies(buildThreadedReplies(review.getReplies()));
-
+        // ✅ SIMPLIFIED: Chỉ business replies (không threading)
+        dto.setReplies(buildBusinessReplies(review.getReplies()));
         return dto;
     }
 
@@ -341,14 +212,14 @@ public class ReviewServiceImpl implements ReviewService {
         return dto;
     }
 
-    private List<ReplyResponseDTO> buildThreadedReplies(List<ReviewReply> replies) {
+    private List<ReplyResponseDTO> buildBusinessReplies(List<ReviewReply> replies) {
         if (replies == null || replies.isEmpty()) {
             return new ArrayList<>();
         }
 
-        // Chỉ lấy top-level replies (không có parent)
+        // Chỉ lấy active business replies từ staff/admin
         return replies.stream()
-                .filter(reply -> reply.getParentReply() == null)
+                .filter(reply -> reply.getIsActive() && "STAFF_TO_CUSTOMER".equals(reply.getReplyType()))
                 .map(this::convertToReplyDTO)
                 .collect(Collectors.toList());
     }
@@ -360,22 +231,11 @@ public class ReviewServiceImpl implements ReviewService {
         dto.setReplyType(reply.getReplyType());
         dto.setCreatedAt(reply.getCreatedAt());
 
-        // Set author name
+        // Set author name (chỉ staff)
         if (reply.getStaff() != null) {
             dto.setAuthorName(reply.getStaff().getFullName());
-        } else if (reply.getCustomer() != null) {
-            dto.setAuthorName(reply.getCustomer().getFullName());
         } else {
-            dto.setAuthorName("Unknown");
-        }
-
-        // Recursively build child replies
-        if (reply.getChildReplies() != null && !reply.getChildReplies().isEmpty()) {
-            dto.setReplies(reply.getChildReplies().stream()
-                    .map(this::convertToReplyDTO)
-                    .collect(Collectors.toList()));
-        } else {
-            dto.setReplies(new ArrayList<>());
+            dto.setAuthorName("Unknown Staff");
         }
 
         return dto;
