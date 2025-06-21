@@ -6,147 +6,113 @@ import org.aptech.backendmypham.dto.CustomerDto;
 import org.aptech.backendmypham.dto.ResponseObject;
 import org.aptech.backendmypham.enums.Status;
 import org.aptech.backendmypham.models.Customer;
-import org.aptech.backendmypham.repositories.CustomerRepository;
 import org.aptech.backendmypham.services.CustomerService;
-import org.aptech.backendmypham.services.serviceImpl.CustomerServiceImpl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
 @RestController
-@RequestMapping("/api/v1/customer")
+@RequestMapping("/api/v1/customers") // Đổi thành "customers" (số nhiều) cho chuẩn RESTful
 @RequiredArgsConstructor
 public class CustomerController {
-    private  final CustomerService customerService;
-    private final CustomerRepository customerRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final CustomerService customerService;
 
     @GetMapping("")
-    @Operation(summary = "Lấy tất cả của customer")
-    public ResponseEntity<ResponseObject> getAllCustomer(){
+    @Operation(summary = "Lấy tất cả danh sách khách hàng")
+    public ResponseEntity<ResponseObject> getAllCustomers() {
         return ResponseEntity.ok(
-                new ResponseObject(Status.SUCCESS,"Lấy thành công",customerService.getALL())
+                new ResponseObject(Status.SUCCESS, "Lấy danh sách khách hàng thành công.", customerService.getALL())
         );
     }
-    @GetMapping("/findById")
-    @Operation(summary = "Lấy id của customer")
-    public ResponseEntity<ResponseObject> getCustomerById(Long Uid){
-        try {
+
+    // Sử dụng @PathVariable để lấy ID theo chuẩn RESTful
+    @GetMapping("/{id}")
+    @Operation(summary = "Tìm khách hàng theo ID")
+    public ResponseEntity<ResponseObject> getCustomerById(@PathVariable Long id) {
+        Customer customer = customerService.findById(id);
+        if (customer != null) {
             return ResponseEntity.ok(
-                    new ResponseObject(Status.SUCCESS, "Tìm tài khoản thành công", customerService.findById(Uid))
-            );
-        } catch (Exception e) {
-            return ResponseEntity.ok(
-                    new ResponseObject(Status.ERROR, "Lỗi khi tìm tài khoản: " + e.getMessage(), null)
+                    new ResponseObject(Status.SUCCESS, "Tìm thấy khách hàng.", customer)
             );
         }
-
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                new ResponseObject(Status.ERROR, "Không tìm thấy khách hàng với ID: " + id, null)
+        );
     }
 
-    @PostMapping("/created")
-    @Operation(summary = "Tạo customer")
-    public ResponseEntity<ResponseObject> createdCustomer(
+    // Đổi tên endpoint cho ngắn gọn và sử dụng POST trên resource gốc
+    @PostMapping(value = "", consumes = {"multipart/form-data"})
+    @Operation(summary = "Tạo mới một khách hàng")
+    public ResponseEntity<ResponseObject> createCustomer(
             @RequestPart("customer") CustomerDto customerDto,
             @RequestPart(value = "file", required = false) MultipartFile file
     ) {
         try {
-            customerService.createCustomer(
-                    customerDto.getPassword(),
-                    customerDto.getFullName(),
-                    customerDto.getEmail(),
-                    customerDto.getPhone(),
-                    customerDto.getAddress(),
-                    file
+            customerService.createCustomer(customerDto, file);
+            return ResponseEntity.status(HttpStatus.CREATED).body(
+                    new ResponseObject(Status.SUCCESS, "Tạo khách hàng thành công.", customerDto)
             );
-            return ResponseEntity.ok(
-                    new ResponseObject(Status.SUCCESS, "Customer created successfully", null)
-            );
-        } catch (Exception e) {
-            return ResponseEntity.ok(
-                    new ResponseObject(Status.ERROR, "Lỗi khi tạo tài khoản: " + e.getMessage(), null)
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new ResponseObject(Status.ERROR, e.getMessage(), null)
             );
         }
     }
 
-    @PostMapping(value = "/update/{id}", consumes = {"multipart/form-data"})
-    @Operation(summary = "api cập nhật thông tin tài khoản khách hàng")
+    // Sử dụng @PutMapping cho hành động cập nhật
+    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
+    @Operation(summary = "Cập nhật thông tin khách hàng")
     public ResponseEntity<ResponseObject> updateCustomer(
             @PathVariable Long id,
             @RequestPart("customer") CustomerDto customerDto,
             @RequestPart(value = "file", required = false) MultipartFile file
     ) {
         try {
-            customerService.updateCustomer(
-                    id,
-                    customerDto.getPassword(),
-                    customerDto.getFullName(),
-                    customerDto.getEmail(),
-                    customerDto.getPhone(),
-                    customerDto.getAddress(),
-                    customerDto.getIsActive(),
-                    customerDto.getImageUrl(),
-                    file
-            );
+            Customer updatedCustomer = customerService.updateCustomer(id, customerDto, file);
             return ResponseEntity.ok(
-                    new ResponseObject(Status.SUCCESS, "Customer updated successfully", null)
+                    new ResponseObject(Status.SUCCESS, "Cập nhật khách hàng thành công.", updatedCustomer)
             );
-        } catch (Exception e) {
-            return ResponseEntity.ok(
-                    new ResponseObject(Status.ERROR, "Lỗi khi cập nhật tài khoản: " + e.getMessage(), null)
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new ResponseObject(Status.ERROR, e.getMessage(), null)
             );
         }
     }
 
-    @PutMapping("/delete/{id}")
-    @Operation(summary = "Xóa mềm customer")
-    public  ResponseEntity<ResponseObject> deleteCustomers(@PathVariable Long id){
+    // Sử dụng @DeleteMapping cho hành động xóa (mềm)
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Xóa mềm khách hàng (đặt is_active = false)")
+    public ResponseEntity<ResponseObject> deleteCustomer(@PathVariable Long id) {
         try {
             customerService.deleteCustomer(id);
             return ResponseEntity.ok(
-                    new ResponseObject(Status.SUCCESS, "Customer deleted successfully", null)
+                    new ResponseObject(Status.SUCCESS, "Xóa khách hàng thành công.", null)
             );
-        } catch (Exception e) {
-            return ResponseEntity.ok(
-                    new ResponseObject(Status.ERROR, "Lỗi khi xóa tài khoản: " + e.getMessage(), null)
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new ResponseObject(Status.ERROR, e.getMessage(), null)
             );
         }
     }
+
     @PostMapping("/guest-create")
-    @Operation(summary = "Tạo guest id cho khách chưa login")
-    public ResponseEntity<?> createGuestCustomer(@RequestBody Map<String, String> body) {
-        String fullName = body.get("fullName");
-        String phone = body.get("phone");
-
-        if (fullName == null || phone == null) {
-            return ResponseEntity.badRequest().body("Thiếu thông tin tên hoặc số điện thoại");
+    @Operation(summary = "Tạo hoặc lấy thông tin khách vãng lai (guest) cho đơn hàng")
+    public ResponseEntity<ResponseObject> createOrGetGuestCustomer(@RequestBody CustomerDto guestDto) {
+        if (guestDto.getFullName() == null || guestDto.getPhone() == null) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, "Thiếu thông tin tên hoặc số điện thoại.", null)
+            );
         }
-
-        Optional<Customer> existing = customerRepository.findByPhone(phone);
-        Customer customer;
-        if (existing.isPresent()) {
-            // Nếu khách hàng đã tồn tại -> trả về thông tin
-            customer = existing.get();
-        } else {
-            // Tạo khách hàng mới (guest)
-            customer = new Customer();
-            customer.setFullName(fullName);
-            customer.setPhone(phone);
-            customer.setPassword(passwordEncoder.encode("guest_default_password")); // Mã hóa mật khẩu
-            customer.setCreatedAt(Instant.now());
-            customer.setIsActive(true);
-            customer = customerRepository.save(customer);
+        try {
+            Customer customer = customerService.createOrGetGuest(guestDto);
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Lấy thông tin khách vãng lai thành công.", customer)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ResponseObject(Status.ERROR, e.getMessage(), null)
+            );
         }
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("id", customer.getId());
-        result.put("fullName", customer.getFullName());
-        result.put("phone", customer.getPhone());
-        return ResponseEntity.ok(result);
     }
 }
