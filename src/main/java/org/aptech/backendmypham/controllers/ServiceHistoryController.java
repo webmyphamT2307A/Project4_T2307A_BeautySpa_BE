@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/serviceHistory")
@@ -91,6 +92,23 @@ public class ServiceHistoryController {
             );
         }
     }
-
+    @GetMapping("/monthly-history")
+    @Operation(summary = "Lấy lịch sử đơn hàng theo tháng của một user cụ thể")
+    public ResponseEntity<ResponseObject> getMonthlyHistory(
+            @RequestParam Long userId,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+        try {
+            Map<String, List<Object>> data = serviceHistoryService.getMonthlyHistory(userId, year, month);
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Lấy lịch sử đơn hàng thành công", data)
+            );
+        } catch (Exception e) {
+            System.out.println("Error getting monthly history: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ResponseObject(Status.ERROR, "Lỗi khi lấy lịch sử đơn hàng: " + e.getMessage(), null)
+            );
+        }
+    }
 
 }

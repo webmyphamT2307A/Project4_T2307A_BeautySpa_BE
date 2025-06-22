@@ -145,8 +145,59 @@ public class AttendanceController {
         }
     }
 
-    @GetMapping("history")
-    public List<Object> getAttendanceHistory() {
-        return List.of();
+    @GetMapping("/history")
+    @Operation(summary = "Lấy lịch sử điểm danh theo userId, năm, tháng, trạng thái")
+    public ResponseEntity<ResponseObject> getAttendanceHistory(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) String status) {
+        try {
+            // Fetch all attendance records
+            List<Attendance> attendances = attendanceService.getAll();
+
+            // Apply filters
+            if (userId != null) {
+                attendances = attendances.stream()
+                        .filter(a -> a.getUser().getId().equals(userId))
+                        .toList();
+            }
+            if (year != null) {
+                attendances = attendances.stream()
+                        .filter(a -> a.getCheckIn().getYear() == year)
+                        .toList();
+            }
+            if (month != null) {
+                attendances = attendances.stream()
+                        .filter(a -> a.getCheckIn().getMonthValue() == month)
+                        .toList();
+            }
+            if (status != null) {
+                attendances = attendances.stream()
+                        .filter(a -> a.getStatus().equalsIgnoreCase(status))
+                        .toList();
+            }
+
+            // Map to response format
+            List<Map<String, Object>> response = attendances.stream().map(a -> {
+                Map<String, Object> record = Map.of(
+                        "id", a.getAttendanceId(),
+                        "date", a.getCheckIn().toLocalDate(),
+                        "session", a.getCheckIn().getHour() < 12 ? "Sáng" : "Chiều",
+                        "checkInTime", a.getCheckIn(),
+                        "checkOutTime", a.getCheckOut(),
+                        "status", a.getStatus()
+                );
+                return record;
+            }).toList();
+
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Lấy lịch sử điểm danh thành công", response)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, "Lỗi khi lấy lịch sử điểm danh: " + e.getMessage(), null)
+            );
+        }
     }
 }

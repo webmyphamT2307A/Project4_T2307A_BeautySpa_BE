@@ -5,19 +5,16 @@ import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.GuestServiceHistoryCreateDTO;
 import org.aptech.backendmypham.dto.ServiceHistoryDTO;
 import org.aptech.backendmypham.exception.ResourceNotFoundException;
-import org.aptech.backendmypham.models.Appointment;
-import org.aptech.backendmypham.models.Customer;
-import org.aptech.backendmypham.models.Servicehistory;
-import org.aptech.backendmypham.models.User;
+import org.aptech.backendmypham.models.*;
 import org.aptech.backendmypham.repositories.*;
 import org.aptech.backendmypham.services.ServiceHistoryService;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,7 +25,7 @@ public class ServiceHistoryServiceImpl implements ServiceHistoryService {
     private final UserRepository userRepository;
     private final AppointmentRepository appointmentRepository;
     private final ServiceRepository serviceRepository;
-
+    private final ReviewRepository reviewRepository;
 
     @Override
     public List<ServiceHistoryDTO> getAll() {
@@ -132,4 +129,96 @@ public class ServiceHistoryServiceImpl implements ServiceHistoryService {
 
         return Collections.emptyList();
     }
+    public Map<String, List<Object>> getMonthlyHistory(Long userId, Integer year, Integer month) {
+        // Lấy danh sách lịch hẹn theo userId, year và month
+        List<Appointment> appointments = appointmentRepository.findAppointmentsByUserIdAndDate(userId, year, month);
+
+        // Nhóm theo MM/yyyy
+        Map<String, List<Appointment>> groupedAppointments = appointments.stream()
+                .collect(Collectors.groupingBy(appointment -> appointment.getAppointmentDate()
+                        .atZone(ZoneId.systemDefault())
+                        .format(DateTimeFormatter.ofPattern("MM/yyyy"))));
+
+        Map<String, List<Object>> result = new LinkedHashMap<>();
+
+        for (Map.Entry<String, List<Appointment>> entry : groupedAppointments.entrySet()) {
+            String monthYear = entry.getKey();
+            List<Appointment> monthlyAppointments = entry.getValue();
+
+            // Tính toán tổng quan
+            int workDays = (int) monthlyAppointments.stream()
+                    .map(app -> app.getAppointmentDate().atZone(ZoneId.systemDefault()).toLocalDate())
+                    .distinct()
+                    .count();
+
+            int totalAppointments = monthlyAppointments.size();
+            BigDecimal baseSalary = calculateBaseSalary(workDays);
+            BigDecimal totalCommission = monthlyAppointments.stream()
+                    .map(app -> app.getPrice() != null ? app.getPrice() : BigDecimal.ZERO)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal totalEarnings = baseSalary.add(totalCommission);
+
+            List<Object> monthlyData = new ArrayList<>();
+
+            // Thêm dòng tổng kết
+            monthlyData.add(Map.of(
+                    "isSummary", true,
+                    "month", monthYear,
+                    "workDays", workDays,
+                    "totalOrders", totalAppointments,
+                    "baseSalary", baseSalary,
+                    "totalCommission", totalCommission,
+                    "totalEarnings", totalEarnings
+            ));
+
+            // Thêm chi tiết từng lịch hẹn
+            for (Appointment appointment : monthlyAppointments) {
+                try {
+                    //get rating from reviews if exists
+//                    Integer rating = reviewRepository.findByAppointmentAndIsActiveTrue(appointment)
+//                            .map(Review::getRating)
+//                            .orElse(null);
+
+                    String serviceName = appointment.getService() != null
+                            ? appointment.getService().getName()
+                            : "Không rõ";
+
+                    String dateDisplay = appointment.getAppointmentDate().atZone(ZoneId.systemDefault())
+                            .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+
+                    String timeDisplay = appointment.getAppointmentDate().atZone(ZoneId.systemDefault())
+                            .format(DateTimeFormatter.ofPattern("HH:mm")) + " - " +
+                            appointment.getEndTime().atZone(ZoneId.systemDefault())
+                                    .format(DateTimeFormatter.ofPattern("HH:mm"));
+
+                    Map<String, Object> orderMap = new LinkedHashMap<>();
+                    orderMap.put("id", appointment.getId());
+                    orderMap.put("date", appointment.getAppointmentDate());
+                    orderMap.put("dateDisplay", dateDisplay);
+                    orderMap.put("service", serviceName);
+                    orderMap.put("startTime", appointment.getAppointmentDate());
+                    orderMap.put("endTime", appointment.getEndTime());
+                    orderMap.put("timeDisplay", timeDisplay);
+                    orderMap.put("rating", null);
+                    orderMap.put("commission", appointment.getPrice());
+                    orderMap.put("status", appointment.getStatus());
+
+                    monthlyData.add(orderMap);
+                } catch (Exception ex) {
+                    System.err.println("Lỗi khi xử lý appointment ID: " + appointment.getId());
+                    ex.printStackTrace();
+                }
+            }
+
+            result.put(monthYear, monthlyData);
+        }
+
+        System.out.println("Monthly History Result: " + result);
+        return result;
     }
+
+    private BigDecimal calculateBaseSalary(int workDays) {
+        // Example calculation for base salary
+        return BigDecimal.valueOf(workDays * 400000); // 400,000 per workday
+    }
+}
