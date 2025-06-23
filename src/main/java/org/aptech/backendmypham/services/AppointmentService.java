@@ -28,4 +28,6 @@ public interface AppointmentService {
     List<AppointmentResponseDto> getAppointmentsByUserId(Long userId);
 
 
+
+
 }
