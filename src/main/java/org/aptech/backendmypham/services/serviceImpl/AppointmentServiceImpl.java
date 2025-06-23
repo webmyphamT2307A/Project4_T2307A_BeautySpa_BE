@@ -701,6 +701,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
 
 
+
+
     private AppointmentHistoryDTO convertToAppointmentHistoryDTO(Appointment appointment) {
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
         return AppointmentHistoryDTO.builder()
@@ -832,71 +834,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
 
 
-    private AppointmentHistoryDTO convertToAppointmentHistoryDTO(Appointment appointment) {
-        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
-        return AppointmentHistoryDTO.builder()
-                .id(appointment.getId())
-                .appointmentId(appointment.getId())
-                .customerId(appointment.getCustomer() != null ? appointment.getCustomer().getId() : null)
-                .customerName(appointment.getFullName())
-                .customerPhone(appointment.getPhoneNumber())
-                .customerEmail(appointment.getCustomer() != null ? appointment.getCustomer().getEmail() : null)
-                .serviceId(appointment.getService() != null ? (long) appointment.getService().getId() : null)
-                .serviceName(appointment.getService() != null ? appointment.getService().getName() : "N/A")
-                .servicePrice(appointment.getPrice())
-                .serviceDuration(appointment.getService() != null && appointment.getService().getDuration() != null ?
-                        appointment.getService().getDuration() : 60)
-                .userId(appointment.getUser() != null ? appointment.getUser().getId() : null)
-                .userName(appointment.getUser() != null ? appointment.getUser().getFullName() : "N/A")
-                .userImageUrl(appointment.getUser() != null ? appointment.getUser().getImageUrl() : null)
-                .userRating(appointment.getUser() != null ? appointment.getUser().getAverageRating() : null)
-                .appointmentDate(dateFormatter.format(appointment.getAppointmentDate()))
-                .appointmentTime(appointment.getSlot())
-                .slot(appointment.getSlot())
-                .status(appointment.getStatus())
-                .notes(appointment.getNotes())
-                .isActive(appointment.getIsActive())
-                .createdAt(appointment.getCreatedAt().toString())
-                .statusText(determineStatusText(appointment))
-                .statusClassName(determineStatusClassName(appointment))
-                .canCancel(canCancelAppointment(appointment))
-                .displayDate(DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy", new Locale("vi", "VN"))
-                        .withZone(ZoneId.of("Asia/Ho_Chi_Minh"))
-                        .format(appointment.getAppointmentDate()))
-                .build();
-    }
-    private String determineStatusText(Appointment appointment) {
-        // PRIORITY 1: Check explicit status first
-        if (appointment.getStatus() != null) {
-            String status = appointment.getStatus().toLowerCase().trim();
-            if (status.contains("cancel")) {
-                return "Đã hủy";
-            }
-            if ("completed".equals(status)) {
-                return "Đã hoàn thành";
-            }
-        }
 
-        // PRIORITY 2: Date logic
-        // Lấy ngày hiện tại và ngày hẹn
-        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        LocalDate aptDate = appointment.getAppointmentDate()
-                .atZone(ZoneId.of("Asia/Ho_Chi_Minh"))
-                .toLocalDate();
-
-        // Nếu lịch hẹn đã qua, coi như đã hoàn thành
-        // (Logic này vẫn giữ nguyên vì một lịch hẹn "pending" trong quá khứ thì cũng nên là "hoàn thành")
-        if (aptDate.isBefore(today)) {
-            return "Đã hoàn thành";
-        }
-
-        // Nếu không, xác định là hôm nay hay sắp tới
-        if (aptDate.isEqual(today)) {
-            return "Hôm nay";
-        } else {
-            return "Sắp tới";
-        }
-    }
+ 
 
     private String determineStatusClassName(Appointment appointment) {
         // PRIORITY 1: Check explicit status first

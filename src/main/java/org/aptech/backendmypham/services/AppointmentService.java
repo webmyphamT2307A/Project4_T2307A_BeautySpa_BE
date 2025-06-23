@@ -26,7 +26,6 @@ public interface AppointmentService {
 
     Map<String, Object> getAppointmentsGroupedByShift(LocalDate date, Long userId);
     List<AppointmentResponseDto> getAppointmentsByUserId(Long userId);
-    void markServiceAsComplete(Long serviceId);
     List<AppointmentHistoryDTO> getCustomerAppointmentHistory(Long customerId, int page, int size);
     List<AppointmentHistoryDTO> getAppointmentHistoryByPhone(String phoneNumber);
     AppointmentStatsDTO getCustomerAppointmentStats(Long customerId);
