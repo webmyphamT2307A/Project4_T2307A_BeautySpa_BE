@@ -537,7 +537,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
 
-@Override
+    @Override
     public void deleteAppointment(Long Aid) {
         try {
             Appointment appointment = appointmentRepository.findByIdAndIsActive(Aid, true)
@@ -769,73 +769,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
-    private String determineStatusClassName(Appointment appointment) {
-        // PRIORITY 1: Check explicit status first
-        if (appointment.getStatus() != null) {
-            String status = appointment.getStatus().toLowerCase().trim();
-
-            if (status.contains("cancel")) {
-                return "bg-danger";
-            }
-
-            if ("completed".equals(status)) {
-                return "bg-success";
-            }
-        }
-
-        // PRIORITY 2: Date logic
-        LocalDate today = LocalDate.now();
-        LocalDate aptDate = appointment.getAppointmentDate().atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toLocalDate();
-
-        if (aptDate.isBefore(today)) {
-            return "bg-success";
-        } else if (aptDate.isEqual(today)) {
-            return "bg-warning text-dark";
-        } else {
-            return "bg-info";
-        }
-    }
-
-
-    @Override
-    public void markServiceAsComplete(Long serviceId) {
-        Appointment appointment = appointmentRepository.findByIdAndIsActive(serviceId, true)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn với ID: " + serviceId));
-
-        // Kiểm tra trạng thái hiện tại
-        if ("completed".equalsIgnoreCase(appointment.getStatus())) {
-            throw new RuntimeException("Lịch hẹn đã được đánh dấu là hoàn thành.");
-        }
-
-        // Cập nhật trạng thái
-        appointment.setStatus("completed");
-        appointment.setUpdatedAt(Instant.now());
-        appointmentRepository.save(appointment);
-        // Cập nhật trạng thái của Booking liên quan
-        List<Booking> bookings = bookingRepository.findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
-                appointment.getUser().getId(),
-                appointment.getService().getId(),
-                appointment.getAppointmentDate()
-        );
-        for (Booking booking : bookings) {
-            booking.setStatus("completed");
-            booking.setUpdatedAt(Instant.now());
-            bookingRepository.save(booking);
-        }
-        // Cập nhật trạng thái của ServiceHistory liên quan
-        List<Servicehistory> serviceHistories = serviceHistoryRepository.findByAppointmentIdAndIsActiveTrue(appointment.getId());
-        for (Servicehistory serviceHistory : serviceHistories) {
-            serviceHistory.setIsActive(false); // Vô hiệu hóa ServiceHistory
-            serviceHistoryRepository.save(serviceHistory);
-        }
-        System.out.println("Lịch hẹn với ID " + serviceId + " đã được đánh dấu là hoàn thành.");
-
-    }
 
 
 
 
- 
+
+
 
     private String determineStatusClassName(Appointment appointment) {
         // PRIORITY 1: Check explicit status first
