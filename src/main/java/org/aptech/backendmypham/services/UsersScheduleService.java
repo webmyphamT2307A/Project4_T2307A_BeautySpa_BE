@@ -1,5 +1,6 @@
 package org.aptech.backendmypham.services;
 
+import org.aptech.backendmypham.dto.ScheduleUserDto;
 import org.aptech.backendmypham.dto.UsersScheduleRequestDto;
 import org.aptech.backendmypham.dto.UsersScheduleResponseDto;
 
@@ -14,4 +15,5 @@ public interface UsersScheduleService {
     public boolean deleteSchedule(Integer scheduleId);
     public UsersScheduleResponseDto checkIn(Integer scheduleId);
     public UsersScheduleResponseDto checkOut(Integer scheduleId);
+    List<ScheduleUserDto> getUserScheduleByUserId(Long userId);
 }
