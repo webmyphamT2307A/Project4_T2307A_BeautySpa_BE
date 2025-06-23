@@ -114,30 +114,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     @Query("SELECT COUNT(a) FROM Appointment a WHERE a.user.id = :userId AND a.appointmentDate BETWEEN :startDate AND :endDate AND a.status = 'completed'")
     Integer countCompletedOrdersByUserAndDateRange(Long userId, LocalDate startDate, LocalDate endDate);
-    @Query("SELECT a FROM Appointment a " +
-            "LEFT JOIN FETCH a.customer c " +
-            "LEFT JOIN FETCH a.service s " +
-            "LEFT JOIN FETCH a.user u " +
-            "LEFT JOIN FETCH a.timeSlot t " +
-            "WHERE c.id = :customerId AND (:isActive IS NULL OR a.isActive = :isActive) " +
-            "ORDER BY a.createdAt DESC")
-    Page<Appointment> findByCustomerIdWithDetailsOrderByCreatedAtDesc(
-            @Param("customerId") Long customerId,
-            @Param("isActive") Boolean isActive,
-            Pageable pageable);
 
-    @Query("SELECT a FROM Appointment a " +
-            "LEFT JOIN FETCH a.customer c " +
-            "LEFT JOIN FETCH a.service s " +
-            "LEFT JOIN FETCH a.user u " +
-            "LEFT JOIN FETCH a.timeSlot t " +
-            "WHERE a.phoneNumber = :phoneNumber AND (:isActive IS NULL OR a.isActive = :isActive) " +
-            "ORDER BY a.createdAt DESC")
-    List<Appointment> findByPhoneNumberWithDetailsOrderByCreatedAtDesc(
-            @Param("phoneNumber") String phoneNumber,
-            @Param("isActive") Boolean isActive);
 
-    List<Appointment> findByCustomerIdAndIsActive(Long customerId, Boolean isActive);
 
     @Query("SELECT a FROM Appointment a WHERE a.user.id = :userId " +
             "AND (:year IS NULL OR YEAR(a.appointmentDate) = :year) " +
@@ -157,16 +135,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("isActive") Boolean isActive,
             Pageable pageable);
 
-    @Query("SELECT a FROM Appointment a " +
-            "LEFT JOIN FETCH a.customer c " +
-            "LEFT JOIN FETCH a.service s " +
-            "LEFT JOIN FETCH a.user u " +
-            "LEFT JOIN FETCH a.timeSlot t " +
-            "WHERE a.phoneNumber = :phoneNumber AND (:isActive IS NULL OR a.isActive = :isActive) " +
-            "ORDER BY a.createdAt DESC")
-    List<Appointment> findByPhoneNumberWithDetailsOrderByCreatedAtDesc(
-            @Param("phoneNumber") String phoneNumber,
-            @Param("isActive") Boolean isActive);
+
 
     List<Appointment> findByCustomerIdAndIsActive(Long customerId, Boolean isActive);
 }
