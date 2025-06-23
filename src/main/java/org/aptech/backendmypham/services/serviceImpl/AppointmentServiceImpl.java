@@ -702,7 +702,103 @@ public class AppointmentServiceImpl implements AppointmentService {
 
 
 
+    @Override
+    public void createGuestAppointment(GuestAppointmentRequestDto dto) {
+        log.info("Bắt đầu xử lý tạo lịch hẹn cho khách vãng lai: {}", dto.getPhoneNumber());
 
+        // 1. TÌM HOẶC TẠO MỚI CUSTOMER
+        // Ưu tiên tìm theo số điện thoại, nếu không có thì tạo mới
+        Customer customer = customerRepository.findByPhone(dto.getPhoneNumber())
+                .orElseGet(() -> {
+                    log.info("Không tìm thấy khách hàng với SĐT {}. Tạo mới...", dto.getPhoneNumber());
+                    Customer newCustomer = new Customer();
+                    newCustomer.setFullName(dto.getFullName());
+                    newCustomer.setPhone(dto.getPhoneNumber());
+                    newCustomer.setIsActive(true);
+                    newCustomer.setCreatedAt(Instant.now());
+                    return customerRepository.save(newCustomer);
+                });
+        log.info("Sử dụng khách hàng ID: {}", customer.getId());
+
+        // 2. TÌM CÁC THÔNG TIN KHÁC
+        org.aptech.backendmypham.models.Service service = serviceRepository.findById(Math.toIntExact(dto.getServiceId()))
+                .orElseThrow(() -> new RuntimeException("Dịch vụ không hợp lệ."));
+
+        Timeslots timeSlot = timeSlotsRepository.findById(dto.getTimeSlotId())
+                .orElseThrow(() -> new RuntimeException("Khung giờ không hợp lệ."));
+
+        // 3. XỬ LÝ THỜI GIAN
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        LocalDate parsedDate;
+        try {
+            parsedDate = LocalDate.parse(dto.getAppointmentDate(), formatter);
+        } catch (DateTimeParseException e) {
+            throw new RuntimeException("Định dạng ngày không hợp lệ. Vui lòng dùng 'dd/MM/yyyy'.");
+        }
+
+        if (parsedDate.isBefore(LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh")))) {
+            throw new RuntimeException("Không thể đặt lịch cho một ngày trong quá khứ.");
+        }
+
+        // Logic kiểm tra thời gian cụ thể (ví dụ không cho đặt trước 2 tiếng) có thể thêm ở đây
+
+        LocalDateTime localBookingStartDateTime = parsedDate.atTime(timeSlot.getStartTime());
+        Instant bookingStartInstant = localBookingStartDateTime.atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant();
+
+        // 4. KIỂM TRA XEM SLOT ĐÃ BỊ ĐẶT CHƯA (quan trọng cho public endpoint)
+        // Giả sử một slot chỉ cho 1 người đặt
+        boolean slotIsTaken = appointmentRepository.existsByAppointmentDateAndTimeSlotAndStatusNot(
+                bookingStartInstant, timeSlot, "cancelled"
+        );
+        if(slotIsTaken){
+            throw new RuntimeException("Rất tiếc, khung giờ này vừa có người khác đặt. Vui lòng chọn giờ khác.");
+        }
+
+
+        // 5. TẠO APPOINTMENT MỚI
+        Appointment appointment = new Appointment();
+        appointment.setCustomer(customer);
+        appointment.setService(service);
+        appointment.setTimeSlot(timeSlot);
+
+        // Thông tin từ DTO
+        appointment.setFullName(dto.getFullName());
+        appointment.setPhoneNumber(dto.getPhoneNumber());
+        appointment.setAppointmentDate(bookingStartInstant);
+        appointment.setNotes(dto.getNotes());
+
+        // Gán giá trị mặc định cho khách đặt
+        appointment.setUser(null); // Nhân viên sẽ được admin gán sau
+        appointment.setStatus("pending"); // Trạng thái chờ xác nhận
+        appointment.setIsActive(true);
+        appointment.setPrice(service.getPrice()); // Lấy giá từ dịch vụ
+        appointment.setCreatedAt(Instant.now());
+        appointment.setUpdatedAt(Instant.now());
+
+        // Tính toán endTime dựa trên duration của service
+        Integer durationMinutes = (service.getDuration() != null && service.getDuration() > 0) ? service.getDuration() : 60;
+        appointment.setEndTime(bookingStartInstant.plus(durationMinutes, ChronoUnit.MINUTES));
+
+        // Tạo slot string để hiển thị
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+        String slotDisplay = timeSlot.getStartTime().format(timeFormatter) + " - " + timeSlot.getEndTime().format(timeFormatter);
+        appointment.setSlot(slotDisplay);
+
+        // 6. LƯU APPOINTMENT
+        Appointment savedAppointment = appointmentRepository.save(appointment);
+        log.info("Đã tạo thành công lịch hẹn mới ID {} cho khách hàng {}", savedAppointment.getId(), customer.getPhone());
+
+        // 7. GỬI EMAIL (Tùy chọn, nhưng nên có)
+        if (customer.getEmail() != null && !customer.getEmail().isEmpty()) {
+            try {
+                EmailConfirmationRequestDto emailRequest = createEmailRequest(savedAppointment); // Tận dụng hàm đã có
+                emailService.sendAppointmentConfirmation(emailRequest);
+                log.info("Đã gửi email xác nhận cho khách hàng {}", customer.getEmail());
+            } catch (Exception e) {
+                log.error("Gửi email cho khách thất bại: {}", e.getMessage());
+            }
+        }
+    }
     private AppointmentHistoryDTO convertToAppointmentHistoryDTO(Appointment appointment) {
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
         return AppointmentHistoryDTO.builder()

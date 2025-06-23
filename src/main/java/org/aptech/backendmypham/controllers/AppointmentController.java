@@ -167,6 +167,22 @@ public class AppointmentController {
             );
         }
     }
+    @PostMapping("/guest-create")
+    @Operation(summary = "Khách vãng lai tự tạo lịch hẹn")
+    public ResponseEntity<ResponseObject> guestCreateAppointment(@RequestBody GuestAppointmentRequestDto dto) {
+        try {
+            appointmentService.createGuestAppointment(dto);
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Bạn đã đặt lịch hẹn thành công! Chúng tôi sẽ sớm liên hệ để xác nhận.", null)
+            );
+        } catch (Exception e) {
+            // Ghi log lỗi để debug
+            e.printStackTrace();
+            return ResponseEntity.badRequest()
+                    .body(new ResponseObject(Status.ERROR, "Lỗi khi đặt lịch: " + e.getMessage(), null));
+        }
+    }
+
 
 
 

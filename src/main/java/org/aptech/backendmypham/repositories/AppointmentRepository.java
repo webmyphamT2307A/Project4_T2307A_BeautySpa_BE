@@ -2,6 +2,7 @@ package org.aptech.backendmypham.repositories;
 
 import org.aptech.backendmypham.models.Appointment;
 import org.aptech.backendmypham.models.Role;
+import org.aptech.backendmypham.models.Timeslots;
 import org.aptech.backendmypham.models.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -145,4 +146,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     List<Appointment> findAppointmentsByUserIdAndDate(@Param("userId") Long userId,
                                                       @Param("year") Integer year,
                                                       @Param("month") Integer month);
+
+    boolean existsByAppointmentDateAndTimeSlotAndStatusNot(Instant bookingStartInstant, Timeslots timeSlot, String cancelled);
 }
