@@ -138,4 +138,15 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
 
     List<Appointment> findByCustomerIdAndIsActive(Long customerId, Boolean isActive);
+
+    @Query("SELECT a FROM Appointment a " +
+            "LEFT JOIN FETCH a.customer c " +
+            "LEFT JOIN FETCH a.service s " +
+            "LEFT JOIN FETCH a.user u " +
+            "LEFT JOIN FETCH a.timeSlot t " +
+            "WHERE a.phoneNumber = :phoneNumber AND (:isActive IS NULL OR a.isActive = :isActive) " +
+            "ORDER BY a.createdAt DESC")
+    List<Appointment> findByPhoneNumberWithDetailsOrderByCreatedAtDesc(
+            @Param("phoneNumber") String phoneNumber,
+            @Param("isActive") Boolean isActive);
 }
