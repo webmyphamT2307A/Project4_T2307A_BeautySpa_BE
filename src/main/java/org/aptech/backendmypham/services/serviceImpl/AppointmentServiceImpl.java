@@ -2,12 +2,15 @@ package org.aptech.backendmypham.services.serviceImpl;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.aptech.backendmypham.dto.AppointmentDto;
-import org.aptech.backendmypham.dto.AppointmentResponseDto;
+import org.aptech.backendmypham.dto.*;
 import org.aptech.backendmypham.models.*;
 import org.aptech.backendmypham.repositories.*;
 import org.aptech.backendmypham.services.AppointmentService;
 import org.aptech.backendmypham.services.BookingService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -16,9 +19,11 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
-import org.aptech.backendmypham.dto.EmailConfirmationRequestDto;
+
 import org.aptech.backendmypham.services.EmailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +38,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final CustomerRepository customerRepository;
     private  final BookingService bookingService;
     private final BookingRepository bookingRepository;
-    private final BranchRepository branchRepository;
     private final TimeSlotsRepository timeSlotsRepository;
-    private  final ServiceHistoryRepository serviceHistoryRepository;
+    private final UsersScheduleRepository usersScheduleRepository;
     private final EmailService emailService;
 
     @Override
@@ -70,10 +74,8 @@ public class AppointmentServiceImpl implements AppointmentService {
             appointment.setCustomer(null);
         }
 
-        // 4. Xử lý Branch và TimeSlot
-        Branch branch = branchRepository.findById(dto.getBranchId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Branch với ID: " + dto.getBranchId()));
-        appointment.setBranch(branch);
+        // 4. Xử lý TimeSlot
+
 
         Timeslots timeSlot = timeSlotsRepository.findById(dto.getTimeSlotId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy TimeSlot với ID: " + dto.getTimeSlotId()));
@@ -105,8 +107,29 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setEndTime(bookingStartInstant.plus(durationMinutes, ChronoUnit.MINUTES));
 
 
-        // 6. KIỂM TRA NHÂN VIÊN RẢNH (NGAY TRƯỚC KHI LƯU)
+
+        // 6. KIỂM TRA LỊCH LÀM VIỆC VÀ LỊCH RẢNH CỦA NHÂN VIÊN
         if (appointment.getUser() != null) { // Chỉ kiểm tra nếu có nhân viên được chỉ định
+
+            // ===== BƯỚC KIỂM TRA MỚI: Nhân viên có lịch làm việc (có ca) vào ngày này không? =====
+            log.info("Kiểm tra lịch làm việc của nhân viên ID {} vào ngày {}", appointment.getUser().getId(), parsedDate);
+            boolean isScheduledToWork = usersScheduleRepository.existsByUserAndWorkDateAndIsActiveTrue(
+                    appointment.getUser(),
+                    parsedDate // sử dụng LocalDate đã parse
+            );
+
+            if (!isScheduledToWork) {
+                // Nếu không có lịch làm việc, bắn ra lỗi ngay lập tức
+                throw new RuntimeException(
+                        "Nhân viên " + appointment.getUser().getFullName() +
+                                " không có lịch làm việc vào ngày " + dto.getAppointmentDate() +
+                                ". Vui lòng chọn nhân viên hoặc ngày khác."
+                );
+            }
+            log.info("Xác nhận: Nhân viên ID {} có lịch làm việc vào ngày {}. Tiếp tục kiểm tra booking.", appointment.getUser().getId(), parsedDate);
+            // =========================================================================
+
+            // Bước kiểm tra cũ: Nhân viên có bận (đã có booking khác) vào khung giờ này không?
             boolean staffIsActuallyAvailable = bookingService.isStaffAvailable(
                     appointment.getUser().getId(),
                     bookingStartInstant,
@@ -116,7 +139,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 throw new RuntimeException("Nhân viên " + appointment.getUser().getFullName() + " đã có lịch vào thời điểm này. Vui lòng chọn thời gian hoặc nhân viên khác.");
             }
         }
-        // (Tùy chọn: Kiểm tra số slot còn trống cho TimeSlot + Date nếu cần)
 
 
         // 7. Các thông tin khác cho Appointment
@@ -196,9 +218,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                     emailRequest.setStaffName("Sẽ được chỉ định sau");
                 }
 
-                if(savedAppointment.getBranch() != null){
-                    emailRequest.setBranchName(savedAppointment.getBranch().getName());
-                }
+
 
                 emailRequest.setNotes(savedAppointment.getNotes());
 
@@ -216,17 +236,6 @@ public class AppointmentServiceImpl implements AppointmentService {
             log.warn("Không thể gửi email cho lịch hẹn ID: {} do không có thông tin email khách hàng.", savedAppointment.getId());
         }
 
-        // 10. TẠO VÀ LƯU SERVICE HISTORY
-        Servicehistory serviceHistory = new Servicehistory();
-        serviceHistory.setUser(savedAppointment.getUser());
-        serviceHistory.setCustomer(savedAppointment.getCustomer());
-        serviceHistory.setAppointment(savedAppointment);
-        serviceHistory.setService(savedAppointment.getService());
-        serviceHistory.setDateUsed(Instant.now());
-        serviceHistory.setNotes("Lịch sử lưu tự động khi tạo lịch hẹn.");
-        serviceHistory.setCreatedAt(Instant.now());
-        serviceHistory.setIsActive(true);
-        serviceHistoryRepository.save(serviceHistory);
 
     }
 
@@ -265,12 +274,6 @@ public class AppointmentServiceImpl implements AppointmentService {
             dto.setServiceName("N/A");
         }
 
-        // Xử lý Branch
-        if (appointment.getBranch() != null) {
-            dto.setBranchName(appointment.getBranch().getName());
-        } else {
-            dto.setBranchName("N/A");
-        }
 
         if (appointment.getCustomer() != null) {
             dto.setCustomerName(appointment.getCustomer().getFullName());
@@ -329,7 +332,6 @@ public class AppointmentServiceImpl implements AppointmentService {
             System.out.println("Updating status to: " + newStatus);
             appointment.setStatus(newStatus);
         }
-        // Thêm log cho các trường khác nếu cần thiết (branchId, customerId,...)
 
         // 2. Xử lý cập nhật NGÀY và GIỜ
         boolean timeChanged = false;
@@ -557,7 +559,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (userId != null) {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy User với ID: " + userId));
-            appointments = appointmentRepository.findByAppointmentDateBetweenAndUser(startOfDay, endOfDay, user);
+            appointments = appointmentRepository.findByAppointmentDateBetweenAndUserAndIsActiveTrue(startOfDay, endOfDay, user);
         } else {
             appointments = appointmentRepository.findByAppointmentDateBetween(startOfDay, endOfDay);
         }
@@ -567,7 +569,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                     LocalTime startTime = appointment.getAppointmentDate().atZone(zoneId).toLocalTime();
                     return startTime.isBefore(LocalTime.NOON) ? "Sáng" : "Chiều";
                 }, Collectors.mapping(appointment -> Map.of(
-                        "id", "service-" + appointment.getId(),
+                        "id", appointment.getId(),
                         "service", appointment.getService() != null ? appointment.getService().getName() : null,
                         "customerName", appointment.getCustomer() != null ? appointment.getCustomer().getFullName() : null,
                         "startTime", appointment.getAppointmentDate(),
@@ -597,6 +599,272 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
+    // THÊM PHƯƠNG THỨC NÀY VÀO CUỐI FILE
+
+    @Override
+    public List<AppointmentHistoryDTO> getCustomerAppointmentHistory(Long customerId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Appointment> appointments = appointmentRepository.findByCustomerIdWithDetailsOrderByCreatedAtDesc(customerId, null, pageable);
+        return appointments.getContent().stream()
+                .map(this::convertToAppointmentHistoryDTO)
+                .collect(Collectors.toList());
+    }
+
+
+    @Override
+    public List<AppointmentHistoryDTO> getAppointmentHistoryByPhone(String phoneNumber) {
+        List<Appointment> appointments = appointmentRepository.findByPhoneNumberWithDetailsOrderByCreatedAtDesc(phoneNumber, null);
+        return appointments.stream()
+                .map(this::convertToAppointmentHistoryDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public AppointmentStatsDTO getCustomerAppointmentStats(Long customerId) {
+        List<Appointment> allAppointments = appointmentRepository.findByCustomerIdAndIsActive(customerId, null);
+
+        Long total = (long) allAppointments.size();
+        Long completed = allAppointments.stream().filter(apt -> "Đã hoàn thành".equals(determineStatusText(apt))).count();
+        Long cancelled = allAppointments.stream().filter(apt -> "cancelled".equalsIgnoreCase(apt.getStatus())).count();
+        Long upcoming = total - completed - cancelled;
+
+        BigDecimal totalSpent = allAppointments.stream()
+                .filter(apt -> "Đã hoàn thành".equals(determineStatusText(apt)))
+                .map(Appointment::getPrice)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        String lastAppointmentDate = allAppointments.stream()
+                .map(Appointment::getAppointmentDate)
+                .max(Instant::compareTo)
+                .map(instant -> instant.atZone(ZoneId.of("Asia/Ho_Chi_Minh")).format(DateTimeFormatter.ofPattern("dd/MM/yyyy")))
+                .orElse("Chưa có");
+
+        String mostUsedService = allAppointments.stream()
+                .filter(apt -> apt.getService() != null)
+                .collect(Collectors.groupingBy(apt -> apt.getService().getName(), Collectors.counting()))
+                .entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse("Chưa có");
+
+        return AppointmentStatsDTO.builder()
+                .totalAppointments(total)
+                .completedAppointments(completed)
+                .cancelledAppointments(cancelled)
+                .upcomingAppointments(upcoming > 0 ? upcoming : 0)
+                .totalSpent(totalSpent)
+                .lastAppointmentDate(lastAppointmentDate)
+                .mostUsedService(mostUsedService)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void cancelAppointment(Long appointmentId) {
+        log.info("Bắt đầu xử lý hủy cho lịch hẹn ID: {}", appointmentId);
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn với ID: " + appointmentId));
+
+        if ("completed".equalsIgnoreCase(appointment.getStatus()) || "cancelled".equalsIgnoreCase(appointment.getStatus())) {
+            throw new IllegalStateException("Không thể hủy lịch hẹn đã '" + appointment.getStatus() + "'.");
+        }
+
+        appointment.setStatus("cancelled");
+        appointment.setIsActive(false); // Đặt lịch hẹn là không hoạt động
+        appointment.setUpdatedAt(Instant.now());
+
+        if (appointment.getUser() != null) {
+            log.info("Giải phóng booking cho nhân viên ID {} lúc: {}", appointment.getUser().getId(), appointment.getAppointmentDate());
+            List<Booking> relatedBookings = bookingRepository.findByUserIdAndBookingDateTimeAndIsActiveTrue(
+                    appointment.getUser().getId(), appointment.getAppointmentDate());
+            relatedBookings.forEach(booking -> {
+                booking.setStatus("cancelled");
+                booking.setIsActive(false);
+                booking.setUpdatedAt(Instant.now());
+                bookingRepository.save(booking);
+            });
+        }
+
+        Appointment cancelledAppointment = appointmentRepository.save(appointment);
+        log.info("Đã hủy thành công lịch hẹn ID: {}. Trạng thái mới: {}, Active: {}",
+                appointmentId, cancelledAppointment.getStatus(), cancelledAppointment.getIsActive());
+
+        if (cancelledAppointment.getCustomer() != null && cancelledAppointment.getCustomer().getEmail() != null) {
+            try {
+                emailService.sendAppointmentCancellation(createEmailRequest(cancelledAppointment));
+            } catch (Exception e) {
+                log.error("Gửi email hủy thất bại cho lịch hẹn ID: {}. Lỗi: {}", cancelledAppointment.getId(), e.getMessage(), e);
+            }
+        }
+    }
+
+
+
+
+
+    private AppointmentHistoryDTO convertToAppointmentHistoryDTO(Appointment appointment) {
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
+        return AppointmentHistoryDTO.builder()
+                .id(appointment.getId())
+                .appointmentId(appointment.getId())
+                .customerId(appointment.getCustomer() != null ? appointment.getCustomer().getId() : null)
+                .customerName(appointment.getFullName())
+                .customerPhone(appointment.getPhoneNumber())
+                .customerEmail(appointment.getCustomer() != null ? appointment.getCustomer().getEmail() : null)
+                .serviceId(appointment.getService() != null ? (long) appointment.getService().getId() : null)
+                .serviceName(appointment.getService() != null ? appointment.getService().getName() : "N/A")
+                .servicePrice(appointment.getPrice())
+                .serviceDuration(appointment.getService() != null && appointment.getService().getDuration() != null ?
+                        appointment.getService().getDuration() : 60)
+                .userId(appointment.getUser() != null ? appointment.getUser().getId() : null)
+                .userName(appointment.getUser() != null ? appointment.getUser().getFullName() : "N/A")
+                .userImageUrl(appointment.getUser() != null ? appointment.getUser().getImageUrl() : null)
+                .userRating(appointment.getUser() != null ? appointment.getUser().getAverageRating() : null)
+                .appointmentDate(dateFormatter.format(appointment.getAppointmentDate()))
+                .appointmentTime(appointment.getSlot())
+                .slot(appointment.getSlot())
+                .status(appointment.getStatus())
+                .notes(appointment.getNotes())
+                .isActive(appointment.getIsActive())
+                .createdAt(appointment.getCreatedAt().toString())
+                .statusText(determineStatusText(appointment))
+                .statusClassName(determineStatusClassName(appointment))
+                .canCancel(canCancelAppointment(appointment))
+                .displayDate(DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy", new Locale("vi", "VN"))
+                        .withZone(ZoneId.of("Asia/Ho_Chi_Minh"))
+                        .format(appointment.getAppointmentDate()))
+                .build();
+    }
+    private String determineStatusText(Appointment appointment) {
+        // PRIORITY 1: Check explicit status first
+        if (appointment.getStatus() != null) {
+            String status = appointment.getStatus().toLowerCase().trim();
+            if (status.contains("cancel")) {
+                return "Đã hủy";
+            }
+            if ("completed".equals(status)) {
+                return "Đã hoàn thành";
+            }
+        }
+
+        // PRIORITY 2: Date logic
+        // Lấy ngày hiện tại và ngày hẹn
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        LocalDate aptDate = appointment.getAppointmentDate()
+                .atZone(ZoneId.of("Asia/Ho_Chi_Minh"))
+                .toLocalDate();
+
+        // Nếu lịch hẹn đã qua, coi như đã hoàn thành
+        // (Logic này vẫn giữ nguyên vì một lịch hẹn "pending" trong quá khứ thì cũng nên là "hoàn thành")
+        if (aptDate.isBefore(today)) {
+            return "Đã hoàn thành";
+        }
+
+        // Nếu không, xác định là hôm nay hay sắp tới
+        if (aptDate.isEqual(today)) {
+            return "Hôm nay";
+        } else {
+            return "Sắp tới";
+        }
+    }
+
+    private String determineStatusClassName(Appointment appointment) {
+        // PRIORITY 1: Check explicit status first
+        if (appointment.getStatus() != null) {
+            String status = appointment.getStatus().toLowerCase().trim();
+
+            if (status.contains("cancel")) {
+                return "bg-danger";
+            }
+
+            if ("completed".equals(status)) {
+                return "bg-success";
+            }
+        }
+
+        // PRIORITY 2: Date logic
+        LocalDate today = LocalDate.now();
+        LocalDate aptDate = appointment.getAppointmentDate().atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toLocalDate();
+
+        if (aptDate.isBefore(today)) {
+            return "bg-success";
+        } else if (aptDate.isEqual(today)) {
+            return "bg-warning text-dark";
+        } else {
+            return "bg-info";
+        }
+    }
+
+
+    @Override
+    public void markServiceAsComplete(Long serviceId) {
+        Appointment appointment = appointmentRepository.findByIdAndIsActive(serviceId, true)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn với ID: " + serviceId));
+
+        // Kiểm tra trạng thái hiện tại
+        if ("completed".equalsIgnoreCase(appointment.getStatus())) {
+            throw new RuntimeException("Lịch hẹn đã được đánh dấu là hoàn thành.");
+        }
+
+        // Cập nhật trạng thái
+        appointment.setStatus("completed");
+        appointment.setUpdatedAt(Instant.now());
+        appointmentRepository.save(appointment);
+        // Cập nhật trạng thái của Booking liên quan
+        List<Booking> bookings = bookingRepository.findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
+                appointment.getUser().getId(),
+                appointment.getService().getId(),
+                appointment.getAppointmentDate()
+        );
+        for (Booking booking : bookings) {
+            booking.setStatus("completed");
+            booking.setUpdatedAt(Instant.now());
+            bookingRepository.save(booking);
+        }
+        // Cập nhật trạng thái của ServiceHistory liên quan
+        List<Servicehistory> serviceHistories = serviceHistoryRepository.findByAppointmentIdAndIsActiveTrue(appointment.getId());
+        for (Servicehistory serviceHistory : serviceHistories) {
+            serviceHistory.setIsActive(false); // Vô hiệu hóa ServiceHistory
+            serviceHistoryRepository.save(serviceHistory);
+        }
+        System.out.println("Lịch hẹn với ID " + serviceId + " đã được đánh dấu là hoàn thành.");
+
+    }
+
+
+
+
+ 
+
+    private String determineStatusClassName(Appointment appointment) {
+        // PRIORITY 1: Check explicit status first
+        if (appointment.getStatus() != null) {
+            String status = appointment.getStatus().toLowerCase().trim();
+
+            if (status.contains("cancel")) {
+                return "bg-danger";
+            }
+
+            if ("completed".equals(status)) {
+                return "bg-success";
+            }
+        }
+
+        // PRIORITY 2: Date logic
+        LocalDate today = LocalDate.now();
+        LocalDate aptDate = appointment.getAppointmentDate().atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toLocalDate();
+
+        if (aptDate.isBefore(today)) {
+            return "bg-success";
+        } else if (aptDate.isEqual(today)) {
+            return "bg-warning text-dark";
+        } else {
+            return "bg-info";
+        }
+    }
+
+
     @Override
     public List<AppointmentResponseDto> getALlAppointment() {
         List<Appointment> appointments = appointmentRepository.findAll();
@@ -606,6 +874,39 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
+    private Boolean canCancelAppointment(Appointment appointment) {
+        String statusText = determineStatusText(appointment);
+        return !"Đã hủy".equals(statusText) && !"Đã hoàn thành".equals(statusText);
+    }
+    private EmailConfirmationRequestDto createEmailRequest(Appointment appointment) {
+        EmailConfirmationRequestDto emailRequest = new EmailConfirmationRequestDto();
+        emailRequest.setAppointmentId(appointment.getId());
+        emailRequest.setCustomerName(appointment.getFullName());
 
+        if (appointment.getCustomer() != null) {
+            emailRequest.setCustomerEmail(appointment.getCustomer().getEmail());
+        }
+        if (appointment.getService() != null) {
+            emailRequest.setServiceName(appointment.getService().getName());
+            if (appointment.getService().getPrice() != null) {
+                emailRequest.setPrice(appointment.getService().getPrice().doubleValue());
+            }
+        }
+        if (appointment.getAppointmentDate() != null) {
+            emailRequest.setAppointmentDate(appointment.getAppointmentDate().toString());
+        }
+        if (appointment.getTimeSlot() != null) {
+            DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+            emailRequest.setAppointmentTime(appointment.getTimeSlot().getStartTime().format(timeFormatter));
+            emailRequest.setEndTime(appointment.getTimeSlot().getEndTime().format(timeFormatter));
+        }
+        if (appointment.getUser() != null) {
+            emailRequest.setStaffName(appointment.getUser().getFullName());
+        } else {
+            emailRequest.setStaffName("Sẽ được chỉ định sau");
+        }
 
+        emailRequest.setNotes(appointment.getNotes());
+        return emailRequest;
+    }
 }

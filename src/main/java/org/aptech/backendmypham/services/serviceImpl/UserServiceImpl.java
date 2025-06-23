@@ -4,10 +4,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.TechnicianResponseDTO;
 import org.aptech.backendmypham.dto.TechnicianSearchCriteriaDTO;
-import org.aptech.backendmypham.models.Branch;
 import org.aptech.backendmypham.models.Role;
 import org.aptech.backendmypham.models.User;
-import org.aptech.backendmypham.repositories.BranchRepository;
 import org.aptech.backendmypham.repositories.RoleRepository;
 import org.aptech.backendmypham.repositories.UserRepository;
 import org.aptech.backendmypham.repositories.specifications.UserSpecifications;
@@ -29,13 +27,12 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
-    private final BranchRepository branchRepository;
 
     // Sử dụng thread pool với 2 threads (đủ để xử lý đồng thời mà không gây quá tải)
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
 
     @Override
-    public void createUser(String password,String fullName, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
+    public void createUser(String password,String fullName, String email, String phoneNumber, String address, Integer roleId) {
         try {
             if (password == null || email == null || phoneNumber == null || address == null) {
                 throw new RuntimeException("Thông tin không được để trống!");
@@ -53,21 +50,15 @@ public class UserServiceImpl implements UserService {
             Future<Optional<User>> emailFuture = executor.submit(() -> userRepository.findByEmail(finalEmail));
             Future<Optional<User>> phoneFuture = executor.submit(() -> userRepository.findByPhone(finalPhoneNumber));
 
-            // Nếu có branchId thì tìm branch (bất đồng bộ)
-            final Integer finalBranchId = branchId;
-            Future<Optional<Branch>> branchFuture = (finalBranchId != null)
-                    ? executor.submit(() -> branchRepository.findById((long) finalBranchId))
-                    : null;
+
 
             // Lấy kết quả (timeout 3 giây)
             Optional<Role> roleOpt = getFutureResultWithTimeout(roleFuture, "role", 3);
-            Optional<Branch> branchOpt = (branchFuture != null) ? getFutureResultWithTimeout(branchFuture, "chi nhánh", 3) : Optional.empty();
             Optional<User> emailOpt = getFutureResultWithTimeout(emailFuture, "email", 3);
             Optional<User> phoneOpt = getFutureResultWithTimeout(phoneFuture, "số điện thoại", 3);
 
             // Kiểm tra dữ liệu hợp lệ
             if (roleOpt.isEmpty()) throw new RuntimeException("Role không tồn tại!");
-            if (branchFuture != null && branchOpt.isEmpty()) throw new RuntimeException("Chi nhánh không tồn tại!");
             if (emailOpt.isPresent()) throw new RuntimeException("Email đã tồn tại!");
             if (phoneOpt.isPresent()) throw new RuntimeException("Số điện thoại đã tồn tại!");
 
@@ -80,19 +71,18 @@ public class UserServiceImpl implements UserService {
             user.setAddress(address);
             user.setRole(roleOpt.get());
             user.setIsActive(1);
-            branchOpt.ifPresent(user::setBranch);
 
 
             userRepository.save(user);
 
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Lỗi khi kiểm tra tồn tại của role và branch: " + e.getMessage());
+            throw new RuntimeException("Lỗi khi kiểm tra tồn tại của role: " + e.getMessage());
         }
     }
 
     @Override
-    public void updateUser(Long id, String password, String fullName, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
+    public void updateUser(Long id, String password, String fullName, String email, String phoneNumber, String address, Integer roleId) {
         try {
             Optional<User> userOpt = userRepository.findById(id);
             if (userOpt.isEmpty()) {
@@ -112,10 +102,7 @@ public class UserServiceImpl implements UserService {
                 throw new RuntimeException("Role không tồn tại!");
             }
 
-            Optional<Branch> branchOpt = (branchId != null) ? branchRepository.findById((long) branchId) : Optional.empty();
-            if (branchId != null && branchOpt.isEmpty()) {
-                throw new RuntimeException("Chi nhánh không tồn tại!");
-            }
+
 
             user.setFullName(fullName);
             if (password != null && !password.isEmpty()) {
@@ -124,7 +111,6 @@ public class UserServiceImpl implements UserService {
             user.setPhone(phoneNumber);
             user.setAddress(address);
             user.setRole(roleOpt.get());
-            branchOpt.ifPresent(user::setBranch);
 
             userRepository.save(user);
 

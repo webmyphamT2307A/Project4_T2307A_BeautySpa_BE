@@ -15,5 +15,4 @@ public class UserRegisterDto {
     private String password;
     private String phone;
     private String address;
-    private Long branchId;
 }

@@ -14,6 +14,7 @@ import java.time.LocalTime;
 public class UsersScheduleRequestDto {
 
     private Long userId;
+    private Long timeSlotId;
 
     private String shift;
 

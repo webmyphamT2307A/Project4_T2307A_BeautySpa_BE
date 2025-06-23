@@ -96,4 +96,21 @@ public class UsersScheduleController {
                 new ResponseObject(Status.SUCCESS, "Xóa lịch trình thành công (vô hiệu hóa).", null);
         return ResponseEntity.ok(responseObject);
     }
+    @PutMapping("/check-in/{scheduleId}")
+    @Operation(summary = "Nhân viên thực hiện Check-in (chấm công vào ca)")
+    public ResponseEntity<ResponseObject> checkIn(@PathVariable Integer scheduleId) {
+        UsersScheduleResponseDto updatedSchedule = usersScheduleService.checkIn(scheduleId);
+        ResponseObject responseObject =
+                new ResponseObject(Status.SUCCESS, "Check-in thành công.", updatedSchedule);
+        return ResponseEntity.ok(responseObject);
+    }
+
+    @PutMapping("/check-out/{scheduleId}")
+    @Operation(summary = "Nhân viên thực hiện Check-out (chấm công tan ca)")
+    public ResponseEntity<ResponseObject> checkOut(@PathVariable Integer scheduleId) {
+        UsersScheduleResponseDto updatedSchedule = usersScheduleService.checkOut(scheduleId);
+        ResponseObject responseObject =
+                new ResponseObject(Status.SUCCESS, "Check-out thành công.", updatedSchedule);
+        return ResponseEntity.ok(responseObject);
+    }
 }

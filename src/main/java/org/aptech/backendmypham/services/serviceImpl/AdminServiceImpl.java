@@ -3,10 +3,8 @@ package org.aptech.backendmypham.services.serviceImpl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.UserRequestDto;
-import org.aptech.backendmypham.models.Branch;
 import org.aptech.backendmypham.models.Role;
 import org.aptech.backendmypham.models.User;
-import org.aptech.backendmypham.repositories.BranchRepository;
 import org.aptech.backendmypham.repositories.RoleRepository;
 import org.aptech.backendmypham.repositories.UserRepository;
 import org.aptech.backendmypham.services.AdminService;
@@ -24,7 +22,6 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
-    private final BranchRepository branchRepository;
 
     // Sử dụng thread pool với 2 threads (đủ để xử lý đồng thời mà không gây quá tải)
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
@@ -35,15 +32,13 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Thông tin không được để trống!");
         }
 
-        // Bất đồng bộ kiểm tra sự tồn tại của role, branch, email và phone
         CompletableFuture<Optional<Role>> roleFuture = CompletableFuture.supplyAsync(() -> roleRepository.findById((long) userRequestDto.getRoleId()));
-        CompletableFuture<Optional<Branch>> branchFuture = userRequestDto.getBranchId() != null ? CompletableFuture.supplyAsync(() -> branchRepository.findById((long) userRequestDto.getBranchId())) : CompletableFuture.completedFuture(Optional.empty());
+
         CompletableFuture<Optional<User>> emailFuture = CompletableFuture.supplyAsync(() -> userRepository.findByEmail(userRequestDto.getEmail()));
         CompletableFuture<Optional<User>> phoneFuture = CompletableFuture.supplyAsync(() -> userRepository.findByPhone(userRequestDto.getPhone()));
 
         try {
             Optional<Role> roleOpt = roleFuture.get(5, TimeUnit.SECONDS);
-            Optional<Branch> branchOpt = branchFuture.get(5, TimeUnit.SECONDS);
             Optional<User> emailOpt = emailFuture.get(5, TimeUnit.SECONDS);
             Optional<User> phoneOpt = phoneFuture.get(5, TimeUnit.SECONDS);
 
@@ -51,9 +46,6 @@ public class AdminServiceImpl implements AdminService {
                 throw new RuntimeException("Role không tồn tại!");
             }
 
-            if (userRequestDto.getBranchId() != null && branchOpt.isEmpty()) {
-                throw new RuntimeException("Chi nhánh không tồn tại!");
-            }
 
             if (emailOpt.isPresent()) {
                 throw new RuntimeException("Email đã tồn tại!");
@@ -74,21 +66,20 @@ public class AdminServiceImpl implements AdminService {
             user.setIsActive(1);
             user.setRole(roleOpt.get());
             user.setCreatedAt(Instant.now());
-            branchOpt.ifPresent(user::setBranch);
             userRepository.save(user);
 
         } catch (TimeoutException e) {
             throw new RuntimeException("Một trong các yêu cầu kiểm tra dữ liệu mất quá nhiều thời gian. Vui lòng thử lại sau.");
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Lỗi khi kiểm tra tồn tại của role và branch: " + e.getMessage());
+            throw new RuntimeException("Lỗi khi kiểm tra tồn tại của role: " + e.getMessage());
         }
     }
 
 
     @Override
     @Transactional
-    public void updateAdmin(Long userId, String fullName, String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId,String imageUrl,Integer isActive) {
+    public void updateAdmin(Long userId, String fullName, String password, String email, String phoneNumber, String address, Integer roleId,String imageUrl,Integer isActive) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
             throw new RuntimeException("Người dùng không tồn tại!");
@@ -137,13 +128,7 @@ public class AdminServiceImpl implements AdminService {
             user.setRole(roleOpt.get());
         }
 
-        if (branchId != null) {
-            Optional<Branch> branchOpt = branchRepository.findById((long) branchId);
-            if (branchOpt.isEmpty()) {
-                throw new RuntimeException("Chi nhánh không tồn tại!");
-            }
-            user.setBranch(branchOpt.get());
-        }
+
         if (isActive != null) {
             user.setIsActive(isActive);
         }
@@ -197,4 +182,6 @@ public class AdminServiceImpl implements AdminService {
     }
      @Override
     public  List<User> findALlDeteleted(){return userRepository.findAllDeleted();}
+
+
 }

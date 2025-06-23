@@ -39,8 +39,7 @@ public class EmailConfirmationRequestDto {
 
     private String staffName;
 
-    @NotBlank(message = "Branch name is required")
-    private String branchName;
+
 
     @NotNull(message = "Price is required")
     @Positive(message = "Price must be positive")

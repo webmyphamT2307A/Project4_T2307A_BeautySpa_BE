@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface AttendanceRepository extends JpaRepository<Attendance, Integer> {
@@ -33,5 +34,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Integer>
     Long sumTotalHours(Long userId, int month);
 
 
+    @Query("SELECT a FROM Attendance a WHERE a.user = :user AND a.checkIn BETWEEN :start AND :end AND a.status in ('on_time', 'late')")
+    List<Attendance> findByUserAndCheckInBetweenAndStatus(User user, LocalDateTime start, LocalDateTime end);
 
 }
