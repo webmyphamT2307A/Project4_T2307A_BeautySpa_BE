@@ -43,8 +43,7 @@ public class UserController {
                     userRequestDto.getEmail(),
                     userRequestDto.getPhone(),
                     userRequestDto.getAddress(),
-                    userRequestDto.getRoleId(),
-                    userRequestDto.getBranchId()
+                    userRequestDto.getRoleId()
             );
 
             return ResponseEntity.ok(
@@ -67,8 +66,7 @@ public class UserController {
                     userRequestDto.getEmail(),
                     userRequestDto.getPhone(),
                     userRequestDto.getAddress(),
-                    userRequestDto.getRoleId(),
-                    userRequestDto.getBranchId()
+                    userRequestDto.getRoleId()
             );
 
             return ResponseEntity.ok(

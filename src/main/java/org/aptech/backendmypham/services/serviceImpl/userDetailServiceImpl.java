@@ -5,10 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.configs.JwtService;
 import org.aptech.backendmypham.dto.*;
 import org.aptech.backendmypham.enums.Status;
-import org.aptech.backendmypham.models.Branch;
 import org.aptech.backendmypham.models.Role;
 import org.aptech.backendmypham.models.User;
-import org.aptech.backendmypham.repositories.BranchRepository;
 import org.aptech.backendmypham.repositories.RoleRepository;
 import org.aptech.backendmypham.repositories.UserRepository;
 import org.aptech.backendmypham.services.userDetailService;
@@ -17,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 
@@ -25,7 +22,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class userDetailServiceImpl implements userDetailService {
     private final UserRepository userRepository;
-    private final BranchRepository branchRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
@@ -40,9 +36,7 @@ public class userDetailServiceImpl implements userDetailService {
 
         // Mã hóa mật khẩu
         String encodedPassword = passwordEncoder.encode(userRegisterDto.getPassword());
-        // Lấy đối tượng Branch từ branchId
-        Branch branch = branchRepository.findById(userRegisterDto.getBranchId())
-                .orElseThrow(() -> new RuntimeException("Nhánh không tồn tại"));
+
 
         Role role = roleRepository.findById(1L)
                 .orElseThrow(() -> new RuntimeException("Vai trò không tồn tại"));
@@ -54,7 +48,6 @@ public class userDetailServiceImpl implements userDetailService {
         user.setPassword(encodedPassword);
         user.setPhone(userRegisterDto.getPhone());
         user.setAddress(userRegisterDto.getAddress());
-        user.setBranch(branch);
         user.setIsActive(1);
         user.setRole(role);
 

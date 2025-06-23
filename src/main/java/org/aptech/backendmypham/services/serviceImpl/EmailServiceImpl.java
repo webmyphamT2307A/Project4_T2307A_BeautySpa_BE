@@ -171,7 +171,6 @@ public class EmailServiceImpl implements EmailService {
                 request.getAppointmentTime(), // FIX 2: Tham số cho startTime
                 request.getEndTime() != null ? request.getEndTime() : "N/A", // FIX 2: Tham số cho endTime
                 request.getStaffName() != null ? request.getStaffName() : "Sẽ được chỉ định",
-                request.getBranchName(),
                 request.getPrice(),
                 notesSection,
                 companyName,

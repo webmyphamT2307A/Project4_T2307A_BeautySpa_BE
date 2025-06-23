@@ -63,9 +63,7 @@ public class Appointment {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "branch_id", nullable = false)
-    private org.aptech.backendmypham.models.Branch branch;
+
 
     @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;

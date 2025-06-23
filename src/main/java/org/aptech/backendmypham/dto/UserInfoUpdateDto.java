@@ -16,5 +16,4 @@ public class UserInfoUpdateDto {
     private String email;
     private String address;
     private String description;
-    private int branchId;
 }
