@@ -4,6 +4,7 @@ import org.aptech.backendmypham.dto.ServiceRequestDto;
 import org.aptech.backendmypham.dto.ServiceResponseDto;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface ServicesService {
@@ -25,4 +26,5 @@ public interface ServicesService {
 
 
     void softDeleteService(Integer id);
+    Map<String, List<Object>> getMonthlyHistory(Long userId, Integer year, Integer month);
 }

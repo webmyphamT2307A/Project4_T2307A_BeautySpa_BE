@@ -1,5 +1,7 @@
 package org.aptech.backendmypham.services.serviceImpl;
 
+// Đảm bảo import đúng Transactional của Spring
+import org.aptech.backendmypham.dto.ScheduleUserDto;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.AllArgsConstructor;
 import org.aptech.backendmypham.dto.UsersScheduleRequestDto;
@@ -192,6 +194,23 @@ public class UsersScheduleServiceImpl implements UsersScheduleService {
 
         UsersSchedule savedSchedule = usersScheduleRepository.save(schedule);
         return mapToResponseDto(savedSchedule);
+    }
+
+    @Override
+    public List<ScheduleUserDto> getUserScheduleByUserId(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy User với ID: " + userId));
+        List<UsersSchedule> schedules = usersScheduleRepository.findByUserAndIsActiveTrue(user);
+        return schedules.stream()
+                .map(schedule -> {
+                    ScheduleUserDto dto = new ScheduleUserDto();
+                    dto.setId(schedule.getId());
+                    dto.setShift(schedule.getShift());
+                    dto.setDate(schedule.getWorkDate());
+                    dto.setStatus(schedule.getStatus());
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 
     // --- Helper methods cho việc mapping ---
