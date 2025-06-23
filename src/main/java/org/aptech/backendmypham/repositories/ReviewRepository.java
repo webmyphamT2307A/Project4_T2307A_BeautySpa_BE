@@ -1,5 +1,6 @@
 package org.aptech.backendmypham.repositories;
 
+import org.aptech.backendmypham.models.Appointment;
 import org.aptech.backendmypham.models.Review;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

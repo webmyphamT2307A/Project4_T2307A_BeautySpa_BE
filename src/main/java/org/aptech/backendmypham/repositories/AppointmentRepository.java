@@ -106,7 +106,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     List<Appointment> findByAppointmentDateBetween(Instant startOfDay, Instant endOfDay);
 
-    List<Appointment> findByAppointmentDateBetweenAndUser(Instant startOfDay, Instant endOfDay, User user);
+    List<Appointment> findByAppointmentDateBetweenAndUserAndIsActiveTrue(Instant startOfDay, Instant endOfDay, User user);
     List<Appointment> findByAppointmentDateBetweenAndIsActiveTrue(Instant startOfDay, Instant endOfDay);
 
     @Query("SELECT SUM(a.price) FROM Appointment a WHERE a.user.id = :userId AND a.appointmentDate BETWEEN :startDate AND :endDate AND a.status = 'completed'")
@@ -138,4 +138,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("isActive") Boolean isActive);
 
     List<Appointment> findByCustomerIdAndIsActive(Long customerId, Boolean isActive);
+
+    @Query("SELECT a FROM Appointment a WHERE a.user.id = :userId " +
+            "AND (:year IS NULL OR YEAR(a.appointmentDate) = :year) " +
+            "AND (:month IS NULL OR MONTH(a.appointmentDate) = :month)")
+    List<Appointment> findAppointmentsByUserIdAndDate(@Param("userId") Long userId,
+                                                      @Param("year") Integer year,
+                                                      @Param("month") Integer month);
 }
