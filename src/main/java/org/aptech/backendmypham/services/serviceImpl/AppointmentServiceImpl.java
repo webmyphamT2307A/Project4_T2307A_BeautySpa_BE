@@ -537,7 +537,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
 
-    @Override
+@Override
     public void deleteAppointment(Long Aid) {
         try {
             Appointment appointment = appointmentRepository.findByIdAndIsActive(Aid, true)
@@ -774,7 +774,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
 
 
-
+ 
 
     private String determineStatusClassName(Appointment appointment) {
         // PRIORITY 1: Check explicit status first
