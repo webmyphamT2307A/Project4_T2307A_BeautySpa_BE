@@ -27,4 +27,7 @@ public interface AppointmentService {
     Map<String, Object> getAppointmentsGroupedByShift(LocalDate date, Long userId);
     List<AppointmentResponseDto> getAppointmentsByUserId(Long userId);
   
+
+
+
 }
