@@ -41,6 +41,9 @@ public class UsersSchedule {
 
     @Column(name = "check_out_time")
     private LocalTime checkOutTime;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "time_slot_id")
+    private Timeslots timeSlot;
 
     @Column(name = "status", length = 250)
     private String status;

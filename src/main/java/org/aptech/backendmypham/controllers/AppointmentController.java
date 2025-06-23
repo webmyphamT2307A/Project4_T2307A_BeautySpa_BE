@@ -2,12 +2,11 @@ package org.aptech.backendmypham.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
-import org.aptech.backendmypham.dto.AppointmentDto;
-import org.aptech.backendmypham.dto.AppointmentResponseDto;
-import org.aptech.backendmypham.dto.ResponseObject;
+import org.aptech.backendmypham.dto.*;
 import org.aptech.backendmypham.enums.Status;
 import org.aptech.backendmypham.services.AppointmentService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -116,6 +115,57 @@ public class AppointmentController {
         Map<String, Object> response = appointmentService.getAppointmentsGroupedByShift(date, userId);
         System.out.println("Response: " + response);
         return response;
+    }
+    // ✅ NEW ENDPOINTS FOR SERVICE HISTORY
+    @GetMapping("/history/customer/{customerId}")
+    @Operation(summary = "Lấy lịch sử appointment theo customer ID")
+    public ResponseEntity<ResponseObject> getCustomerAppointmentHistory(
+            @PathVariable Long customerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        try {
+            List<AppointmentHistoryDTO> history = appointmentService.getCustomerAppointmentHistory(customerId, page, size);
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Lấy lịch sử appointment thành công", history)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, "Lỗi: " + e.getMessage(), null)
+            );
+        }
+    }
+
+    @GetMapping("/history/phone/{phoneNumber}")
+    @Operation(summary = "Tra cứu lịch sử appointment theo số điện thoại")
+    public ResponseEntity<ResponseObject> getAppointmentHistoryByPhone(
+            @PathVariable String phoneNumber
+    ) {
+        try {
+            List<AppointmentHistoryDTO> history = appointmentService.getAppointmentHistoryByPhone(phoneNumber);
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Tra cứu appointment thành công", history)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, "Không tìm thấy appointment với số điện thoại này", null)
+            );
+        }
+    }
+
+    @GetMapping("/stats/customer/{customerId}")
+    @Operation(summary = "Lấy thống kê appointment theo customer ID")
+    public ResponseEntity<ResponseObject> getCustomerAppointmentStats(@PathVariable Long customerId) {
+        try {
+            AppointmentStatsDTO stats = appointmentService.getCustomerAppointmentStats(customerId);
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Lấy thống kê appointment thành công", stats)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, "Lỗi: " + e.getMessage(), null)
+            );
+        }
     }
 
 }

@@ -1,6 +1,5 @@
 package org.aptech.backendmypham.services.serviceImpl;
 
-// Đảm bảo import đúng Transactional của Spring
 import org.springframework.transaction.annotation.Transactional;
 import lombok.AllArgsConstructor;
 import org.aptech.backendmypham.dto.UsersScheduleRequestDto;
@@ -230,10 +229,7 @@ public class UsersScheduleServiceImpl implements UsersScheduleService {
                 dto.setRoleName(user.getRole().getName());
             }
 
-            // Lấy Branch Name từ User
-            if (user.getBranch() != null) {
-                dto.setBranchName(user.getBranch().getName());
-            }
+
             // ---------------------------------
         }
 

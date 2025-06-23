@@ -41,7 +41,6 @@ public class AdminController {
                     userRequestDto.getPhone(),
                     userRequestDto.getAddress(),
                     userRequestDto.getRoleId(),
-                    userRequestDto.getBranchId(),
                     userRequestDto.getImageUrl(),
                     userRequestDto.getIsActive()
 

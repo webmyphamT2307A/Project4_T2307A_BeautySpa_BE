@@ -17,7 +17,6 @@ public class UserRequestDto {
     String imageUrl;
     String address;
     Integer roleId;
-    Integer branchId;
     String description;
     Integer isActive;
     private Set<Long> skillIds;

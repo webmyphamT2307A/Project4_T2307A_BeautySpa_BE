@@ -49,11 +49,6 @@ public class User {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Role role;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @OnDelete(action = OnDeleteAction.SET_NULL)
-    @JoinColumn(name = "branch_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-    private Branch branch;
 
     @Lob
     @Column(name = "description")

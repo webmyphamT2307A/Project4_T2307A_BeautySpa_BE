@@ -45,5 +45,35 @@ public interface UsersScheduleRepository extends JpaRepository<UsersSchedule, In
 
 
     List<UsersSchedule> findByWorkDateAndIsActive(LocalDate workDate, Boolean isActive);
+    @Query("SELECT us FROM UsersSchedule us WHERE " +
+            "(:userId IS NULL OR us.user.id = :userId) AND " +
+            "(:startDate IS NULL OR us.workDate >= :startDate) AND " +
+            "(:endDate IS NULL OR us.workDate <= :endDate) AND " +
+            "(:month IS NULL OR MONTH(us.workDate) = :month) AND " +
+            "(:year IS NULL OR YEAR(us.workDate) = :year) AND " +
+            "(:status IS NULL OR us.status = :status) AND " +
+            "us.isActive = true")
+    List<UsersSchedule> findByFilters(@Param("userId") Long userId,
+                                      @Param("startDate") LocalDate startDate,
+                                      @Param("endDate") LocalDate endDate,
+                                      @Param("month") Integer month,
+                                      @Param("year") Integer year,
+                                      @Param("status") String status);
+
+    // Count staff with schedules on a specific date
+    @Query("SELECT COUNT(DISTINCT us.user.id) FROM UsersSchedule us WHERE " +
+            "us.workDate = :date AND " +
+            "us.isActive = true AND " +
+            "us.status IN ('pending', 'confirmed')")
+    int countStaffWithScheduleOnDate(@Param("date") LocalDate date);
+
+    // Count staff with schedules on a specific date and timeslot (if needed)
+    @Query("SELECT COUNT(DISTINCT us.user.id) FROM UsersSchedule us WHERE " +
+            "us.workDate = :date AND " +
+            "us.isActive = true AND " +
+            "us.status IN ('pending', 'confirmed') AND " +
+            "(:timeSlotId IS NULL OR us.timeSlot.slotId = :timeSlotId)")
+    int countStaffWithScheduleOnDateAndTimeSlot(@Param("date") LocalDate date,
+                                                @Param("timeSlotId") Long timeSlotId);
 
 }
