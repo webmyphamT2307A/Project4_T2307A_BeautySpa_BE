@@ -12,6 +12,7 @@ import org.aptech.backendmypham.repositories.ServiceRepository;
 import org.aptech.backendmypham.services.ServicesService;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -130,8 +131,13 @@ public class ServicesServiceImpl implements ServicesService {
             int totalAppointments = monthlyAppointments.size();
             BigDecimal baseSalary = calculateBaseSalary(workDays);
             BigDecimal totalCommission = monthlyAppointments.stream()
-                    .map(app -> app.getPrice() != null ? app.getPrice() : BigDecimal.ZERO)
+                    .filter(app -> "completed".equals(app.getStatus()))
+                    .map(app -> {
+                        BigDecimal price = app.getPrice() != null ? app.getPrice() : BigDecimal.ZERO;
+                        return price.multiply(BigDecimal.valueOf(0.1)); // 10%
+                    })
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
+
             BigDecimal totalEarnings = baseSalary.add(totalCommission);
 
             List<Object> monthlyData = new ArrayList<>();
@@ -166,6 +172,11 @@ public class ServicesServiceImpl implements ServicesService {
                             .format(DateTimeFormatter.ofPattern("HH:mm")) + " - " +
                             appointment.getEndTime().atZone(ZoneId.systemDefault())
                                     .format(DateTimeFormatter.ofPattern("HH:mm"));
+                    BigDecimal commission = appointment.getPrice() != null
+                            ? appointment.getPrice()
+                            .multiply(BigDecimal.valueOf(0.1))
+                            .setScale(2, RoundingMode.HALF_UP)
+                            : BigDecimal.ZERO;
 
                     Map<String, Object> orderMap = new LinkedHashMap<>();
                     orderMap.put("id", appointment.getId());
@@ -176,7 +187,7 @@ public class ServicesServiceImpl implements ServicesService {
                     orderMap.put("endTime", appointment.getEndTime());
                     orderMap.put("timeDisplay", timeDisplay);
                     orderMap.put("rating", null);
-                    orderMap.put("commission", appointment.getPrice());
+                    orderMap.put("commission", commission);
                     orderMap.put("status", appointment.getStatus());
 
                     monthlyData.add(orderMap);

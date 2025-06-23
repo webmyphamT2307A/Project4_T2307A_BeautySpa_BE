@@ -1,6 +1,7 @@
 package org.aptech.backendmypham.repositories;
 
 import org.aptech.backendmypham.models.Appointment;
+import org.aptech.backendmypham.models.Booking;
 import org.aptech.backendmypham.models.Role;
 import org.aptech.backendmypham.models.User;
 import org.springframework.data.domain.Page;
@@ -139,10 +140,18 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     List<Appointment> findByCustomerIdAndIsActive(Long customerId, Boolean isActive);
 
-    @Query("SELECT a FROM Appointment a WHERE a.user.id = :userId " +
-            "AND (:year IS NULL OR YEAR(a.appointmentDate) = :year) " +
-            "AND (:month IS NULL OR MONTH(a.appointmentDate) = :month)")
-    List<Appointment> findAppointmentsByUserIdAndDate(@Param("userId") Long userId,
-                                                      @Param("year") Integer year,
-                                                      @Param("month") Integer month);
+    @Query(nativeQuery = true, value = "SELECT * FROM appointments a WHERE a.user_id = ?1 " +
+            "AND (?2 IS NULL OR YEAR(a.appointment_date) = ?2) " +
+            "AND (?3 IS NULL OR MONTH(a.appointment_date) = ?3) AND a.is_active = true")
+    List<Appointment> findAppointmentsByUserIdAndDate( Long userId, Integer year, Integer month);
+
+    @Query("SELECT b FROM Appointment b WHERE b.user.id = :userId " +
+            "AND (:month IS NULL OR MONTH(b.appointmentDate) = :month)" +
+            "AND (:year IS NULL OR YEAR(b.appointmentDate) = :year )" +
+            "AND b.isActive = true AND b.status = 'completed'")
+    List<Appointment> findAppointmentByUserIdAndMonthAndYear(
+            @Param("userId") Long userId,
+            @Param("month") int month,
+            @Param("year") int year
+    );
 }

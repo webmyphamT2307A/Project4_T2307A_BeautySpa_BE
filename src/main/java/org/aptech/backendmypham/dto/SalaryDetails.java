@@ -9,6 +9,6 @@ public class SalaryDetails {
     private int workedDays;
     private int totalWorkdays;
     private Long totalHours;
-    private Long totalTip;
+    private double totalTip;
     private double totalSalary;
 }
