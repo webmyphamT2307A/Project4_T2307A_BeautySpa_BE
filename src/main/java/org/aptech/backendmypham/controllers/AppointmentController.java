@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -110,7 +111,7 @@ public class AppointmentController {
             @RequestParam(value = "userId", required = false) Long userId
         ) {
         if (date == null) {
-            date = LocalDate.now();
+            date = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         }
         Map<String, Object> response = appointmentService.getAppointmentsGroupedByShift(date, userId);
         System.out.println("Response: " + response);

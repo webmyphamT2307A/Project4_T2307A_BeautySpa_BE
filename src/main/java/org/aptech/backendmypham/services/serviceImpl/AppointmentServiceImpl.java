@@ -586,7 +586,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
 
         if (groupedAppointments.isEmpty()) {
-            return null;
+            return Map.of();
         }
 
         return Map.of(
