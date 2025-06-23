@@ -26,7 +26,7 @@ public class Servicehistory {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "customer_id", nullable = false)
+    @JoinColumn(name = "customer_id", nullable = true)
     private Customer customer;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -46,6 +46,7 @@ public class Servicehistory {
     @Lob
     @Column(name = "notes")
     private String notes;
+
 
     @ColumnDefault("(now())")
     @Column(name = "created_at")

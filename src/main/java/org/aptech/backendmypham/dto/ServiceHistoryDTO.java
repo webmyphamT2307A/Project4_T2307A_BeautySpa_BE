@@ -15,7 +15,9 @@ import java.time.Instant;
 public class ServiceHistoryDTO {
     private Integer id;
     private Integer userId;
+    private String userName;
     private Integer customerId;
+    private String customerName;
     private Integer appointmentId;
     private Integer serviceId;
     private String serviceName;

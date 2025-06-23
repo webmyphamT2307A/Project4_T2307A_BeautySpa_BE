@@ -7,10 +7,13 @@ import org.aptech.backendmypham.dto.AppointmentResponseDto;
 import org.aptech.backendmypham.dto.ResponseObject;
 import org.aptech.backendmypham.enums.Status;
 import org.aptech.backendmypham.services.AppointmentService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin/appointment")
@@ -43,6 +46,20 @@ public class AppointmentController {
         } else {
             return ResponseEntity.ok(
                     new ResponseObject(Status.ERROR, "Không tìm thấy appointment", null)
+            );
+        }
+    }
+    @PutMapping("/{id}/cancel")
+    @Operation(summary = "Hủy một lịch hẹn theo ID")
+    public ResponseEntity<ResponseObject> cancelAppointment(@PathVariable("id") Long id) {
+        try {
+            appointmentService.cancelAppointment(id);
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Hủy lịch hẹn thành công", null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.ERROR, "Lỗi khi hủy lịch hẹn: " + e.getMessage(), null)
             );
         }
     }
@@ -87,6 +104,23 @@ public class AppointmentController {
             );
         }
     }
+    @GetMapping("/today")
+    public Map<String, Object> getTodayServices(
+            @RequestParam(value = "date", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(value = "userId", required = false) Long userId
+        ) {
+        if (date == null) {
+            date = LocalDate.now();
+        }
+        Map<String, Object> response = appointmentService.getAppointmentsGroupedByShift(date, userId);
+        System.out.println("Response: " + response);
+        return response;
+    }
 
+    @PutMapping("/{serviceId}/complete")
+    public void markServiceAsComplete(@PathVariable Long serviceId) {
+        appointmentService.markServiceAsComplete(serviceId);
+    }
 
 }

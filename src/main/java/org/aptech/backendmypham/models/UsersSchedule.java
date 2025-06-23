@@ -17,8 +17,11 @@ import java.time.LocalTime;
 public class UsersSchedule {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "users_id", nullable = false)
-    private Integer id;
+
+    @Column(name = "id", nullable = false)
+    private Long id;
+
+
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -39,8 +42,7 @@ public class UsersSchedule {
     @Column(name = "check_out_time")
     private LocalTime checkOutTime;
 
-    @Size(max = 50)
-    @Column(name = "status", length = 50)
+    @Column(name = "status", length = 250)
     private String status;
 
     @ColumnDefault("0")

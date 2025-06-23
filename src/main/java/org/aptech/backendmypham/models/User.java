@@ -9,7 +9,10 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -19,7 +22,7 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id", nullable = false)
-    private Integer id;
+    private Long id;
 
     @Column(name = "full_name", nullable = false)
     private String fullName;
@@ -58,18 +61,29 @@ public class User {
 
     @ColumnDefault("1")
     @Column(name = "is_active")
-    private Boolean isActive;
+    private Integer isActive;
 
-    @Lob
+//    @Lob
     @Column(name = "skills_text")
     private String skillsText;
-
+    @ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @JoinTable(
+            name = "user_skills",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "skill_id")
+    )
+    private Set<Skill> skills = new HashSet<>();
     @Column(name = "average_rating")
     private Double averageRating;
 
     @Column(name = "total_reviews")
     private Integer totalReviews;
+    // --- CÁC TRƯỜỜNG MỚI CHO TÍNH LƯƠNG ---
+    @Column(name = "standard_base_salary", precision = 10, scale = 2)
+    private BigDecimal standardBaseSalary; // Lương cứng chuẩn
 
+    @Column(name = "number_of_dependents")
+    private Integer numberOfDependents; // Số người phụ thuộc
     @ColumnDefault("(now())")
     @Column(name = "created_at")
     private Instant createdAt;
@@ -77,5 +91,7 @@ public class User {
     @ColumnDefault("(now())")
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+
 
 }

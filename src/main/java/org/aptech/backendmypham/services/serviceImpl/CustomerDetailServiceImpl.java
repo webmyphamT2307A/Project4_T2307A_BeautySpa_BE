@@ -30,40 +30,55 @@ public class CustomerDetailServiceImpl implements CustomerDetailService {
     @Override
     @Transactional
     public ResponseObject registerCustomer(RegisterRequestDto registerRequestDto) {
-        // Kiểm tra nếu đã có guest customer với cùng số điện thoại
-        Optional<Customer> existingCustomer = customerRepository.findByPhone(registerRequestDto.getPhone());
+        
 
-        if (existingCustomer.isPresent()) {
-            Customer customer = existingCustomer.get();
+        System.out.println(">>> Bắt đầu đăng ký: " + registerRequestDto.getEmail() + ", SDT: " + registerRequestDto.getPhone());
 
-            // Nếu tài khoản đã có email, thông báo lỗi
-            if (customer.getEmail() != null) {
-                return new ResponseObject(Status.ERROR, "Số điện thoại đã được sử dụng", null);
+        // Nếu có số điện thoại thì kiểm tra tồn tại
+        if (registerRequestDto.getPhone() != null && !registerRequestDto.getPhone().trim().isEmpty()) {
+            Optional<Customer> existingCustomer = customerRepository.findByPhone(registerRequestDto.getPhone().trim());
+        
+            if (existingCustomer.isPresent()) {
+                
+                Customer customer = existingCustomer.get();
+
+                // Nếu tài khoản đã có email thì từ chối
+                if (customer.getEmail() != null) {
+                    return new ResponseObject(Status.ERROR, "Số điện thoại đã được sử dụng", null);
+                }
+
+                // Cập nhật thông tin guest thành khách chính thức
+                customer.setFullName(registerRequestDto.getFullName());
+                customer.setEmail(registerRequestDto.getEmail());
+                customer.setPassword(passwordEncoder.encode(registerRequestDto.getPassword()));
+                customer.setAddress(registerRequestDto.getAddress());
+                customer.setIsActive(true);
+
+                Customer saved = customerRepository.save(customer);
+                System.out.println(">>> Cập nhật guest thành customer, ID: " + saved.getId());
+
+                return new ResponseObject(Status.SUCCESS, "Đăng ký thành công", saved);
             }
-
-            // Cập nhật thông tin guest thành khách hàng chính thức
-            customer.setFullName(registerRequestDto.getFullName());
-            customer.setEmail(registerRequestDto.getEmail());
-            customer.setPassword(passwordEncoder.encode(registerRequestDto.getPassword()));
-            customer.setAddress(registerRequestDto.getAddress());
-            customerRepository.save(customer);
-
-            return new ResponseObject(Status.SUCCESS, "Đăng ký thành công", customer);
         }
-
-        // Nếu chưa tồn tại khách hàng này -> tạo mới
+        String phone = registerRequestDto.getPhone();
+        // Tạo mới khách hàng hoàn toàn
         Customer customer = new Customer();
         customer.setFullName(registerRequestDto.getFullName());
         customer.setEmail(registerRequestDto.getEmail());
         customer.setPassword(passwordEncoder.encode(registerRequestDto.getPassword()));
-        customer.setPhone(registerRequestDto.getPhone());
+        customer.setPhone((phone != null && !phone.trim().isEmpty()) ? phone.trim():null);
         customer.setAddress(registerRequestDto.getAddress());
         customer.setCreatedAt(Instant.now());
         customer.setIsActive(true);
 
-        customerRepository.save(customer);
-
-        return new ResponseObject(Status.SUCCESS, "Đăng ký thành công", customer);
+        try {
+            Customer saved = customerRepository.save(customer);
+            System.out.println(">>> Đã tạo customer mới, ID: " + saved.getId());
+            return new ResponseObject(Status.SUCCESS, "Đăng ký thành công", saved);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseObject(Status.ERROR, "Lỗi khi tạo khách hàng: " + e.getMessage(), null);
+        }
     }
 
     @Override

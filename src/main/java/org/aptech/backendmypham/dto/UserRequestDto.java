@@ -2,6 +2,8 @@ package org.aptech.backendmypham.dto;
 
 import lombok.*;
 
+import java.util.Set;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -17,6 +19,8 @@ public class UserRequestDto {
     Integer roleId;
     Integer branchId;
     String description;
-    Boolean isActive;
-    String skillsText;
+    Integer isActive;
+    private Set<Long> skillIds;
+    Double averageRating;
+    Integer totalReviews;
 }
