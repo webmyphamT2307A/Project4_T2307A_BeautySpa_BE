@@ -14,5 +14,5 @@ public interface AttendanceService {
     public Attendance save(Attendance attendance);
     Optional<Attendance> findByUserAndCheckInBetween(User user, LocalDateTime start, LocalDateTime end);
 
-    List<AttendanceHourDto> findByUserAndBetween(User user, LocalDateTime start, LocalDateTime end);
+    List<AttendanceHourDto> findByUserAndBetween(User user, LocalDateTime start, LocalDateTime end, String type);
 }

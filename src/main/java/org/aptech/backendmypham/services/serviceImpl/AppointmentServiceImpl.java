@@ -598,10 +598,10 @@ public class AppointmentServiceImpl implements AppointmentService {
             return Map.of();
         }
 
-        return Map.of(
-                "Sáng", groupedAppointments.getOrDefault("Sáng", List.of()),
-                "Chiều", groupedAppointments.getOrDefault("Chiều", List.of())
-        );
+        Map<String, Object> orderedResult = new LinkedHashMap<>();
+        orderedResult.put("Sáng", groupedAppointments.getOrDefault("Sáng", List.of()));
+        orderedResult.put("Chiều", groupedAppointments.getOrDefault("Chiều", List.of()));
+        return orderedResult;
     }
 
     private String getSlotName(Appointment appointment) {
