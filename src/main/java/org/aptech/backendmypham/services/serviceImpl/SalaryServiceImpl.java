@@ -302,19 +302,20 @@ public class SalaryServiceImpl implements SalaryService {
         long totalHours = Optional.ofNullable(attendanceRepository.sumTotalHours(userId, LocalDate.now().getMonthValue()))
                 .orElse(0L);
         // Fetch bookings for the current month
-        List<Booking> bookings = bookingRepository.findBookingsByUserIdAndMonthAndYear(userId, LocalDate.now().getMonthValue(), LocalDate.now().getYear());
+        List<Appointment> appointments = appointmentRepository.findAppointmentsByUserIdAndDate(userId, LocalDate.now().getYear(), LocalDate.now().getMonthValue());
 
         // Calculate total tip
-        Long moneyTip = 0L;
-        for (Booking booking : bookings) {
-            if (booking.getTotalPrice() != null) {
-                moneyTip += booking.getTotalPrice().longValue() * 10 / 100; // Assume tip is 10% of total booking price
+        double moneyTip = 0L;
+        for (Appointment appointment : appointments) {
+            System.out.println("Appointment ID: " + appointment.getId() + ", Status: " + appointment.getStatus());
+            if (appointment.getPrice() != null && "completed".equals(appointment.getStatus())) {
+                moneyTip += appointment.getPrice().longValue() * 0.1; // Assume tip is 10% of total booking price
             }
         }
-        Long totalTip = moneyTip;
+        double totalTip = moneyTip;
 
         // Calculate total salary
-        double totalSalary = baseSalary + totalTip.doubleValue();
+        double totalSalary = baseSalary + totalTip;
 
         return new SalaryDetails(
                 baseSalary,

@@ -121,7 +121,7 @@ public class UserController {
     public SalaryDetails getEstimatedSalary(@RequestParam Long userId) {
         try {
             // Fetch salary details
-            var salaryDetails = salaryService.getEstimatedSalary(userId);
+            SalaryDetails salaryDetails = salaryService.getEstimatedSalary(userId);
             System.out.println("DEBUG: Salary details for userId " + userId + ": " + salaryDetails);
             return salaryDetails;
         } catch (Exception e) {

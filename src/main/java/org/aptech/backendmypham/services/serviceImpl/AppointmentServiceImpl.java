@@ -553,8 +553,12 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     public Map<String, Object> getAppointmentsGroupedByShift(LocalDate date, Long userId) {
         ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
-        Instant startOfDay = date.atStartOfDay(zoneId).toInstant();
-        Instant endOfDay = date.plusDays(1).atStartOfDay(zoneId).toInstant();
+        ZonedDateTime startZdt = date.atStartOfDay(zoneId);
+        ZonedDateTime endZdt = date.plusDays(1).atStartOfDay(zoneId);
+
+        Instant startOfDay = startZdt.withZoneSameInstant(ZoneOffset.UTC).toInstant();
+        Instant endOfDay = endZdt.withZoneSameInstant(ZoneOffset.UTC).toInstant();
+
         List<Appointment> appointments = null;
         if (userId != null) {
             User user = userRepository.findById(userId)
@@ -574,7 +578,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                         "customerName", appointment.getCustomer() != null ? appointment.getCustomer().getFullName() : null,
                         "startTime", appointment.getAppointmentDate(),
                         "endTime", appointment.getEndTime(),
-                        "timeDisplay", appointment.getSlot(),
+                        "timeDisplay", this.getSlotName(appointment),
                         "rating", appointment.getUser() != null ? appointment.getUser().getAverageRating() : null,
                         "commission", appointment.getPrice(),
                         "status", appointment.getStatus()
@@ -591,6 +595,11 @@ public class AppointmentServiceImpl implements AppointmentService {
         );
     }
 
+    private String getSlotName(Appointment appointment) {
+        Timeslots timeslots = timeSlotsRepository.findById(appointment.getTimeSlot().getSlotId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Timeslots với ID: " + appointment.getTimeSlot().getSlotId()));
+        return timeslots.getStartTime().toString() + " - " + timeslots.getEndTime().toString();
+    }
     @Override
     public List<AppointmentResponseDto> getAppointmentsByUserId(Long userId) {
         List<Appointment> appointments = appointmentRepository.findAllByUserIdAndIsActive(userId);
@@ -946,5 +955,39 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         emailRequest.setNotes(appointment.getNotes());
         return emailRequest;
+    }
+    @Override
+    public void markServiceAsComplete(Long serviceId) {
+        Appointment appointment = appointmentRepository.findByIdAndIsActive(serviceId, true)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn với ID: " + serviceId));
+
+        // Kiểm tra trạng thái hiện tại
+        if ("completed".equalsIgnoreCase(appointment.getStatus())) {
+            throw new RuntimeException("Lịch hẹn đã được đánh dấu là hoàn thành.");
+        }
+
+        // Cập nhật trạng thái
+        appointment.setStatus("completed");
+        appointment.setUpdatedAt(Instant.now());
+        appointmentRepository.save(appointment);
+        // Cập nhật trạng thái của Booking liên quan
+        List<Booking> bookings = bookingRepository.findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(
+                appointment.getUser().getId(),
+                appointment.getService().getId(),
+                appointment.getAppointmentDate()
+        );
+        for (Booking booking : bookings) {
+            booking.setStatus("completed");
+            booking.setUpdatedAt(Instant.now());
+            bookingRepository.save(booking);
+        }
+//        // Cập nhật trạng thái của ServiceHistory liên quan
+//        List<Servicehistory> serviceHistories = serviceHistoryRepository.findByAppointmentIdAndIsActiveTrue(appointment.getId());
+//        for (Servicehistory serviceHistory : serviceHistories) {
+//            serviceHistory.setIsActive(false); // Vô hiệu hóa ServiceHistory
+//            serviceHistoryRepository.save(serviceHistory);
+//        }
+        System.out.println("Lịch hẹn với ID " + serviceId + " đã được đánh dấu là hoàn thành.");
+
     }
 }

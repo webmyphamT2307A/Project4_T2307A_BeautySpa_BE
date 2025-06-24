@@ -14,7 +14,7 @@ public interface AppointmentService {
     void updateAppointment(Long Aid,AppointmentDto appointmentDto);
     void deleteAppointment(Long AiD);
 
-
+    void markServiceAsComplete(Long serviceId);
     void cancelAppointment(Long appointmentId);
 
     List<AppointmentHistoryDTO> getCustomerAppointmentHistory(Long customerId, int page, int size);

@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -110,7 +111,7 @@ public class AppointmentController {
             @RequestParam(value = "userId", required = false) Long userId
         ) {
         if (date == null) {
-            date = LocalDate.now();
+            date = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         }
         Map<String, Object> response = appointmentService.getAppointmentsGroupedByShift(date, userId);
         System.out.println("Response: " + response);
@@ -167,22 +168,11 @@ public class AppointmentController {
             );
         }
     }
-    @PostMapping("/guest-create")
-    @Operation(summary = "Khách vãng lai tự tạo lịch hẹn")
-    public ResponseEntity<ResponseObject> guestCreateAppointment(@RequestBody GuestAppointmentRequestDto dto) {
-        try {
-            appointmentService.createGuestAppointment(dto);
-            return ResponseEntity.ok(
-                    new ResponseObject(Status.SUCCESS, "Bạn đã đặt lịch hẹn thành công! Chúng tôi sẽ sớm liên hệ để xác nhận.", null)
-            );
-        } catch (Exception e) {
-            // Ghi log lỗi để debug
-            e.printStackTrace();
-            return ResponseEntity.badRequest()
-                    .body(new ResponseObject(Status.ERROR, "Lỗi khi đặt lịch: " + e.getMessage(), null));
-        }
-    }
 
+    @PutMapping("/{serviceId}/complete")
+    public void markServiceAsComplete(@PathVariable Long serviceId) {
+        appointmentService.markServiceAsComplete(serviceId);
+    }
 
 
 
