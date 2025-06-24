@@ -666,21 +666,23 @@ public class AppointmentServiceImpl implements AppointmentService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn với ID: " + appointmentId));
 
+        // Kiểm tra xem có thể hủy được không
         if ("completed".equalsIgnoreCase(appointment.getStatus()) || "cancelled".equalsIgnoreCase(appointment.getStatus())) {
             throw new IllegalStateException("Không thể hủy lịch hẹn đã '" + appointment.getStatus() + "'.");
         }
 
+        // Chỉ cập nhật trạng thái, KHÔNG set isActive = false
         appointment.setStatus("cancelled");
-        appointment.setIsActive(false); // Đặt lịch hẹn là không hoạt động
         appointment.setUpdatedAt(Instant.now());
 
+        // Cập nhật trạng thái cho booking liên quan (nếu có)
         if (appointment.getUser() != null) {
             log.info("Giải phóng booking cho nhân viên ID {} lúc: {}", appointment.getUser().getId(), appointment.getAppointmentDate());
             List<Booking> relatedBookings = bookingRepository.findByUserIdAndBookingDateTimeAndIsActiveTrue(
                     appointment.getUser().getId(), appointment.getAppointmentDate());
+
             relatedBookings.forEach(booking -> {
                 booking.setStatus("cancelled");
-                booking.setIsActive(false);
                 booking.setUpdatedAt(Instant.now());
                 bookingRepository.save(booking);
             });
@@ -690,6 +692,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         log.info("Đã hủy thành công lịch hẹn ID: {}. Trạng thái mới: {}, Active: {}",
                 appointmentId, cancelledAppointment.getStatus(), cancelledAppointment.getIsActive());
 
+        // Logic gửi email hủy lịch hẹn (giữ nguyên)
         if (cancelledAppointment.getCustomer() != null && cancelledAppointment.getCustomer().getEmail() != null) {
             try {
                 emailService.sendAppointmentCancellation(createEmailRequest(cancelledAppointment));
