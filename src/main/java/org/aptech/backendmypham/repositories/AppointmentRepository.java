@@ -157,4 +157,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("month") int month,
             @Param("year") int year
     );
+
+
+    boolean existsByAppointmentDateAndTimeSlotAndStatusNot(Instant bookingStartInstant, Timeslots timeSlot, String cancelled);
 }
