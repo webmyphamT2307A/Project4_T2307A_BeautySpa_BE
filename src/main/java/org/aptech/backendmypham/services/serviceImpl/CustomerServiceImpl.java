@@ -115,7 +115,7 @@ public class CustomerServiceImpl implements CustomerService {
     public void deleteCustomer(Long id) {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Khách hàng không tồn tại!"));
-        customer.setIsActive(false); // Soft delete
+        customer.setIsActive(false);
         customerRepository.save(customer);
     }
 
@@ -128,8 +128,7 @@ public class CustomerServiceImpl implements CustomerService {
             Customer customer = new Customer();
             customer.setFullName(guestDto.getFullName());
             customer.setPhone(guestDto.getPhone());
-            // Guest không cần email, password, address
-            customer.setEmail("guest_" + guestDto.getPhone() + "@example.com"); // Tạo email giả để không bị null
+            customer.setEmail("guest_" + guestDto.getPhone() + "@example.com");
             customer.setPassword(passwordEncoder.encode("guest_default_password"));
             customer.setIsActive(true); // Guest luôn active
             customer.setCreatedAt(Instant.now());

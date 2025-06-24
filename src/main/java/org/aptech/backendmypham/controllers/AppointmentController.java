@@ -168,10 +168,12 @@ public class AppointmentController {
             );
         }
     }
+
     @PutMapping("/{serviceId}/complete")
     public void markServiceAsComplete(@PathVariable Long serviceId) {
         appointmentService.markServiceAsComplete(serviceId);
     }
+
 
 
 }

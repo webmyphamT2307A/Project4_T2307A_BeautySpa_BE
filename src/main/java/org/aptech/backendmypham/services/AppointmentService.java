@@ -1,9 +1,6 @@
 package org.aptech.backendmypham.services;
 
-import org.aptech.backendmypham.dto.AppointmentDto;
-import org.aptech.backendmypham.dto.AppointmentHistoryDTO;
-import org.aptech.backendmypham.dto.AppointmentResponseDto;
-import org.aptech.backendmypham.dto.AppointmentStatsDTO;
+import org.aptech.backendmypham.dto.*;
 import org.springframework.data.relational.core.sql.In;
 
 import java.time.LocalDate;
@@ -26,7 +23,7 @@ public interface AppointmentService {
 
     Map<String, Object> getAppointmentsGroupedByShift(LocalDate date, Long userId);
     List<AppointmentResponseDto> getAppointmentsByUserId(Long userId);
-
+    void createGuestAppointment(GuestAppointmentRequestDto dto);
 
 
 

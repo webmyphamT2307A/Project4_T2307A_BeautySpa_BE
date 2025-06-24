@@ -29,4 +29,5 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     @Query("SELECT c FROM Customer c WHERE c.email = :email OR c.phone = :phone")
     List<Customer> findAllByEmailOrPhone(@Param("email") String email, @Param("phone") String phone);
     boolean existsByPhone(String phone);
+
 }

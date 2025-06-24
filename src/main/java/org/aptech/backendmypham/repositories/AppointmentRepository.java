@@ -3,6 +3,7 @@ package org.aptech.backendmypham.repositories;
 import org.aptech.backendmypham.models.Appointment;
 import org.aptech.backendmypham.models.Booking;
 import org.aptech.backendmypham.models.Role;
+import org.aptech.backendmypham.models.Timeslots;
 import org.aptech.backendmypham.models.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -140,6 +141,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("isActive") Boolean isActive);
 
     List<Appointment> findByCustomerIdAndIsActive(Long customerId, Boolean isActive);
+
 
     @Query(nativeQuery = true, value = "SELECT * FROM appointments a WHERE a.user_id = ?1 " +
             "AND (?2 IS NULL OR YEAR(a.appointment_date) = ?2) " +
