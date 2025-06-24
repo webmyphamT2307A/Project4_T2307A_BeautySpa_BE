@@ -7,6 +7,7 @@ import org.aptech.backendmypham.models.*;
 import org.aptech.backendmypham.repositories.*;
 import org.aptech.backendmypham.services.AppointmentService;
 import org.aptech.backendmypham.services.BookingService;
+import org.aptech.backendmypham.services.CustomerService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +42,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final TimeSlotsRepository timeSlotsRepository;
     private final UsersScheduleRepository usersScheduleRepository;
     private final EmailService emailService;
+    private final CustomerService customerService;
 
     @Override
     @Transactional
@@ -68,10 +70,27 @@ public class AppointmentServiceImpl implements AppointmentService {
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy Customer với ID: " + dto.getCustomerId()));
             appointment.setCustomer(customer);
         } else {
-            // Nếu không có customerId, bạn có thể muốn tạo một Customer mới dựa trên
-            // dto.getFullName() và dto.getPhoneNumber() ở đây nếu nghiệp vụ yêu cầu.
-            // Hoặc cho phép Customer là null cho Appointment.
-            appointment.setCustomer(null);
+            // --- LOGIC MỚI CHO KHÁCH NGOẠI LAI ---
+            // Yêu cầu phải có SĐT để định danh khách ngoại lai
+            if (dto.getPhoneNumber() != null && !dto.getPhoneNumber().trim().isEmpty()) {
+
+                // Tạo một DTO cho khách hàng từ thông tin của AppointmentDto
+                CustomerDto guestDto = new CustomerDto();
+                guestDto.setFullName(dto.getFullName());
+                guestDto.setPhone(dto.getPhoneNumber());
+                // Giả định AppointmentDto của bạn cũng có trường email cho khách ngoại lai
+                guestDto.setEmail(dto.getEmail());
+
+                // Sử dụng service để tìm hoặc tạo mới khách ngoại lai
+                // Phương thức này sẽ trả về khách hàng đã tồn tại hoặc khách hàng mới được lưu
+                Customer guestCustomer = customerService.createOrGetGuest(guestDto);
+                appointment.setCustomer(guestCustomer);
+
+            } else {
+                // Nếu không có cả customerId và phoneNumber, bạn có thể ném lỗi
+                // vì không thể xác định được khách hàng.
+                throw new RuntimeException("Cần cung cấp ID khách hàng hoặc Số điện thoại để tạo lịch hẹn.");
+            }
         }
 
         // 4. Xử lý TimeSlot
@@ -445,23 +464,35 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         // Cập nhật User (nhân viên) nếu có thay đổi
+        // Cập nhật User (nhân viên) nếu có thay đổi
         User staffToBook = appointment.getUser(); // Nhân viên hiện tại
         boolean staffChanged = false;
 
-        if (dto.getUserId() != null) { // Nếu có User ID mới được cung cấp
-            if (staffToBook == null || !dto.getUserId().equals(staffToBook.getId())) { // Nếu khác nhân viên cũ hoặc chưa có
+        // LOGIC MỚI: Ưu tiên xử lý trạng thái cuối cùng
+        // Nếu trạng thái là 'completed' hoặc 'cancelled', tự động bỏ gán nhân viên
+        if (("completed".equalsIgnoreCase(newStatus) || "cancelled".equalsIgnoreCase(newStatus))) {
+            if (staffToBook != null) { // Chỉ thực hiện nếu đang có nhân viên được gán
+                System.out.println("Trạng thái cuối cùng ('" + newStatus + "') được thiết lập. Tự động bỏ gán nhân viên ID: " + staffToBook.getId());
+                appointment.setUser(null);
+                staffToBook = null; // Cập nhật biến tạm thời để các logic sau (như kiểm tra lịch) hiểu đúng
+                staffChanged = true;
+            }
+        }
+        // Nếu không phải trạng thái cuối cùng, xử lý việc gán/bỏ gán từ DTO như bình thường
+        else if (dto.getUserId() != null) {
+            if (staffToBook == null || !dto.getUserId().equals(staffToBook.getId())) {
                 staffToBook = userRepository.findById(dto.getUserId())
                         .orElseThrow(() -> new RuntimeException("Không tìm thấy User (nhân viên) với ID: " + dto.getUserId()));
                 appointment.setUser(staffToBook);
                 staffChanged = true;
                 System.out.println("Đã cập nhật User sang ID: " + staffToBook.getId());
             }
-        } else { // Nếu dto.getUserId() là null -> nghĩa là "bỏ gán" (unassign)
-            if (staffToBook != null) { // Chỉ đánh dấu thay đổi nếu trước đó có người được gán
+        } else { // dto.getUserId() là null -> Yêu cầu bỏ gán tường minh từ frontend
+            if (staffToBook != null) {
                 appointment.setUser(null);
-                staffToBook = null; // Cập nhật staffToBook để logic kiểm tra lịch rảnh (nếu có) dùng đúng
+                staffToBook = null;
                 staffChanged = true;
-                System.out.println("Đã bỏ gán User (nhân viên).");
+                System.out.println("DTO yêu cầu bỏ gán User (nhân viên).");
             }
         }
 
@@ -497,7 +528,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         System.out.println("Đã lưu Appointment ID: " + savedAppointment.getId());
 
         // 4. CẬP NHẬT HOẶC VÔ HIỆU HÓA BOOKING LIÊN QUAN
-        // ... (Logic vô hiệu hóa/cập nhật Booking giữ nguyên như trước, nhưng cần đảm bảo nó dùng đúng thông tin)
 
         boolean isFinalStatus = "completed".equalsIgnoreCase(newStatus) || "cancelled".equalsIgnoreCase(newStatus);
         System.out.println("Trạng thái cuối cùng (completed/cancelled)? " + isFinalStatus);

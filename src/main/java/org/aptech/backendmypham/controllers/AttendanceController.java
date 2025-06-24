@@ -5,11 +5,15 @@ import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.AttendanceCheckInOutDTO;
 import org.aptech.backendmypham.dto.AttendanceHourDto;
 import org.aptech.backendmypham.dto.ResponseObject;
+import org.aptech.backendmypham.dto.UsersScheduleResponseDto;
 import org.aptech.backendmypham.enums.Status;
 import org.aptech.backendmypham.models.Attendance;
 import org.aptech.backendmypham.models.User;
 import org.aptech.backendmypham.repositories.UserRepository;
 import org.aptech.backendmypham.services.AttendanceService;
+import org.aptech.backendmypham.services.UserService;
+import org.aptech.backendmypham.services.UsersScheduleService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +27,8 @@ import java.util.Map;
 public class AttendanceController {
     final private AttendanceService attendanceService;
     private final UserRepository userRepository;
+    private final UserService userService;
+    private final UsersScheduleService userScheduleService;
     @GetMapping("/find-all")
     @Operation(summary = "api tìm tất cả lịch điểm danh")
     public ResponseEntity<ResponseObject> findAll() {
@@ -200,4 +206,5 @@ public class AttendanceController {
             );
         }
     }
+
 }

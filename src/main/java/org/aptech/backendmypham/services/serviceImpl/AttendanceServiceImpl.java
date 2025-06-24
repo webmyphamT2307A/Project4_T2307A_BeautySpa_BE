@@ -1,15 +1,23 @@
 package org.aptech.backendmypham.services.serviceImpl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.aptech.backendmypham.dto.AttendanceDTO;
 import org.aptech.backendmypham.dto.AttendanceHourDto;
+import org.aptech.backendmypham.dto.UsersScheduleResponseDto;
+import org.aptech.backendmypham.exception.ResourceNotFoundException;
 import org.aptech.backendmypham.models.Attendance;
 import org.aptech.backendmypham.models.User;
+import org.aptech.backendmypham.models.UsersSchedule;
 import org.aptech.backendmypham.repositories.AttendanceRepository;
+import org.aptech.backendmypham.repositories.UserRepository;
+import org.aptech.backendmypham.repositories.UsersScheduleRepository;
 import org.aptech.backendmypham.services.AttendanceService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,6 +25,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AttendanceServiceImpl implements AttendanceService {
     final private AttendanceRepository attendanceRepository;
+    final private UsersScheduleRepository usersScheduleRepository;
+    final private UserRepository userRepository;
     @Override
     public List<Attendance> getAll(){
         return attendanceRepository.findAll();
@@ -65,4 +75,8 @@ public class AttendanceServiceImpl implements AttendanceService {
                 new AttendanceHourDto("CN", totalHours[6])
         );
     }
+
+
+
+
 }
