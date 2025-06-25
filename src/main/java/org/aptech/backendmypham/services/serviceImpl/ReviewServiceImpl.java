@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -154,6 +155,7 @@ public class ReviewServiceImpl implements ReviewService {
         }
     }
 
+
     private void checkOwnership(Review review, Long customerId) {
         logger.info(">>> [checkOwnership] Bắt đầu kiểm tra quyền cho review ID: {}. Người dùng đang đăng nhập có customerId: {}", review.getId(), customerId);
 
@@ -171,6 +173,36 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         logger.info(">>> [checkOwnership] Kiểm tra quyền sở hữu thành công cho review ID: {}", review.getId());
+    }
+    @Override
+    @Transactional
+    public Map<String, ReviewResponseDTO> createServiceAndStaffReview(Long customerId, ReviewServiceAndStaffRequestDTO requestDTO) {
+
+        // 1. Tạo review cho Dịch vụ
+        ReviewCreateRequestDTO serviceReviewDTO = new ReviewCreateRequestDTO();
+        serviceReviewDTO.setType("service"); // Đặt type là "service"
+        serviceReviewDTO.setRelatedId(requestDTO.getServiceId());
+        serviceReviewDTO.setRating(requestDTO.getServiceRating());
+        serviceReviewDTO.setComment(requestDTO.getComment());
+
+        // Tái sử dụng logic createReview đã có
+        ReviewResponseDTO createdServiceReview = this.createReview(customerId, serviceReviewDTO);
+
+        // 2. Tạo review cho Nhân viên (Staff)
+        ReviewCreateRequestDTO staffReviewDTO = new ReviewCreateRequestDTO();
+        staffReviewDTO.setType("user"); // Đặt type là "user"
+        staffReviewDTO.setRelatedId(requestDTO.getStaffId().intValue()); // Cần chuyển Long sang Integer cho relatedId
+        staffReviewDTO.setRating(requestDTO.getStaffRating());
+        staffReviewDTO.setComment(requestDTO.getComment());
+
+        // Tái sử dụng logic createReview đã có
+        ReviewResponseDTO createdStaffReview = this.createReview(customerId, staffReviewDTO);
+
+        // 3. Trả về cả hai review vừa tạo
+        return Map.of(
+                "serviceReview", createdServiceReview,
+                "staffReview", createdStaffReview
+        );
     }
 
     private ReviewResponseDTO convertToResponseDTO(Review review) {
