@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.util.Map;
 
 
 @RestController
@@ -192,6 +193,24 @@ public class ReviewController {
 
 
         throw new RuntimeException("Unable to extract customer ID from authentication");
+    }
+    @PostMapping("/service-and-staff")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(summary = "Tạo đồng thời đánh giá cho Dịch vụ và Nhân viên")
+    public ResponseEntity<ResponseObject> createServiceAndStaffReview(
+            @Valid @RequestBody ReviewServiceAndStaffRequestDTO requestDTO) {
+        try {
+            Long customerId = getCurrentCustomerId();
+            Map<String, ReviewResponseDTO> createdReviews = reviewService.createServiceAndStaffReview(customerId, requestDTO);
+
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Reviews for service and staff created successfully", createdReviews)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject(Status.FAIL, e.getMessage(), null)
+            );
+        }
     }
 
 

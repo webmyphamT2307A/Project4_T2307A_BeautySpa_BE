@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ReviewService {
 
@@ -15,6 +16,7 @@ public interface ReviewService {
     ReviewResponseDTO updateReview(Long customerId, Integer reviewId, ReviewUpdateRequestDTO updateDTO);
     void deleteReview(Long customerId, Integer reviewId);
     List<ReviewDTO> findALL();
+    Map<String, ReviewResponseDTO> createServiceAndStaffReview(Long customerId, ReviewServiceAndStaffRequestDTO requestDTO);
 
     ReviewResponseDTO addBusinessReply(Integer reviewId, Long staffId, ReplyCreateRequestDTO replyDTO);
 
