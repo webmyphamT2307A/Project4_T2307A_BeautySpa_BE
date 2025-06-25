@@ -440,9 +440,6 @@ public class AppointmentServiceImpl implements AppointmentService {
             // Nếu service không đổi và DTO không có duration, dùng duration của service hiện tại
             newDurationMinutes = appointment.getService().getDuration();
         } else {
-            // Giữ nguyên duration cũ nếu không có thông tin mới, hoặc đặt mặc định
-            // Để lấy duration cũ, ta cần tính từ endTime và startTime cũ của Appointment
-            // Hoặc Booking có lưu duration. Giả sử Booking lưu duration.
             Booking oldBooking = null;
             if(appointment.getUser() != null && appointment.getService() != null){
                 List<Booking> bookings = bookingRepository.findByUserIdAndServiceIdAndBookingDateTimeAndIsActiveTrue(appointment.getUser().getId(), appointment.getService().getId(), appointment.getAppointmentDate());
@@ -461,35 +458,50 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         // Cập nhật User (nhân viên) nếu có thay đổi
-        // Cập nhật User (nhân viên) nếu có thay đổi
         User staffToBook = appointment.getUser(); // Nhân viên hiện tại
         boolean staffChanged = false;
 
-        // LOGIC MỚI: Ưu tiên xử lý trạng thái cuối cùng
-        // Nếu trạng thái là 'completed' hoặc 'cancelled', tự động bỏ gán nhân viên
-        if (("completed".equalsIgnoreCase(newStatus) || "cancelled".equalsIgnoreCase(newStatus))) {
-            if (staffToBook != null) { // Chỉ thực hiện nếu đang có nhân viên được gán
-                System.out.println("Trạng thái cuối cùng ('" + newStatus + "') được thiết lập. Tự động bỏ gán nhân viên ID: " + staffToBook.getId());
+        // LOGIC ĐÃ SỬA: Xử lý gán/bỏ gán nhân viên dựa trên trạng thái mới
+        if ("cancelled".equalsIgnoreCase(newStatus)) {
+            // 1. KHI HỦY LỊCH: Luôn bỏ gán nhân viên để giải phóng lịch.
+            if (staffToBook != null) {
+                System.out.println("Trạng thái là 'cancelled'. Tự động bỏ gán nhân viên ID: " + staffToBook.getId());
                 appointment.setUser(null);
-                staffToBook = null; // Cập nhật biến tạm thời để các logic sau (như kiểm tra lịch) hiểu đúng
+                staffToBook = null; // Cập nhật biến tạm thời để logic kiểm tra sau này hiểu đúng.
                 staffChanged = true;
             }
-        }
-        // Nếu không phải trạng thái cuối cùng, xử lý việc gán/bỏ gán từ DTO như bình thường
-        else if (dto.getUserId() != null) {
-            if (staffToBook == null || !dto.getUserId().equals(staffToBook.getId())) {
+        } else if ("completed".equalsIgnoreCase(newStatus)) {
+            // 2. KHI HOÀN THÀNH: Giữ lại nhân viên đã thực hiện.
+            // Nếu DTO có gửi lên userId mới (trường hợp admin sửa) thì cập nhật.
+            // Nếu không thì KHÔNG làm gì cả, giữ nguyên nhân viên cũ.
+            System.out.println("Trạng thái là 'completed'. Sẽ giữ lại thông tin nhân viên.");
+            if (dto.getUserId() != null && (staffToBook == null || !dto.getUserId().equals(staffToBook.getId()))) {
                 staffToBook = userRepository.findById(dto.getUserId())
                         .orElseThrow(() -> new RuntimeException("Không tìm thấy User (nhân viên) với ID: " + dto.getUserId()));
                 appointment.setUser(staffToBook);
                 staffChanged = true;
-                System.out.println("Đã cập nhật User sang ID: " + staffToBook.getId());
+                System.out.println("Đã cập nhật User sang ID: " + staffToBook.getId() + " cho lịch hẹn đã hoàn thành.");
+            } else {
+                System.out.println("Không có userId mới trong DTO hoặc userId không đổi. Giữ nguyên nhân viên hiện tại: " + (staffToBook != null ? staffToBook.getId() : "null"));
             }
-        } else { // dto.getUserId() là null -> Yêu cầu bỏ gán tường minh từ frontend
-            if (staffToBook != null) {
-                appointment.setUser(null);
-                staffToBook = null;
-                staffChanged = true;
-                System.out.println("DTO yêu cầu bỏ gán User (nhân viên).");
+        } else {
+            // 3. CÁC TRẠNG THÁI KHÁC (pending, confirmed...): Xử lý gán/bỏ gán từ DTO như bình thường.
+            if (dto.getUserId() != null) {
+                // Gán nhân viên mới
+                if (staffToBook == null || !dto.getUserId().equals(staffToBook.getId())) {
+                    staffToBook = userRepository.findById(dto.getUserId())
+                            .orElseThrow(() -> new RuntimeException("Không tìm thấy User (nhân viên) với ID: " + dto.getUserId()));
+                    appointment.setUser(staffToBook);
+                    staffChanged = true;
+                    System.out.println("Đã cập nhật User sang ID: " + staffToBook.getId());
+                }
+            } else { // dto.getUserId() là null -> Yêu cầu bỏ gán tường minh từ frontend
+                if (staffToBook != null) {
+                    appointment.setUser(null);
+                    staffToBook = null;
+                    staffChanged = true;
+                    System.out.println("DTO yêu cầu bỏ gán User (nhân viên) cho trạng thái '" + newStatus + "'.");
+                }
             }
         }
 
@@ -673,7 +685,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         Long total = (long) allAppointments.size();
         Long completed = allAppointments.stream().filter(apt -> "Đã hoàn thành".equals(determineStatusText(apt))).count();
-        Long cancelled = allAppointments.stream().filter(apt -> "cancelled".equalsIgnoreCase(apt.getStatus())).count();
+        Long cancelled = allAppointments.stream().filter(apt -> "Đã hủy".equals(determineStatusText(apt))).count();
         Long upcoming = total - completed - cancelled;
 
         BigDecimal totalSpent = allAppointments.stream()
@@ -884,36 +896,41 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .build();
     }
     private String determineStatusText(Appointment appointment) {
-        // PRIORITY 1: Check explicit status first
+        // PRIORITY 1: Check explicit status from backend first
         if (appointment.getStatus() != null) {
             String status = appointment.getStatus().toLowerCase().trim();
-            if (status.contains("cancel")) {
-                return "Đã hủy";
-            }
-            if ("completed".equals(status)) {
-                return "Đã hoàn thành";
+            switch (status) {
+                case "cancelled":
+                    return "Đã hủy";
+                case "completed":
+                    return "Đã hoàn thành";
+                case "confirmed":
+                    return "Đã xác nhận";
+                // Let "pending" fall through to date-based logic
             }
         }
 
-        // PRIORITY 2: Date logic
-        // Lấy ngày hiện tại và ngày hẹn
+        // PRIORITY 2: Date-based logic for other statuses
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         LocalDate aptDate = appointment.getAppointmentDate()
                 .atZone(ZoneId.of("Asia/Ho_Chi_Minh"))
                 .toLocalDate();
 
-        // Nếu lịch hẹn đã qua, coi như đã hoàn thành
-        // (Logic này vẫn giữ nguyên vì một lịch hẹn "pending" trong quá khứ thì cũng nên là "hoàn thành")
         if (aptDate.isBefore(today)) {
-            return "Đã hoàn thành";
+            return "Đã hoàn thành"; // Past appointments, even pending, are considered "completed"
         }
 
-        // Nếu không, xác định là hôm nay hay sắp tới
         if (aptDate.isEqual(today)) {
-            return "Hôm nay";
-        } else {
-            return "Sắp tới";
+            return "Hôm nay"; // All appointments today are "Hôm nay" unless explicitly cancelled/completed
         }
+
+        // Future appointments
+        if (appointment.getStatus() != null && "pending".equalsIgnoreCase(appointment.getStatus())) {
+            return "Chờ xác nhận";
+        }
+
+        // Default for future appointments that are not pending (e.g., if we add more statuses)
+        return "Sắp tới";
     }
 
 
@@ -921,32 +938,24 @@ public class AppointmentServiceImpl implements AppointmentService {
 
 
 
- 
+
 
     private String determineStatusClassName(Appointment appointment) {
-        // PRIORITY 1: Check explicit status first
-        if (appointment.getStatus() != null) {
-            String status = appointment.getStatus().toLowerCase().trim();
-
-            if (status.contains("cancel")) {
+        String statusText = determineStatusText(appointment);
+        switch (statusText) {
+            case "Đã hủy":
                 return "bg-danger";
-            }
-
-            if ("completed".equals(status)) {
+            case "Đã hoàn thành":
                 return "bg-success";
-            }
-        }
-
-        // PRIORITY 2: Date logic
-        LocalDate today = LocalDate.now();
-        LocalDate aptDate = appointment.getAppointmentDate().atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toLocalDate();
-
-        if (aptDate.isBefore(today)) {
-            return "bg-success";
-        } else if (aptDate.isEqual(today)) {
-            return "bg-warning text-dark";
-        } else {
-            return "bg-info";
+            case "Đã xác nhận":
+                return "bg-primary";
+            case "Hôm nay":
+                return "bg-warning text-dark";
+            case "Chờ xác nhận":
+                return "bg-secondary";
+            case "Sắp tới":
+            default:
+                return "bg-info";
         }
     }
 
@@ -999,6 +1008,15 @@ public class AppointmentServiceImpl implements AppointmentService {
     public void markServiceAsComplete(Long serviceId) {
         Appointment appointment = appointmentRepository.findByIdAndIsActive(serviceId, true)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn với ID: " + serviceId));
+
+        // === LOGIC VALIDATION MỚI: NGĂN HOÀN THÀNH LỊCH HẸN TƯƠNG LAI ===
+        LocalDate appointmentDate = LocalDateTime.ofInstant(appointment.getAppointmentDate(), ZoneId.of("Asia/Ho_Chi_Minh")).toLocalDate();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+
+        if (appointmentDate.isAfter(today)) {
+            throw new IllegalStateException("Không thể đánh dấu 'hoàn thành' cho một lịch hẹn trong tương lai.");
+        }
+        // =============================================================
 
         // Kiểm tra trạng thái hiện tại
         if ("completed".equalsIgnoreCase(appointment.getStatus())) {
