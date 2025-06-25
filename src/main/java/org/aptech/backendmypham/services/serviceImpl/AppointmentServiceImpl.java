@@ -19,10 +19,7 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.aptech.backendmypham.services.EmailService;
@@ -599,30 +596,42 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         Map<String, List<Map<String, Object>>> groupedAppointments = appointments.stream()
-                .collect(Collectors.groupingBy(appointment -> {
-                    LocalTime startTime = appointment.getAppointmentDate().atZone(zoneId).toLocalTime();
-                    return startTime.isBefore(LocalTime.NOON) ? "Sáng" : "Chiều";
-                }, Collectors.mapping(appointment -> Map.of(
-                        "id", appointment.getId(),
-                        "service", appointment.getService() != null ? appointment.getService().getName() : null,
-                        "customerName", appointment.getCustomer() != null ? appointment.getCustomer().getFullName() : null,
-                        "startTime", appointment.getAppointmentDate(),
-                        "endTime", appointment.getEndTime(),
-                        "timeDisplay", this.getSlotName(appointment),
-                        "rating", appointment.getUser() != null ? appointment.getUser().getAverageRating() : null,
-                        "commission", appointment.getPrice(),
-                        "status", appointment.getStatus()
-                ), Collectors.toList())));
+                .collect(Collectors.groupingBy(
+                        appointment -> {
+                            LocalTime startTime = appointment.getAppointmentDate().atZone(zoneId).toLocalTime();
+                            return startTime.isBefore(LocalTime.NOON) ? "Sáng" : "Chiều";
+                        },
+                        LinkedHashMap::new,
+                        Collectors.collectingAndThen(
+                                Collectors.<Appointment>toList(),
+                                list -> list.stream()
+                                        .sorted(Comparator.comparing(Appointment::getId).reversed())
+                                        .map(appointment -> {
+                                            Map<String, Object> map = new HashMap<>();
+                                            map.put("id", appointment.getId());
+                                            map.put("service", appointment.getService() != null ? appointment.getService().getName() : null);
+                                            map.put("customerName", appointment.getCustomer() != null ? appointment.getCustomer().getFullName() : null);
+                                            map.put("startTime", appointment.getAppointmentDate());
+                                            map.put("endTime", appointment.getEndTime());
+                                            map.put("timeDisplay", this.getSlotName(appointment));
+                                            map.put("rating", appointment.getUser() != null ? appointment.getUser().getAverageRating() : null);
+                                            map.put("commission", appointment.getPrice().longValue() * 0.1);
+                                            map.put("status", appointment.getStatus());
+                                            return map;
+                                        })
+                                        .collect(Collectors.toList())
+                        )
+                ));
 
 
         if (groupedAppointments.isEmpty()) {
             return Map.of();
         }
 
-        return Map.of(
-                "Sáng", groupedAppointments.getOrDefault("Sáng", List.of()),
-                "Chiều", groupedAppointments.getOrDefault("Chiều", List.of())
-        );
+        Map<String, Object> orderedResult = new LinkedHashMap<>();
+        orderedResult.put("Sáng", groupedAppointments.getOrDefault("Sáng", List.of()));
+        orderedResult.put("Chiều", groupedAppointments.getOrDefault("Chiều", List.of()));
+        return orderedResult;
     }
 
     private String getSlotName(Appointment appointment) {
