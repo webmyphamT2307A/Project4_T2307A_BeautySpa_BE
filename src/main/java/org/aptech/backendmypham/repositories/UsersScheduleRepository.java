@@ -76,5 +76,7 @@ public interface UsersScheduleRepository extends JpaRepository<UsersSchedule, In
             "(:timeSlotId IS NULL OR us.timeSlot.slotId = :timeSlotId)")
     int countStaffWithScheduleOnDateAndTimeSlot(@Param("date") LocalDate date,
                                                 @Param("timeSlotId") Long timeSlotId);
+    Optional<UsersSchedule> findByUserAndWorkDate(User user, LocalDate workDate);
+
 
 }

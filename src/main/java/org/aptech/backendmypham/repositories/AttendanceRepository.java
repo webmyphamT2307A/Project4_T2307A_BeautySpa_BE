@@ -2,9 +2,11 @@ package org.aptech.backendmypham.repositories;
 
 import org.aptech.backendmypham.models.Attendance;
 import org.aptech.backendmypham.models.User;
+import org.aptech.backendmypham.models.UsersSchedule;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;

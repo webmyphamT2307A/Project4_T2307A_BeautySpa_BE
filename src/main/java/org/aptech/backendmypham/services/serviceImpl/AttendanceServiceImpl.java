@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
-=======
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,8 +38,33 @@ public class AttendanceServiceImpl implements AttendanceService {
         return attendanceRepository.findAll();
     }
     @Override
+    @Transactional // Sử dụng @Transactional để đảm bảo cả hai thao tác (lưu attendance và cập nhật schedule) thành công hoặc thất bại cùng nhau
     public Attendance save(Attendance attendance) {
-        return attendanceRepository.save(attendance);
+        // 1. Lưu bản ghi điểm danh như bình thường
+        Attendance savedAttendance = attendanceRepository.save(attendance);
+
+        // 2. Lấy thông tin cần thiết để tìm lịch làm việc tương ứng
+        User user = savedAttendance.getUser();
+        LocalDate workDate = savedAttendance.getCheckIn().toLocalDate();
+
+        // 3. Tìm lịch làm việc (UsersSchedule) của nhân viên trong ngày đó
+        Optional<UsersSchedule> scheduleOpt = usersScheduleRepository.findByUserAndWorkDate(user, workDate);
+
+        // 4. Nếu tìm thấy lịch làm việc, cập nhật thời gian check-in/check-out
+        scheduleOpt.ifPresent(schedule -> {
+            // Nếu là thao tác Check-in (checkOut của attendance là null)
+            if (savedAttendance.getCheckOut() == null) {
+                schedule.setCheckInTime(savedAttendance.getCheckIn().toLocalTime());
+            }
+            // Nếu là thao tác Check-out (checkOut của attendance không phải là null)
+            else {
+                schedule.setCheckOutTime(savedAttendance.getCheckOut().toLocalTime());
+            }
+            // Lưu lại thay đổi trên lịch làm việc
+            usersScheduleRepository.save(schedule);
+        });
+
+        return savedAttendance;
     }
     @Override
     public Optional<Attendance> findByUserAndCheckInBetween(User user, LocalDateTime start, LocalDateTime end) {

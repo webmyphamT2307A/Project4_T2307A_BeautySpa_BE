@@ -3,6 +3,7 @@ package org.aptech.backendmypham.services;
 import org.aptech.backendmypham.dto.ScheduleUserDto;
 import org.aptech.backendmypham.dto.UsersScheduleRequestDto;
 import org.aptech.backendmypham.dto.UsersScheduleResponseDto;
+import org.aptech.backendmypham.models.UsersSchedule;
 
 import java.time.LocalDate;
 import java.util.List;
