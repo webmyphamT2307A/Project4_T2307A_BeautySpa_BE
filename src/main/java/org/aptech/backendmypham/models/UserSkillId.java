@@ -17,7 +17,7 @@ public class UserSkillId implements Serializable {
     private static final long serialVersionUID = 3371237445109557823L;
     @NotNull
     @Column(name = "user_id", nullable = false)
-    private Integer userId;
+    private Long userId;
 
     @NotNull
     @Column(name = "skill_id", nullable = false)
