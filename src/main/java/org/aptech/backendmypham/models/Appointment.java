@@ -9,6 +9,7 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -16,20 +17,21 @@ import java.time.Instant;
 @Table(name = "appointments")
 public class Appointment {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "appointment_id", nullable = false)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "service_id")
     private org.aptech.backendmypham.models.Service service;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "user_id")
     private org.aptech.backendmypham.models.User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "customer_id")
     private org.aptech.backendmypham.models.Customer customer;
@@ -61,9 +63,7 @@ public class Appointment {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "branch_id", nullable = false)
-    private org.aptech.backendmypham.models.Branch branch;
+
 
     @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;

@@ -1,16 +1,17 @@
 package org.aptech.backendmypham.services.serviceImpl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.aptech.backendmypham.models.Branch;
+import org.aptech.backendmypham.dto.UserRequestDto;
 import org.aptech.backendmypham.models.Role;
 import org.aptech.backendmypham.models.User;
-import org.aptech.backendmypham.repositories.BranchRepository;
 import org.aptech.backendmypham.repositories.RoleRepository;
 import org.aptech.backendmypham.repositories.UserRepository;
 import org.aptech.backendmypham.services.AdminService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -21,120 +22,104 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
-    private final BranchRepository branchRepository;
 
-    //tạo thread pool với 2 thread
-    ExecutorService executor = Executors.newFixedThreadPool(4);
+    // Sử dụng thread pool với 2 threads (đủ để xử lý đồng thời mà không gây quá tải)
+    private final ExecutorService executor = Executors.newFixedThreadPool(2);
 
-    @Override
-    public void createAdmin(String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
-        //tìm role và branch theo id
-        //dùng thread để kiểm tra tồn tại của role và branch
+   @Override
+    public void createAdmin(UserRequestDto userRequestDto) {
+        if (userRequestDto.getPassword() == null || userRequestDto.getEmail() == null || userRequestDto.getPhone() == null || userRequestDto.getAddress() == null) {
+            throw new RuntimeException("Thông tin không được để trống!");
+        }
+
+        CompletableFuture<Optional<Role>> roleFuture = CompletableFuture.supplyAsync(() -> roleRepository.findById((long) userRequestDto.getRoleId()));
+
+        CompletableFuture<Optional<User>> emailFuture = CompletableFuture.supplyAsync(() -> userRepository.findByEmail(userRequestDto.getEmail()));
+        CompletableFuture<Optional<User>> phoneFuture = CompletableFuture.supplyAsync(() -> userRepository.findByPhone(userRequestDto.getPhone()));
+
         try {
-            if (password == null || email == null || phoneNumber == null || address == null) {
-                throw new RuntimeException("Thông tin không được để trống!");
-            }
-            Future<Optional<Role>> roleFuture;
-            Future<Optional<Branch>> branchFuture = null;
-            if (roleId != null) {
-                // bất đồng bộ để kiểm tra sự tồn tại của role với id
-                roleFuture = executor.submit(() ->
-                        roleRepository.findById((long) roleId));
-            } else {
-                throw new RuntimeException("Role không được để trống!");
-            }
-            if (branchId != null) {
-                // Bất đồng bộ để kiểm tra sự tồn tại của branch với id
-                branchFuture = executor.submit(() ->
-                        branchRepository.findById((long) branchId));
-            }
-            // Bất đồng bộ để kiểm tra sự tồn tại của Email nhập vào
-            Future<Optional<User>> emailFuture = executor.submit(() ->
-                    userRepository.findByEmail(email));
+            Optional<Role> roleOpt = roleFuture.get(5, TimeUnit.SECONDS);
+            Optional<User> emailOpt = emailFuture.get(5, TimeUnit.SECONDS);
+            Optional<User> phoneOpt = phoneFuture.get(5, TimeUnit.SECONDS);
 
-            // Bất đồng bộ để kiểm tra sự tồn tại của Phone nhập vào
-            Future<Optional<User>> phoneFuture = executor.submit(() ->
-                    userRepository.findByPhone(phoneNumber));
-
-
-            Optional<Branch> branchOpt = Optional.empty();
-            // Lấy kết quả với timeout 3 giây cho mỗi Future
-            //truyền kiểu dữ liệu Optional<Role> vào hàm
-            Optional<Role> roleOpt = getFutureResultWithTimeout(roleFuture, "role", 3);
-            if (branchId != null) {
-                //truyền kiểu dữ liệu Optional<Branch> vào hàm
-                branchOpt = getFutureResultWithTimeout(branchFuture, "chi nhánh", 3);
-            }
-            //truyền kiểu dữ liệu Optional<User> vào hàm
-            Optional<User> emailOpt = getFutureResultWithTimeout(emailFuture, "email", 3);
-            //truyền kiểu dữ liệu Optional<User> vào hàm
-            Optional<User> phoneOpt = getFutureResultWithTimeout(phoneFuture, "số điện thoại", 3);
-
-            //Lấy dữ liệu thành công kiểm tra role có bằng null không
             if (roleOpt.isEmpty()) {
                 throw new RuntimeException("Role không tồn tại!");
             }
 
-            if (branchId != null) {
-                //kiểm tra branch có null không
-                if (branchOpt.isEmpty()) {
-                    throw new RuntimeException("Chi nhánh không tồn tại!");
-                }
-            }
-            //nếu email đã tồn tại thì trả về lỗi
+
             if (emailOpt.isPresent()) {
                 throw new RuntimeException("Email đã tồn tại!");
             }
-            //nếu số điện thoại đã tồn tại thì trả về lỗi
+
             if (phoneOpt.isPresent()) {
                 throw new RuntimeException("Số điện thoại đã tồn tại!");
             }
-            //nếu thỏa mãn điều kiện bên trên thì tạo mới user
+
+            // Tạo mới User
             User user = new User();
-            user.setPassword(passwordEncoder.encode(password));
-            user.setEmail(email);
-            user.setPhone(phoneNumber);
-            user.setAddress(address);
+            user.setFullName(userRequestDto.getFullName());
+            user.setPassword(passwordEncoder.encode(userRequestDto.getPassword()));
+            user.setEmail(userRequestDto.getEmail());
+            user.setPhone(userRequestDto.getPhone());
+            user.setAddress(userRequestDto.getAddress());
+            user.setImageUrl(userRequestDto.getImageUrl());
+            user.setIsActive(1);
             user.setRole(roleOpt.get());
-            if (branchId != null) {
-                //nếu branchId khác null thì set branch cho user
-                user.setBranch(branchOpt.get());
-            }
+            user.setCreatedAt(Instant.now());
+            userRepository.save(user);
+
+        } catch (TimeoutException e) {
+            throw new RuntimeException("Một trong các yêu cầu kiểm tra dữ liệu mất quá nhiều thời gian. Vui lòng thử lại sau.");
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Lỗi khi kiểm tra tồn tại của role và branch: " + e.getMessage());
-        } finally {
-            executor.shutdown();
+            throw new RuntimeException("Lỗi khi kiểm tra tồn tại của role: " + e.getMessage());
         }
     }
 
+
     @Override
-    public void updateAdmin(Long userId, String password, String email, String phoneNumber, String address, Integer roleId, Integer branchId) {
+    @Transactional
+    public void updateAdmin(Long userId, String fullName, String password, String email, String phoneNumber, String address, Integer roleId,String imageUrl,Integer isActive) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
             throw new RuntimeException("Người dùng không tồn tại!");
         }
         User user = userOpt.get();
+
+        // Cập nhật fullName
+        if (fullName != null) {
+            user.setFullName(fullName);
+        }
+
         if (password != null) {
             user.setPassword(passwordEncoder.encode(password));
         }
-        if (email != null) {
+
+        // Sửa logic kiểm tra email
+        if (email != null && !email.equals(user.getEmail())) {
             Optional<User> emailOpt = userRepository.findByEmail(email);
             if (emailOpt.isPresent()) {
                 throw new RuntimeException("Email đã tồn tại!");
             }
             user.setEmail(email);
         }
-        if (phoneNumber != null) {
+        if (imageUrl != null) {
+            user.setImageUrl(imageUrl);
+        }
+
+        // Sửa logic kiểm tra phone
+        if (phoneNumber != null && !phoneNumber.equals(user.getPhone())) {
             Optional<User> phoneOpt = userRepository.findByPhone(phoneNumber);
             if (phoneOpt.isPresent()) {
                 throw new RuntimeException("Số điện thoại đã tồn tại!");
             }
             user.setPhone(phoneNumber);
         }
+
         if (address != null) {
             user.setAddress(address);
         }
+
         if (roleId != null) {
             Optional<Role> roleOpt = roleRepository.findById((long) roleId);
             if (roleOpt.isEmpty()) {
@@ -142,30 +127,30 @@ public class AdminServiceImpl implements AdminService {
             }
             user.setRole(roleOpt.get());
         }
-        if (branchId != null) {
-            Optional<Branch> branchOpt = branchRepository.findById((long) branchId);
-            if (branchOpt.isEmpty()) {
-                throw new RuntimeException("Chi nhánh không tồn tại!");
-            }
-            user.setBranch(branchOpt.get());
+
+
+        if (isActive != null) {
+            user.setIsActive(isActive);
         }
+
         userRepository.save(user);
     }
 
     @Override
+    @Transactional
     public void deleteAdmin(Long userId) {
-        //check xem user có tồn tại không
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
             throw new RuntimeException("Người dùng không tồn tại!");
         }
-        user.setIsActive(false);
+
+
+
+        user.setIsActive(-1);
         userRepository.save(user);
     }
 
-    //hàm này dùng để lấy kết quả của future với timeout
-    //sử dụng generic để có thể lấy được nhiều kiểu dữ liệu khác nhau
-    // T thay cho kiểu dữ liệu được truyền vào
+    // Hàm lấy kết quả với timeout (không đổi)
     private <T> T getFutureResultWithTimeout(Future<T> future, String entityName, int seconds)
             throws InterruptedException, ExecutionException {
         try {
@@ -193,6 +178,10 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public List<User> findAll() {
-        return userRepository.findAllIsActive();
+        return userRepository.findAllActiveAndInactive();
     }
+     @Override
+    public  List<User> findALlDeteleted(){return userRepository.findAllDeleted();}
+
+
 }

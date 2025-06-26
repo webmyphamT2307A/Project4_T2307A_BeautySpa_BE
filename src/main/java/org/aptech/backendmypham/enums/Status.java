@@ -5,6 +5,7 @@ import lombok.Getter;
 @Getter
 public enum Status {
     SUCCESS("success"),
+    FAIL("fail"),
     ERROR("error"),
     NOT_FOUND("not_found"),
     INVALID("invalid"),
@@ -15,5 +16,6 @@ public enum Status {
     Status(String value) {
         this.value = value;
     }
+
 
 }

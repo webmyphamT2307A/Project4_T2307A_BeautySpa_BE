@@ -14,6 +14,7 @@ import java.time.Instant;
 @Table(name = "services")
 public class Service {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "service_id", nullable = false)
     private Integer id;
 
@@ -29,7 +30,8 @@ public class Service {
 
     @Column(name = "duration", nullable = false)
     private Integer duration;
-
+    @Column(name = "image_url")
+    private String imageUrl;
     @ColumnDefault("(now())")
     @Column(name = "created_at")
     private Instant createdAt;
@@ -37,5 +39,6 @@ public class Service {
     @ColumnDefault("1")
     @Column(name = "is_active")
     private Boolean isActive;
+
 
 }

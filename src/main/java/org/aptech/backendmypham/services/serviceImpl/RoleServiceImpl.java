@@ -50,7 +50,7 @@ public class RoleServiceImpl implements RoleService {
                     .stream()
                     .filter(user -> user.getRole().getId().equals(roleId))
                     .forEach(user -> {
-                        user.setIsActive(false);
+                        user.setIsActive(0);
                         userRepository.save(user);
                     });
             roleRepository.disableRoleById(roleId);

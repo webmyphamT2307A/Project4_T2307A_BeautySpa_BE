@@ -1,0 +1,161 @@
+package org.aptech.backendmypham.services.serviceImpl;
+
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.aptech.backendmypham.dto.AttendanceDTO;
+import org.aptech.backendmypham.dto.AttendanceHourDto;
+import org.aptech.backendmypham.dto.UsersScheduleResponseDto;
+import org.aptech.backendmypham.exception.ResourceNotFoundException;
+import org.aptech.backendmypham.models.Attendance;
+import org.aptech.backendmypham.models.User;
+import org.aptech.backendmypham.models.UsersSchedule;
+import org.aptech.backendmypham.repositories.AttendanceRepository;
+import org.aptech.backendmypham.repositories.UserRepository;
+import org.aptech.backendmypham.repositories.UsersScheduleRepository;
+import org.aptech.backendmypham.services.AttendanceService;
+import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Optional;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+
+@Service
+@RequiredArgsConstructor
+public class AttendanceServiceImpl implements AttendanceService {
+    final private AttendanceRepository attendanceRepository;
+    final private UsersScheduleRepository usersScheduleRepository;
+    final private UserRepository userRepository;
+    @Override
+    public List<Attendance> getAll(){
+        return attendanceRepository.findAll();
+    }
+    @Override
+    @Transactional // Sử dụng @Transactional để đảm bảo cả hai thao tác (lưu attendance và cập nhật schedule) thành công hoặc thất bại cùng nhau
+    public Attendance save(Attendance attendance) {
+        // 1. Lưu bản ghi điểm danh như bình thường
+        Attendance savedAttendance = attendanceRepository.save(attendance);
+
+        // 2. Lấy thông tin cần thiết để tìm lịch làm việc tương ứng
+        User user = savedAttendance.getUser();
+        LocalDate workDate = savedAttendance.getCheckIn().toLocalDate();
+
+        // 3. Tìm lịch làm việc (UsersSchedule) của nhân viên trong ngày đó
+        Optional<UsersSchedule> scheduleOpt = usersScheduleRepository.findByUserAndWorkDate(user, workDate);
+
+        // 4. Nếu tìm thấy lịch làm việc, cập nhật thời gian check-in/check-out
+        scheduleOpt.ifPresent(schedule -> {
+            // Nếu là thao tác Check-in (checkOut của attendance là null)
+            if (savedAttendance.getCheckOut() == null) {
+                schedule.setCheckInTime(savedAttendance.getCheckIn().toLocalTime());
+            }
+            // Nếu là thao tác Check-out (checkOut của attendance không phải là null)
+            else {
+                schedule.setCheckOutTime(savedAttendance.getCheckOut().toLocalTime());
+            }
+            // Lưu lại thay đổi trên lịch làm việc
+            usersScheduleRepository.save(schedule);
+        });
+
+        return savedAttendance;
+    }
+    @Override
+    public Optional<Attendance> findByUserAndCheckInBetween(User user, LocalDateTime start, LocalDateTime end) {
+        return attendanceRepository.findByUserAndCheckInBetween(user, start, end);
+    }
+
+    @Override
+    public List<AttendanceHourDto> findByUserAndBetween(User user, LocalDateTime start, LocalDateTime end, String type) {
+        List<Attendance> attendances = attendanceRepository.findByUserAndCheckInBetweenAndStatus(user, start, end);
+
+        if ("month".equalsIgnoreCase(type)) {
+            // Khởi tạo mảng 12 tháng (1-12)
+            long[] totalHoursByMonth = new long[12];
+
+            for (Attendance attendance : attendances) {
+                LocalDateTime checkIn = attendance.getCheckIn();
+                LocalDateTime checkOut = attendance.getCheckOut();
+                if (checkIn != null && checkOut != null) {
+                    long hoursWorked = Duration.between(checkIn, checkOut).toHours();
+                    int month = checkIn.getMonthValue(); // 1 - 12
+                    totalHoursByMonth[month - 1] += hoursWorked;
+                }
+            }
+
+            List<AttendanceHourDto> result = new ArrayList<>();
+            for (int i = 0; i < 12; i++) {
+                result.add(new AttendanceHourDto(String.format("%02d", i + 1), totalHoursByMonth[i]));
+            }
+            return result;
+
+        } else if ("year".equalsIgnoreCase(type)) {
+            // Tính từ 5 năm trước đến hiện tại
+            int currentYear = LocalDate.now().getYear();
+            int startYear = currentYear - 4;
+            Map<Integer, Long> yearToHours = new LinkedHashMap<>();
+            for (int y = startYear; y <= currentYear; y++) {
+                yearToHours.put(y, 0L);
+            }
+
+            for (Attendance attendance : attendances) {
+                LocalDateTime checkIn = attendance.getCheckIn();
+                LocalDateTime checkOut = attendance.getCheckOut();
+                if (checkIn != null && checkOut != null) {
+                    int year = checkIn.getYear();
+                    if (yearToHours.containsKey(year)) {
+                        long hoursWorked = Duration.between(checkIn, checkOut).toHours();
+                        yearToHours.put(year, yearToHours.get(year) + hoursWorked);
+                    }
+                }
+            }
+
+            return yearToHours.entrySet().stream()
+                    .map(entry -> new AttendanceHourDto(String.valueOf(entry.getKey()), entry.getValue()))
+                    .collect(Collectors.toList());
+
+        } else {
+            // type = day hoặc default: xử lý theo tuần như cũ
+            if (attendances.isEmpty()) {
+                return List.of(
+                        new AttendanceHourDto("T2", 0),
+                        new AttendanceHourDto("T3", 0),
+                        new AttendanceHourDto("T4", 0),
+                        new AttendanceHourDto("T5", 0),
+                        new AttendanceHourDto("T6", 0),
+                        new AttendanceHourDto("T7", 0),
+                        new AttendanceHourDto("CN", 0)
+                );
+            }
+
+            long[] totalHours = new long[7]; // T2 đến CN
+            for (Attendance attendance : attendances) {
+                LocalDateTime checkIn = attendance.getCheckIn();
+                LocalDateTime checkOut = attendance.getCheckOut();
+                if (checkIn != null && checkOut != null) {
+                    long hoursWorked = Duration.between(checkIn, checkOut).toHours();
+                    int dayOfWeek = checkIn.getDayOfWeek().getValue(); // 1 = Monday, 7 = Sunday
+                    totalHours[dayOfWeek - 1] += hoursWorked;
+                }
+            }
+
+            return List.of(
+                    new AttendanceHourDto("T2", totalHours[0]),
+                    new AttendanceHourDto("T3", totalHours[1]),
+                    new AttendanceHourDto("T4", totalHours[2]),
+                    new AttendanceHourDto("T5", totalHours[3]),
+                    new AttendanceHourDto("T6", totalHours[4]),
+                    new AttendanceHourDto("T7", totalHours[5]),
+                    new AttendanceHourDto("CN", totalHours[6])
+            );
+        }
+    }
+
+
+}

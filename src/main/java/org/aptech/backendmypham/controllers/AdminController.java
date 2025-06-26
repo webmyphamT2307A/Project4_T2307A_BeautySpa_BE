@@ -19,14 +19,7 @@ public class AdminController {
     @Operation(summary = "api tạo tài khoản cho admin, nhân viên")
     public ResponseEntity<ResponseObject> createAccount(@RequestBody UserRequestDto userRequestDto) {
         try {
-            adminService.createAdmin(
-                    userRequestDto.getPassword(),
-                    userRequestDto.getEmail(),
-                    userRequestDto.getPhone(),
-                    userRequestDto.getAddress(),
-                    userRequestDto.getRoleId(),
-                    userRequestDto.getBranchId()
-            );
+            adminService.createAdmin(userRequestDto);
             return ResponseEntity.ok(
                     new ResponseObject(Status.SUCCESS, "Account created successfully", null)
             );
@@ -36,19 +29,21 @@ public class AdminController {
             );
         }
     }
-
     @PutMapping("/update/{id}")
     @Operation(summary = "api cập nhật thông tin tài khoản admin, nhân viên")
     public ResponseEntity<ResponseObject> updateAccount(@PathVariable Long id, @RequestBody UserRequestDto userRequestDto) {
         try {
             adminService.updateAdmin(
                     id,
+                    userRequestDto.getFullName(),
                     userRequestDto.getPassword(),
                     userRequestDto.getEmail(),
                     userRequestDto.getPhone(),
                     userRequestDto.getAddress(),
                     userRequestDto.getRoleId(),
-                    userRequestDto.getBranchId()
+                    userRequestDto.getImageUrl(),
+                    userRequestDto.getIsActive()
+
             );
             return ResponseEntity.ok(
                     new ResponseObject(Status.SUCCESS, "Account updated successfully", null)
@@ -102,6 +97,19 @@ public class AdminController {
             );
         }
     }
+    @GetMapping("/find-all-deleted")
+    @Operation(summary = "tìm tất cả cái mà admin đã xóa hẳn(-1)")
+    public ResponseEntity<ResponseObject> findAllDeleted() {
+        try {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Tìm  thành công", adminService.findALlDeteleted())
+            );
+        } catch (Exception e) {
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.ERROR, "Lỗi khi tìm : " + e.getMessage(), null)
+            );
+        }
+    }
 
     @GetMapping("/find-by-email/{email}")
     @Operation(summary = "api tìm tài khoản admin, nhân viên theo email")
@@ -131,4 +139,8 @@ public class AdminController {
         }
     }
 
+
+
+
 }
+

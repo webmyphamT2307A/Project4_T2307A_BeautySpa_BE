@@ -13,13 +13,14 @@ import java.time.Instant;
 @Table(name = "customers")
 public class Customer {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "customer_id", nullable = false)
     private Integer id;
 
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
-    @Column(name = "phone", nullable = false, length = 20)
+    @Column(name = "phone", nullable = true, length = 20)
     private String phone;
 
     @Column(name = "email")
@@ -30,7 +31,7 @@ public class Customer {
 
     @Lob
     @Column(name = "image_url")
-    private String imageUrl;
+    private String imageUrl = "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_1280.png";
 
     @Lob
     @Column(name = "address")
@@ -44,4 +45,7 @@ public class Customer {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    @ColumnDefault("0")
+    @Column(name = "is_guest")
+    private Boolean isGuest;
 }
