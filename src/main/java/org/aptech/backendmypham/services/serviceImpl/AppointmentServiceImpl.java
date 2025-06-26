@@ -461,29 +461,37 @@ public class AppointmentServiceImpl implements AppointmentService {
         User staffToBook = appointment.getUser(); // Nhân viên hiện tại
         boolean staffChanged = false;
 
-        // LOGIC ĐÃ SỬA: Xử lý gán/bỏ gán nhân viên dựa trên trạng thái mới
+// LOGIC ĐÃ SỬA: Xử lý gán/bỏ gán nhân viên dựa trên trạng thái mới
         if ("cancelled".equalsIgnoreCase(newStatus)) {
-            // 1. KHI HỦY LỊCH: Luôn bỏ gán nhân viên để giải phóng lịch.
-            if (staffToBook != null) {
-                System.out.println("Trạng thái là 'cancelled'. Tự động bỏ gán nhân viên ID: " + staffToBook.getId());
-                appointment.setUser(null);
-                staffToBook = null; // Cập nhật biến tạm thời để logic kiểm tra sau này hiểu đúng.
-                staffChanged = true;
-            }
-        } else if ("completed".equalsIgnoreCase(newStatus)) {
-            // 2. KHI HOÀN THÀNH: Giữ lại nhân viên đã thực hiện.
-            // Nếu DTO có gửi lên userId mới (trường hợp admin sửa) thì cập nhật.
-            // Nếu không thì KHÔNG làm gì cả, giữ nguyên nhân viên cũ.
-            System.out.println("Trạng thái là 'completed'. Sẽ giữ lại thông tin nhân viên.");
+            // 1. KHI HỦY LỊCH: GIỮ LẠI NHÂN VIÊN để bảo toàn lịch sử
+            System.out.println("Trạng thái là 'cancelled'. Giữ lại thông tin nhân viên để bảo toàn lịch sử.");
+
+            // Chỉ cho phép cập nhật nhân viên nếu DTO có gửi lên userId mới từ admin
             if (dto.getUserId() != null && (staffToBook == null || !dto.getUserId().equals(staffToBook.getId()))) {
                 staffToBook = userRepository.findById(dto.getUserId())
                         .orElseThrow(() -> new RuntimeException("Không tìm thấy User (nhân viên) với ID: " + dto.getUserId()));
                 appointment.setUser(staffToBook);
                 staffChanged = true;
-                System.out.println("Đã cập nhật User sang ID: " + staffToBook.getId() + " cho lịch hẹn đã hoàn thành.");
+                System.out.println("Admin cập nhật nhân viên cho lịch hẹn đã hủy. User ID: " + staffToBook.getId());
             } else {
-                System.out.println("Không có userId mới trong DTO hoặc userId không đổi. Giữ nguyên nhân viên hiện tại: " + (staffToBook != null ? staffToBook.getId() : "null"));
+                System.out.println("Giữ nguyên nhân viên hiện tại: " + (staffToBook != null ? staffToBook.getId() : "null"));
             }
+
+        } else if ("completed".equalsIgnoreCase(newStatus)) {
+            // 2. KHI HOÀN THÀNH: Giữ lại nhân viên đã thực hiện.
+            System.out.println("Trạng thái là 'completed'. Giữ lại thông tin nhân viên đã thực hiện.");
+
+            // Chỉ cho phép cập nhật nếu admin gửi userId mới
+            if (dto.getUserId() != null && (staffToBook == null || !dto.getUserId().equals(staffToBook.getId()))) {
+                staffToBook = userRepository.findById(dto.getUserId())
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy User (nhân viên) với ID: " + dto.getUserId()));
+                appointment.setUser(staffToBook);
+                staffChanged = true;
+                System.out.println("Admin cập nhật nhân viên cho lịch hẹn đã hoàn thành. User ID: " + staffToBook.getId());
+            } else {
+                System.out.println("Giữ nguyên nhân viên hiện tại: " + (staffToBook != null ? staffToBook.getId() : "null"));
+            }
+
         } else {
             // 3. CÁC TRẠNG THÁI KHÁC (pending, confirmed...): Xử lý gán/bỏ gán từ DTO như bình thường.
             if (dto.getUserId() != null) {
