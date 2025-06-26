@@ -158,6 +158,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("year") int year
     );
 
+    @Query("SELECT a.user.id FROM Appointment a WHERE a.user IS NOT NULL AND a.appointmentDate >= :startOfDay AND a.appointmentDate < :endOfDay AND a.timeSlot.slotId = :timeSlotId AND a.status <> 'cancelled'")
+    List<Long> findBusyUserIdsByDateAndTimeSlot(@Param("startOfDay") Instant startOfDay, @Param("endOfDay") Instant endOfDay, @Param("timeSlotId") Long timeSlotId);
+
 
     boolean existsByAppointmentDateAndTimeSlotAndStatusNot(Instant bookingStartInstant, Timeslots timeSlot, String cancelled);
 }

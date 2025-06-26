@@ -78,5 +78,13 @@ public interface UsersScheduleRepository extends JpaRepository<UsersSchedule, In
                                                 @Param("timeSlotId") Long timeSlotId);
     Optional<UsersSchedule> findByUserAndWorkDate(User user, LocalDate workDate);
 
+    @Query("SELECT us.user.id FROM UsersSchedule us WHERE us.workDate = :workDate AND us.isActive = true")
+    List<Long> findUserIdsByWorkDateAndIsActiveTrue(@Param("workDate") LocalDate workDate);
+
+
+    @Query("SELECT COUNT(DISTINCT us.user.id) FROM UsersSchedule us WHERE us.workDate = :workDate AND us.isActive = true")
+    int countDistinctUserByWorkDateAndIsActiveTrue(@Param("workDate") LocalDate workDate);
+
+
 
 }

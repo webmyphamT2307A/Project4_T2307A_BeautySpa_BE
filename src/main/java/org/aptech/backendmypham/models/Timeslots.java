@@ -24,6 +24,9 @@ public class Timeslots {
     @Column(nullable = false)
     private LocalTime endTime;
 
+    @Column(length = 50)
+    private String shift;
+
     @Column(nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt = LocalDateTime.now();
 
