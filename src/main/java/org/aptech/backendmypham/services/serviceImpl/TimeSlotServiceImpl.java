@@ -31,28 +31,24 @@ public class TimeSlotServiceImpl implements TimeSlotService {
 
     @Override
     public int getAvailableSlot(LocalDate date, Long serviceId, Long timeSlotId) {
-        // 1. Lấy danh sách ID của TẤT CẢ nhân viên có lịch làm trong ngày hôm đó
-        List<Long> allScheduledStaffIds = usersScheduleRepository.findUserIdsByWorkDateAndIsActiveTrue(date);
+        final int TOTAL_SLOTS = 10;
 
-        // Nếu không có nhân viên nào làm việc, trả về 0 slot trống
-        if (allScheduledStaffIds.isEmpty()) {
-            return 0;
-        }
-
-        // 2. Lấy danh sách ID của những nhân viên đã BẬN vào khung giờ đó
         ZoneId vietnamZoneId = ZoneId.of("Asia/Ho_Chi_Minh");
         Instant startOfDay = date.atStartOfDay(vietnamZoneId).toInstant();
         Instant endOfDay = date.plusDays(1).atStartOfDay(vietnamZoneId).toInstant();
 
-        List<Long> busyStaffIds = appointmentRepository.findBusyUserIdsByDateAndTimeSlot(startOfDay, endOfDay, timeSlotId);
+        // Đếm số lịch hẹn đã được đặt cho ngày và khung giờ này
+        // Lưu ý: Bạn cần có phương thức count... trong AppointmentRepository
+        long bookedSlots = appointmentRepository.countByAppointmentDateBetweenAndTimeSlot_SlotIdAndIsActiveTrue(
+                startOfDay,
+                endOfDay,
+                timeSlotId
+        );
 
-        // 3. Tìm những nhân viên RẢNH bằng cách loại bỏ những người đã bận
-        // Tạo một bản sao để thực hiện thao tác removeAll
-        List<Long> availableStaffIds = new ArrayList<>(allScheduledStaffIds);
-        availableStaffIds.removeAll(busyStaffIds);
+        int availableSlots = TOTAL_SLOTS - (int) bookedSlots;
 
-        // 4. Số slot trống chính là số lượng nhân viên còn lại trong danh sách rảnh
-        return availableStaffIds.size();
+        // Đảm bảo số slot trống không bao giờ là số âm
+        return Math.max(0, availableSlots);
     }
 
     // ✅ NEW CRUD IMPLEMENTATIONS

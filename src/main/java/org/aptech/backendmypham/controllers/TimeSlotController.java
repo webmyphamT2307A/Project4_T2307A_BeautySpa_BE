@@ -61,25 +61,24 @@ public class TimeSlotController {
         );
     }
 
-
     @GetMapping("/available")
-    @Operation(summary = "Kiểm tra số slot còn trống và tổng số nhân viên làm việc")
+    @Operation(summary = "Kiểm tra số slot còn trống (10 slot cố định)")
     public ResponseEntity<ResponseObject> getAvailableSlot(
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
-            @RequestParam Long serviceId, // serviceId hiện tại chưa dùng trong logic mới, nhưng giữ lại để có thể mở rộng sau
+            @RequestParam Long serviceId,
             @RequestParam Long timeSlotId
     ) {
-        // Lấy dữ liệu từ service đã được sửa đổi
-        int totalStaffWithSchedule = timeSlotService.getTotalStaffScheduled(date);
+        final int TOTAL_SLOTS = 10;
+        // Service sẽ trả về số slot còn trống
         int availableSlots = timeSlotService.getAvailableSlot(date, serviceId, timeSlotId);
+        // Tính toán số slot đã được đặt
+        int bookedSlots = TOTAL_SLOTS - availableSlots;
 
         Map<String, Object> data = new HashMap<>();
-        data.put("availableSlots", availableSlots);
-        data.put("totalSlots", totalStaffWithSchedule);
-        data.put("bookedSlots", totalStaffWithSchedule - availableSlots);
-        data.put("message", totalStaffWithSchedule > 0 ?
-                String.format("%d nhân viên có lịch làm việc, %d slot còn trống", totalStaffWithSchedule, availableSlots) :
-                "Không có nhân viên nào có lịch làm việc vào ngày này");
+        data.put("availableSlots", availableSlots); // Số chỗ còn trống
+        data.put("totalSlots", TOTAL_SLOTS);      // Tổng số chỗ luôn là 10
+        data.put("bookedSlots", bookedSlots);      // Số chỗ đã có người đặt
+        data.put("message", String.format("Còn %d/%d chỗ trống.", availableSlots, TOTAL_SLOTS));
 
         return ResponseEntity.ok(
                 new ResponseObject(Status.SUCCESS, "Thành công", data)

@@ -163,4 +163,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
 
     boolean existsByAppointmentDateAndTimeSlotAndStatusNot(Instant bookingStartInstant, Timeslots timeSlot, String cancelled);
+
+    long countByAppointmentDateBetweenAndTimeSlot_SlotIdAndIsActiveTrue(Instant startOfDay, Instant endOfDay, Long timeSlotId);
 }
