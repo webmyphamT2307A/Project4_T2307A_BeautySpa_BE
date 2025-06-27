@@ -115,25 +115,51 @@ public class CustomerServiceImpl implements CustomerService {
     public void deleteCustomer(Long id) {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Khách hàng không tồn tại!"));
-        customer.setIsActive(false); // Soft delete
+        customer.setIsActive(false);
         customerRepository.save(customer);
     }
 
     @Override
     public Customer createOrGetGuest(CustomerDto guestDto) {
-        Optional<Customer> existing = customerRepository.findByPhone(guestDto.getPhone());
-        if (existing.isPresent()) {
-            return existing.get();
+        // Tìm khách hàng bằng số điện thoại
+        Optional<Customer> existingCustomerOpt = customerRepository.findByPhone(guestDto.getPhone());
+
+        if (existingCustomerOpt.isPresent()) {
+            // Nếu khách hàng đã tồn tại, hãy kiểm tra xem có cần cập nhật thông tin không
+            Customer existingCustomer = existingCustomerOpt.get();
+            boolean isUpdated = false;
+
+            // Cập nhật tên nếu tên mới được cung cấp và khác với tên cũ
+            if (guestDto.getFullName() != null && !guestDto.getFullName().isBlank() && !guestDto.getFullName().equals(existingCustomer.getFullName())) {
+                existingCustomer.setFullName(guestDto.getFullName());
+                isUpdated = true;
+            }
+
+            // Cập nhật email nếu email mới được cung cấp và khác với email cũ
+            if (guestDto.getEmail() != null && !guestDto.getEmail().isBlank() && !guestDto.getEmail().equals(existingCustomer.getEmail())) {
+                existingCustomer.setEmail(guestDto.getEmail());
+                isUpdated = true;
+            }
+
+            // Nếu có bất kỳ thông tin nào được thay đổi, hãy lưu nó vào DB
+            if (isUpdated) {
+                return customerRepository.save(existingCustomer);
+            }
+
+            // Nếu không, chỉ cần trả lại bản ghi hiện có
+            return existingCustomer;
+
         } else {
-            Customer customer = new Customer();
-            customer.setFullName(guestDto.getFullName());
-            customer.setPhone(guestDto.getPhone());
-            // Guest không cần email, password, address
-            customer.setEmail("guest_" + guestDto.getPhone() + "@example.com"); // Tạo email giả để không bị null
-            customer.setPassword(passwordEncoder.encode("guest_default_password"));
-            customer.setIsActive(true); // Guest luôn active
-            customer.setCreatedAt(Instant.now());
-            return customerRepository.save(customer);
+            // Nếu khách hàng không tồn tại, hãy tạo một khách hàng mới
+            Customer newCustomer = new Customer();
+            newCustomer.setFullName(guestDto.getFullName());
+            newCustomer.setPhone(guestDto.getPhone());
+            newCustomer.setEmail(guestDto.getEmail());
+            newCustomer.setPassword(passwordEncoder.encode("guest_default_password")); // Giả sử có sẵn passwordEncoder
+            newCustomer.setIsActive(true);
+            newCustomer.setCreatedAt(Instant.now());
+
+            return customerRepository.save(newCustomer);
         }
     }
 

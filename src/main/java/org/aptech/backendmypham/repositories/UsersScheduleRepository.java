@@ -40,7 +40,8 @@ public interface UsersScheduleRepository extends JpaRepository<UsersSchedule, In
     @Query("SELECT us FROM UsersSchedule us WHERE FUNCTION('YEAR', us.workDate) = :year AND FUNCTION('MONTH', us.workDate) = :month AND us.isActive = true")
     List<UsersSchedule> findByYearMonthAndIsActiveTrue(@Param("year") int year, @Param("month") int month);
 
-//    Optional<UsersSchedule> findByUserAndWorkDateAndIsActiveTrue(User user, LocalDate workDate);
+    @Query("SELECT s FROM UsersSchedule s WHERE s.user = :userParam AND s.workDate = :dateParam AND s.isActive = true")
+    Optional<UsersSchedule> timLichLamViecHomNay(@Param("userParam") User user, @Param("dateParam") LocalDate workDate);
     boolean existsByUserAndWorkDateAndIsActiveTrue(User user, LocalDate workDate);
 
 
@@ -75,5 +76,15 @@ public interface UsersScheduleRepository extends JpaRepository<UsersSchedule, In
             "(:timeSlotId IS NULL OR us.timeSlot.slotId = :timeSlotId)")
     int countStaffWithScheduleOnDateAndTimeSlot(@Param("date") LocalDate date,
                                                 @Param("timeSlotId") Long timeSlotId);
+    Optional<UsersSchedule> findByUserAndWorkDate(User user, LocalDate workDate);
+
+    @Query("SELECT us.user.id FROM UsersSchedule us WHERE us.workDate = :workDate AND us.isActive = true")
+    List<Long> findUserIdsByWorkDateAndIsActiveTrue(@Param("workDate") LocalDate workDate);
+
+
+    @Query("SELECT COUNT(DISTINCT us.user.id) FROM UsersSchedule us WHERE us.workDate = :workDate AND us.isActive = true")
+    int countDistinctUserByWorkDateAndIsActiveTrue(@Param("workDate") LocalDate workDate);
+
+
 
 }

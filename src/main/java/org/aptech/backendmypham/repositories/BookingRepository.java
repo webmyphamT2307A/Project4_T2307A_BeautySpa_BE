@@ -39,7 +39,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT b FROM Booking b WHERE b.user.id = :userId " +
             "AND MONTH(b.bookingDateTime) = :month " +
             "AND YEAR(b.bookingDateTime) = :year " +
-            "AND b.isActive = true")
+            "AND b.isActive = true AND b.status = 'completed'")
     List<Booking> findBookingsByUserIdAndMonthAndYear(
             @Param("userId") Long userId,
             @Param("month") int month,

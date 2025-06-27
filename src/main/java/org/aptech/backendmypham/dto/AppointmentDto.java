@@ -16,6 +16,10 @@ public class AppointmentDto {
     private String notes;
     private String phoneNumber;
     private String fullName;
+    private  String email;
     private Integer durationMinutes;
     private Double price;
+
+
+
 }

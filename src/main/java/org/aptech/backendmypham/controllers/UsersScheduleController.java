@@ -3,6 +3,7 @@ package org.aptech.backendmypham.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.aptech.backendmypham.dto.ScheduleUserDto;
 import org.aptech.backendmypham.dto.UsersScheduleRequestDto;
 import org.aptech.backendmypham.dto.UsersScheduleResponseDto;
 import org.aptech.backendmypham.enums.Status;
@@ -112,5 +113,16 @@ public class UsersScheduleController {
         ResponseObject responseObject =
                 new ResponseObject(Status.SUCCESS, "Check-out thành công.", updatedSchedule);
         return ResponseEntity.ok(responseObject);
+    }
+
+    @GetMapping("/user/{userId}/schedule")
+    @Operation(summary = "Lấy lịch trình của nhân viên theo User ID (use for app)")
+    public List<ScheduleUserDto> getUserScheduleByUserId(
+            @PathVariable Long userId) {
+        List<ScheduleUserDto> schedules = usersScheduleService.getUserScheduleByUserId(userId);
+       if(schedules.isEmpty()) {
+           return List.of();
+       }
+       return schedules;
     }
 }
