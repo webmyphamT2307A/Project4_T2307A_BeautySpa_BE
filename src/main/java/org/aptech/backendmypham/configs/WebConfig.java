@@ -17,7 +17,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "http://localhost:3001",
                         "http://localhost:3002",
                         "https://project4-beauty.vercel.app",
-                        "https://project4-fe-user.vercel.app") 
+                        "https://project4-fe-user.vercel.app",
+                        "https://project4-fe-admin-neon.vercel.app")
                 .allowCredentials(true)
                 .maxAge(3600);
     }
