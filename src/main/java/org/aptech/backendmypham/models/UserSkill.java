@@ -21,5 +21,4 @@ public class UserSkill {
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "skill_id", nullable = false)
     private Skill skill;
-
 }

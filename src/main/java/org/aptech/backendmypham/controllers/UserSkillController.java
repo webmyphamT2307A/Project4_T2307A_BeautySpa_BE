@@ -11,7 +11,7 @@ import org.aptech.backendmypham.repositories.UserRepository;
 import org.aptech.backendmypham.repositories.UserSkillRepository;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+        import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/user-skills")
