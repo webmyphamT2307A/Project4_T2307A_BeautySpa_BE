@@ -28,4 +28,8 @@ public interface ReviewRepository extends JpaRepository<Review,Integer> {
 //            "WHERE r.user.id = :userId AND r.rating IS NOT NULL AND FUNCTION('YEAR', r.createdAt) = :year " +
 //            "GROUP BY FUNCTION('MONTH', r.createdAt)")
 //    List<Object[]> getMonthlyRatingsForUser(@Param("year") int year, @Param("userId") Long userId);
+
+    List<Review> findByRelatedIdAndType(Integer relatedId, String type);
+    List<Review> findByRelatedIdAndTypeAndIsActiveTrue(Integer relatedId, String type);
+    List<Review> findAllByType(String type);
 }

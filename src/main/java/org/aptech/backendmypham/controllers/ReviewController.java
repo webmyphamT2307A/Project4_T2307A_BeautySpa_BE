@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.util.List;
 import java.util.Map;
 
 
@@ -53,13 +54,13 @@ public class ReviewController {
         }
     }
 
-    @GetMapping("/item/{relatedId}")
+    @GetMapping("/item/{type}/{relatedId}")
     @Operation(summary = "Lấy danh sách đánh giá theo service/user ID")
-    public ResponseEntity<ResponseObject> getReviewsByRelatedId(
-            @PathVariable Integer relatedId,
-            Pageable pageable) {
+    public ResponseEntity<ResponseObject> getReviewsByTypeAndRelatedId(
+            @PathVariable(name = "type") String type,
+            @PathVariable(name = "relatedId") Integer relatedId) {
         try {
-            Page<ReviewResponseDTO> reviews = reviewService.getReviewsByRelatedId(relatedId, pageable);
+            List<ReviewResponseDTO> reviews = reviewService.getReviewsByTypeAndRelatedId(type, relatedId);
 
             return ResponseEntity.ok(
                     new ResponseObject(Status.SUCCESS, "Reviews retrieved successfully", reviews)
@@ -210,6 +211,16 @@ public class ReviewController {
             return ResponseEntity.badRequest().body(
                     new ResponseObject(Status.FAIL, e.getMessage(), null)
             );
+        }
+    }
+
+    @GetMapping("/calculate-average-user")
+    @Operation(summary = "Tính rating cho nhân viên, dùng để update nhanh dữ liệu")
+    public void calculateAverageUserRating() {
+        try {
+            reviewService.calculateAverageUserRating();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to calculate average user rating: " + e.getMessage());
         }
     }
 

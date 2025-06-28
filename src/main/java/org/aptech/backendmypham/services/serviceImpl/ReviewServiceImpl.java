@@ -56,9 +56,11 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ReviewResponseDTO> getReviewsByRelatedId(Integer relatedId, Pageable pageable) {
-        Page<Review> reviewPage = reviewRepository.findByRelatedIdAndIsActiveTrue(relatedId, pageable);
-        return reviewPage.map(this::convertToResponseDTO);
+    public List<ReviewResponseDTO> getReviewsByTypeAndRelatedId(String type, Integer relatedId) {
+        List<Review> reviewPage = reviewRepository.findByRelatedIdAndTypeAndIsActiveTrue(relatedId, type );
+        return reviewPage.stream()
+                .map(this::convertToResponseDTO)
+                .toList();
     }
 
     @Override
@@ -145,7 +147,7 @@ public class ReviewServiceImpl implements ReviewService {
             if (!exists) {
                 throw new ResourceNotFoundException("Service not found with id: " + relatedId);
             }
-        } else if ("user".equalsIgnoreCase(type)) {
+        } else if ("staff".equalsIgnoreCase(type)) {
             exists = userRepository.existsById(relatedId.longValue());
             if (!exists) {
                 throw new ResourceNotFoundException("User (Staff) not found with id: " + relatedId);
@@ -155,6 +157,31 @@ public class ReviewServiceImpl implements ReviewService {
         }
     }
 
+    public void calculateAverageUserRating(){
+        List<Review> reviews = reviewRepository.findAllByType("user");
+        if (reviews.isEmpty()) {
+            return; // Không có review nào
+        }
+        //tìm tất cả user có review (tìm theo relatedId)
+        List<Integer> userIds = reviews.stream()
+                .map(Review::getRelatedId)
+                .distinct()
+                .collect(Collectors.toList());
+        System.out.println("User IDs with reviews: " + userIds);
+        //tính rating trung bình cho từng user
+        for (Integer userId : userIds) {
+            List<Review> userReviews = reviews.stream()
+                    .filter(review -> review.getRelatedId().equals(userId))
+                    .collect(Collectors.toList());
+            double averageRating = userReviews.stream()
+                    .mapToInt(Review::getRating)
+                    .average()
+                    .orElse(0.0);
+            averageRating = Math.round(averageRating * 10.0) / 10.0;
+            // Cập nhật rating trung bình cho user
+            updateAverageRating("user", userId, averageRating, userReviews.size());
+        }
+    }
 
     private void checkOwnership(Review review, Long customerId) {
         logger.info(">>> [checkOwnership] Bắt đầu kiểm tra quyền cho review ID: {}. Người dùng đang đăng nhập có customerId: {}", review.getId(), customerId);
@@ -190,7 +217,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         // 2. Tạo review cho Nhân viên (Staff)
         ReviewCreateRequestDTO staffReviewDTO = new ReviewCreateRequestDTO();
-        staffReviewDTO.setType("user"); // Đặt type là "user"
+        staffReviewDTO.setType("staff"); // Đặt type là "user"
         staffReviewDTO.setRelatedId(requestDTO.getStaffId().intValue()); // Cần chuyển Long sang Integer cho relatedId
         staffReviewDTO.setRating(requestDTO.getStaffRating());
         staffReviewDTO.setComment(requestDTO.getComment());
@@ -198,11 +225,42 @@ public class ReviewServiceImpl implements ReviewService {
         // Tái sử dụng logic createReview đã có
         ReviewResponseDTO createdStaffReview = this.createReview(customerId, staffReviewDTO);
 
+        // Tính toán lại rating trung bình cho staff (dịch vụ được tính ở fe)
+        calculateAverageRating(requestDTO.getStaffId().intValue(), "staff");
         // 3. Trả về cả hai review vừa tạo
         return Map.of(
                 "serviceReview", createdServiceReview,
                 "staffReview", createdStaffReview
         );
+    }
+
+    private void calculateAverageRating(Integer relatedId, String type) {
+        List<Review> reviews = reviewRepository.findByRelatedIdAndType(relatedId, type);
+        if (reviews.isEmpty()) {
+            return;
+        }
+
+        double averageRating = reviews.stream()
+                .mapToInt(Review::getRating)
+                .average()
+                .orElse(0.0);
+        averageRating = Math.round(averageRating * 10.0) / 10.0;
+        // Cập nhật rating trung bình cho đối tượng liên quan (Service hoặc User)
+        updateAverageRating(type,relatedId, averageRating, reviews.size());
+
+    }
+
+    private void updateAverageRating(String type, Integer relatedId, double averageRating, int reviewCount) {
+        //service được tính ở fe, nên chỉ cần tính của user
+        if ("staff".equalsIgnoreCase(type)) {
+            User user = userRepository.findById(relatedId.longValue())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user với id: " + relatedId));
+            user.setAverageRating(averageRating);
+            user.setTotalReviews(reviewCount);
+            userRepository.save(user);
+        } else {
+            throw new IllegalArgumentException("Loại đánh giá không hợp lệ: " + type);
+        }
     }
 
     private ReviewResponseDTO convertToResponseDTO(Review review) {
