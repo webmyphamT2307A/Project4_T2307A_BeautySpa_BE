@@ -19,6 +19,7 @@ public class GuestAppointmentRequestDto  {
     @NotNull(message = "Appointment ID không được để trống")
     private Integer appointmentId;
     private String appointmentDate;
+    private String email;
 
     @NotNull(message = "Service ID không được để trống")
     private Integer serviceId;

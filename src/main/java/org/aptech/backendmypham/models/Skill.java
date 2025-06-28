@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 
 @Getter
 @Setter
@@ -24,5 +25,10 @@ public class Skill {
     @Lob
     @Column(name = "description")
     private String description;
+
+    @ColumnDefault("1")
+    @Column(name = "is_active")
+    private Boolean isActive;
+
 
 }
