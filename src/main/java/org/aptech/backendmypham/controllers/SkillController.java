@@ -29,6 +29,8 @@ public class SkillController {
         }
         Skill newSkill = new Skill();
         newSkill.setSkillName(skillDTO.getSkillName());
+        newSkill.setDescription(skillDTO.getSkillDescription());
+        newSkill.setActive(skillDTO.getActive());
         Skill savedSkill = skillRepository.save(newSkill);
         return ResponseEntity.ok(savedSkill);
     }
@@ -43,6 +45,8 @@ public class SkillController {
         }
 
         existingSkill.setSkillName(skillDTO.getSkillName());
+        existingSkill.setDescription(skillDTO.getSkillDescription());
+        existingSkill.setActive(skillDTO.getActive());
         Skill updatedSkill = skillRepository.save(existingSkill);
         return ResponseEntity.ok(updatedSkill);
     }
@@ -58,7 +62,7 @@ public class SkillController {
         // 2. Thực hiện xóa mềm kỹ năng bằng cách cập nhật flag (nếu có)
         // Nếu không có trường active, bạn có thể xóa cứng bằng skillRepository.deleteById(id)
         Skill skill = skillRepository.getById(id);
-        skill.setIsActive(false);
+        skill.setActive(false);
         skillRepository.save(skill);
 
         return ResponseEntity.noContent().build();

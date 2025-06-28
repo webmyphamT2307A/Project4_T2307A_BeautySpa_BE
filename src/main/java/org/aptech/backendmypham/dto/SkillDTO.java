@@ -10,5 +10,7 @@ import lombok.Setter;
 public class SkillDTO {
     private Long id;
     private String skillName;
+    private String skillDescription;
+    private Boolean active;
 
 }

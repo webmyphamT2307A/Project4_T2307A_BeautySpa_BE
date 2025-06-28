@@ -28,6 +28,6 @@ public class Skill {
 
     @ColumnDefault("1")
     @Column(name = "is_active")
-    private Boolean isActive;
+    private Boolean active;
 
 }
