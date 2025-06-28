@@ -245,7 +245,7 @@ public class ReviewController {
         // Look up staff user by email
         User staff = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Staff not found with email: " + email));
-
+        System.out.println("Current staff ID: " + staff.getId());
         return staff.getId();
     }
 }
