@@ -31,6 +31,7 @@ public class SkillController {
         Skill newSkill = new Skill();
         newSkill.setSkillName(skillDTO.getSkillName());
         newSkill.setDescription(skillDTO.getSkillDescription());
+        newSkill.setIsActive(skillDTO.isActive());
         Skill savedSkill = skillRepository.save(newSkill);
         return ResponseEntity.ok(savedSkill);
     }
@@ -46,12 +47,13 @@ public class SkillController {
 
         existingSkill.setSkillName(skillDTO.getSkillName());
         existingSkill.setDescription(skillDTO.getSkillDescription());
+        existingSkill.setIsActive(skillDTO.isActive());
         Skill updatedSkill = skillRepository.save(existingSkill);
         return ResponseEntity.ok(updatedSkill);
     }
 
     @DeleteMapping("/{id}")
-    @Transactional // Đảm bảo toàn vẹn dữ liệu
+    @Transactional
     public ResponseEntity<Void> deleteSkill(@PathVariable Long id) {
         // Tìm skill, nếu không thấy sẽ báo lỗi
         Skill skill = skillRepository.findById(id)
@@ -60,9 +62,7 @@ public class SkillController {
         // Xóa các liên kết của skill này với user
         userSkillRepository.deleteAllBySkill_Id(id);
 
-
-
-        // Lưu lại skill với trạng thái mới
+        skill.setIsActive(false);
         skillRepository.save(skill);
 
         // Trả về mã thành công
