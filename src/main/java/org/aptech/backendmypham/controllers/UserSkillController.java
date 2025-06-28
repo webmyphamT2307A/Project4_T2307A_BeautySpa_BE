@@ -47,7 +47,10 @@ public class UserSkillController {
             userSkillEntity.setId(id);     // **Set id bắt buộc**
             userSkillEntity.setUser(user);
             userSkillEntity.setSkill(skill);
-            skillText.append(", ").append(skill.getSkillName());
+            if(!skillText.isEmpty()) {
+                skillText.append(", ");
+            }
+            skillText.append(skill.getSkillName());
             userSkillRepository.save(userSkillEntity);
         }
         //sau khi insert, set lại skillText cho user
@@ -82,7 +85,10 @@ public class UserSkillController {
             userSkillEntity.setId(id);  // **Set id bắt buộc**
             userSkillEntity.setUser(user);
             userSkillEntity.setSkill(skill);
-            skillText.append(", ").append(skill.getSkillName());
+            if(!skillText.isEmpty()) {
+                skillText.append(", ");
+            }
+            skillText.append(skill.getSkillName());
 
             userSkillRepository.save(userSkillEntity);
         }
