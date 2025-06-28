@@ -265,13 +265,15 @@ public class SalaryServiceImpl implements SalaryService {
         if(requestDto.getBaseSalary() != null) existingSalary.setBaseSalary(requestDto.getBaseSalary());
         existingSalary.setBonus(requestDto.getBonus() != null ? requestDto.getBonus() : existingSalary.getBonus());
         existingSalary.setDeductions(requestDto.getDeductions() != null ? requestDto.getDeductions() : existingSalary.getDeductions());
-        if(requestDto.getTotalSalary() != null) existingSalary.setTotalSalary(requestDto.getTotalSalary());
+        if(requestDto.getTotalSalary() != null) {
+            BigDecimal totalSalary = existingSalary.getBaseSalary().add(existingSalary.getBonus()).subtract(existingSalary.getDeductions());
+            existingSalary.setTotalSalary(totalSalary);
+        }
         if(requestDto.getPaymentDate() != null) existingSalary.setPaymentDate(requestDto.getPaymentDate());
         if(requestDto.getNotes() != null) existingSalary.setNotes(requestDto.getNotes());
         if (requestDto.getIsActive() != null) {
             existingSalary.setIsActive(requestDto.getIsActive());
         }
-
         Salary updatedSalary = salaryRepository.save(existingSalary);
         return mapToResponseDto(updatedSalary);
     }

@@ -27,6 +27,8 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     List<User> findAllIsActive();
 
+    @Query("select u from User u join fetch u.role where u.email = :email")
+    Optional<User> findByEmailWithRole(@Param("email") String email);
 
     @Modifying
     @Query(nativeQuery = true, value = "UPDATE users SET is_active = :isActive WHERE id = :id")

@@ -12,7 +12,9 @@ import org.aptech.backendmypham.services.ReviewService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -95,7 +97,7 @@ public class ReviewServiceImpl implements ReviewService {
     public void deleteReview(Long customerId, Integer reviewId) {
         Review existingReview = reviewRepository.findByIdAndIsActiveTrue(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
-        checkOwnership(existingReview, customerId);
+//        checkOwnership(existingReview, customerId);
         existingReview.setIsActive(false);
         reviewRepository.save(existingReview);
     }
@@ -106,6 +108,13 @@ public class ReviewServiceImpl implements ReviewService {
         return reviews.stream()
                 .map(this::convertToReviewDTO)
                 .collect(Collectors.toList());
+    }
+
+    public Page<ReviewDTO> findAllPaged(Integer rating, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Review> pageResult = reviewRepository.findAllByRatingAndIsActive(rating, pageable);
+
+        return pageResult.map(this::convertToReviewDTO); // tự động map sang DTO
     }
 
     // ====================== BUSINESS REPLY METHOD (SIMPLIFIED) ======================

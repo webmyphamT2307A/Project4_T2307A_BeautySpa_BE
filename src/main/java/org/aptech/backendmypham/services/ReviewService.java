@@ -16,6 +16,7 @@ public interface ReviewService {
     ReviewResponseDTO updateReview(Long customerId, Integer reviewId, ReviewUpdateRequestDTO updateDTO);
     void deleteReview(Long customerId, Integer reviewId);
     List<ReviewDTO> findALL();
+    Page<ReviewDTO> findAllPaged(Integer rating, int page, int size);
     Map<String, ReviewResponseDTO> createServiceAndStaffReview(Long customerId, ReviewServiceAndStaffRequestDTO requestDTO);
 
     ReviewResponseDTO addBusinessReply(Integer reviewId, Long staffId, ReplyCreateRequestDTO replyDTO);
