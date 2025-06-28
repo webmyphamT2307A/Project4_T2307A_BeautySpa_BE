@@ -35,7 +35,7 @@ public class TechnicianResponseDTO {
         }
         if (user.getSkills() != null && !user.getSkills().isEmpty()) {
             this.skills = user.getSkills().stream()
-                    .map(skillEntity -> new SkillDTO(skillEntity.getId(), skillEntity.getSkillName(),skillEntity.getDescription(),skillEntity.getActive()))
+                    .map(skillEntity -> new SkillDTO(skillEntity.getId(), skillEntity.getSkillName(),skillEntity.getDescription()))
                     .collect(Collectors.toSet());
         } else {
             this.skills = new HashSet<>();

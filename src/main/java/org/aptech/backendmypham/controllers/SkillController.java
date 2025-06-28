@@ -1,5 +1,6 @@
 package org.aptech.backendmypham.controllers;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.SkillDTO;
 import org.aptech.backendmypham.models.Skill;
@@ -30,7 +31,6 @@ public class SkillController {
         Skill newSkill = new Skill();
         newSkill.setSkillName(skillDTO.getSkillName());
         newSkill.setDescription(skillDTO.getSkillDescription());
-        newSkill.setActive(skillDTO.getActive());
         Skill savedSkill = skillRepository.save(newSkill);
         return ResponseEntity.ok(savedSkill);
     }
@@ -46,25 +46,26 @@ public class SkillController {
 
         existingSkill.setSkillName(skillDTO.getSkillName());
         existingSkill.setDescription(skillDTO.getSkillDescription());
-        existingSkill.setActive(skillDTO.getActive());
         Skill updatedSkill = skillRepository.save(existingSkill);
         return ResponseEntity.ok(updatedSkill);
     }
 
     @DeleteMapping("/{id}")
+    @Transactional // Đảm bảo toàn vẹn dữ liệu
     public ResponseEntity<Void> deleteSkill(@PathVariable Long id) {
-        skillRepository.findById(id)
+        // Tìm skill, nếu không thấy sẽ báo lỗi
+        Skill skill = skillRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy kỹ năng với ID: " + id));
 
-        // 1. Xóa tất cả các liên kết user-skill của kỹ năng này
+        // Xóa các liên kết của skill này với user
         userSkillRepository.deleteAllBySkill_Id(id);
 
-        // 2. Thực hiện xóa mềm kỹ năng bằng cách cập nhật flag (nếu có)
-        // Nếu không có trường active, bạn có thể xóa cứng bằng skillRepository.deleteById(id)
-        Skill skill = skillRepository.getById(id);
-        skill.setActive(false);
+
+
+        // Lưu lại skill với trạng thái mới
         skillRepository.save(skill);
 
+        // Trả về mã thành công
         return ResponseEntity.noContent().build();
     }
 }

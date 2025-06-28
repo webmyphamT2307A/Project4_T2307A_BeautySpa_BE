@@ -26,8 +26,6 @@ public class Skill {
     @Column(name = "description")
     private String description;
 
-    @ColumnDefault("1")
-    @Column(name = "is_active")
-    private Boolean active;
+
 
 }
