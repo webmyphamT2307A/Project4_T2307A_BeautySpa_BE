@@ -1,11 +1,11 @@
 package org.aptech.backendmypham.controllers;
 
 import lombok.RequiredArgsConstructor;
+import org.aptech.backendmypham.dto.SkillDTO;
 import org.aptech.backendmypham.models.Skill;
 import org.aptech.backendmypham.repositories.SkillRepository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -18,5 +18,16 @@ public class SkillController {
     @GetMapping("")
     public List<Skill> getAllSkills() {
         return skillRepository.findAll();
+    }
+
+    @PostMapping("")
+    public ResponseEntity<Skill> createSkill(@RequestBody SkillDTO skillDTO) {
+        if (skillDTO.getSkillName() == null || skillDTO.getSkillName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Tên kỹ năng không được để trống");
+        }
+        Skill newSkill = new Skill();
+        newSkill.setSkillName(skillDTO.getSkillName());
+        Skill savedSkill = skillRepository.save(newSkill);
+        return ResponseEntity.ok(savedSkill);
     }
 }
