@@ -73,103 +73,103 @@ public class EmailServiceImpl implements EmailService {
 
         // SỬA LỖI TẠI ĐÂY: Sắp xếp lại danh sách tham số để khớp với các placeholder trong HTML
         return String.format("""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Appointment Confirmation</title>
-            </head>
-            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background-color: #f4f4f4;">
-                <div style="background-color: #ffffff; margin: 20px auto; padding: 0; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); overflow: hidden;">
-                    
-                    <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); color: white; padding: 30px 40px; text-align: center;">
-                        <h1 style="margin: 0; font-size: 28px; font-weight: 300;">%s</h1>
-                        <p style="margin: 10px 0 0 0; font-size: 16px;">Appointment Confirmation</p>
-                    </div>
-
-                    <div style="padding: 40px;">
-                        <div style="font-size: 18px; margin-bottom: 30px; color: #2c3e50;">
-                            <p>Dear <strong>%s</strong>,</p>
-                            <p>Thank you for booking an appointment with us! We're excited to serve you and help you look and feel your best.</p>
-                        </div>
-
-                        <div style="background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 25px; margin: 30px 0; border-radius: 5px;">
-                            <h2 style="margin-top: 0; color: #667eea;">📅 Appointment Details</h2>
-                            
-                            <table style="width: 100%%; border-collapse: collapse;">
-                                <tr style="border-bottom: 1px solid #e9ecef;">
-                                    <td style="padding: 8px 0; font-weight: 600; color: #495057; width: 40%%;">Appointment ID:</td>
-                                    <td style="padding: 8px 0; color: #2c3e50; text-align: right;">#%s</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid #e9ecef;">
-                                    <td style="padding: 8px 0; font-weight: 600; color: #495057;">Service:</td>
-                                    <td style="padding: 8px 0; color: #2c3e50; text-align: right;">%s</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid #e9ecef;">
-                                    <td style="padding: 8px 0; font-weight: 600; color: #495057;">Date:</td>
-                                    <td style="padding: 8px 0; color: #2c3e50; text-align: right;">%s</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid #e9ecef;">
-                                    <td style="padding: 8px 0; font-weight: 600; color: #495057;">Time:</td>
-                                    <td style="padding: 8px 0; color: #2c3e50; text-align: right;">%s - %s</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid #e9ecef;">
-                                    <td style="padding: 8px 0; font-weight: 600; color: #495057;">Staff Member:</td>
-                                    <td style="padding: 8px 0; color: #2c3e50; text-align: right;">%s</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid #e9ecef;">
-                                    <td style="padding: 8px 0; font-weight: 600; color: #495057;">Location:</td>
-                                    <td style="padding: 8px 0; color: #2c3e50; text-align: right;">%s</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 8px 0; font-weight: 600; color: #495057;">Total Price:</td>
-                                    <td style="padding: 8px 0; color: #28a745; font-weight: bold; font-size: 18px; text-align: right;">$%.2f</td>
-                                </tr>
-                            </table>
-                        </div>
-
-                        %s
-
-                        <div style="background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 5px; margin: 25px 0;">
-                            <h3 style="color: #0c5460; margin-top: 0;">📋 Important Information</h3>
-                            <ul style="color: #0c5460; margin: 10px 0; padding-left: 20px;">
-                                <li><strong>Arrival:</strong> Please arrive 10-15 minutes early for check-in</li>
-                                <li><strong>Cancellation:</strong> Please call us at least 24 hours in advance to reschedule</li>
-                                <li><strong>Payment:</strong> We accept cash, credit cards, and digital payments</li>
-                                <li><strong>What to bring:</strong> Just yourself! We provide all necessary items</li>
-                            </ul>
-                        </div>
-
-                        <p style="text-align: center; color: #6c757d; margin-top: 30px;">
-                            If you have any questions or need to make changes to your appointment, 
-                            please don't hesitate to contact us.
-                        </p>
-                    </div>
-
-                    <div style="background-color: #2c3e50; color: #ecf0f1; padding: 30px 40px; text-align: center;">
-                        <div style="margin: 15px 0;">
-                            <h3 style="margin: 0 0 10px 0;">%s</h3>
-                            <p style="margin: 5px 0; font-size: 14px;">%s</p>
-                            <p style="margin: 5px 0; font-size: 14px;">📞 %s</p>
-                            <p style="margin: 5px 0; font-size: 14px;">📧 %s</p>
-                        </div>
-                        
-                        <p style="font-size: 12px; color: #95a5a6; margin-top: 20px;">
-                            © %d %s. All rights reserved.
-                        </p>
-                    </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Xác nhận lịch hẹn</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background-color: #f4f4f4;">
+            <div style="background-color: #ffffff; margin: 20px auto; padding: 0; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); overflow: hidden;">
+                
+                <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); color: white; padding: 30px 40px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 28px; font-weight: 300;">%s</h1>
+                    <p style="margin: 10px 0 0 0; font-size: 16px;">Xác nhận lịch hẹn</p>
                 </div>
-            </body>
-            </html>
-            """,
+
+                <div style="padding: 40px;">
+                    <div style="font-size: 18px; margin-bottom: 30px; color: #2c3e50;">
+                        <p>Xin chào <strong>%s</strong>,</p>
+                        <p>Cảm ơn bạn đã đặt lịch hẹn với chúng tôi! Chúng tôi rất mong được phục vụ bạn và giúp bạn cảm thấy thật tuyệt vời.</p>
+                    </div>
+
+                    <div style="background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 25px; margin: 30px 0; border-radius: 5px;">
+                        <h2 style="margin-top: 0; color: #667eea;">📅 Thông tin lịch hẹn</h2>
+                        
+                        <table style="width: 100%%; border-collapse: collapse;">
+                            <tr style="border-bottom: 1px solid #e9ecef;">
+                                <td style="padding: 8px 0; font-weight: 600; color: #495057; width: 40%%;">Mã lịch hẹn:</td>
+                                <td style="padding: 8px 0; color: #2c3e50; text-align: right;">#%s</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e9ecef;">
+                                <td style="padding: 8px 0; font-weight: 600; color: #495057;">Dịch vụ:</td>
+                                <td style="padding: 8px 0; color: #2c3e50; text-align: right;">%s</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e9ecef;">
+                                <td style="padding: 8px 0; font-weight: 600; color: #495057;">Ngày:</td>
+                                <td style="padding: 8px 0; color: #2c3e50; text-align: right;">%s</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e9ecef;">
+                                <td style="padding: 8px 0; font-weight: 600; color: #495057;">Thời gian:</td>
+                                <td style="padding: 8px 0; color: #2c3e50; text-align: right;">%s - %s</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e9ecef;">
+                                <td style="padding: 8px 0; font-weight: 600; color: #495057;">Nhân viên:</td>
+                                <td style="padding: 8px 0; color: #2c3e50; text-align: right;">%s</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e9ecef;">
+                                <td style="padding: 8px 0; font-weight: 600; color: #495057;">Địa điểm:</td>
+                                <td style="padding: 8px 0; color: #2c3e50; text-align: right;">%s</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px 0; font-weight: 600; color: #495057;">Tổng chi phí:</td>
+                                <td style="padding: 8px 0; color: #28a745; font-weight: bold; font-size: 18px; text-align: right;">$%.2f</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    %s
+
+                    <div style="background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 5px; margin: 25px 0;">
+                        <h3 style="color: #0c5460; margin-top: 0;">📋 Thông tin quan trọng</h3>
+                        <ul style="color: #0c5460; margin: 10px 0; padding-left: 20px;">
+                            <li><strong>Thời gian đến:</strong> Vui lòng đến sớm 10-15 phút để làm thủ tục</li>
+                            <li><strong>Hủy lịch:</strong> Gọi điện trước 24 giờ để thay đổi hoặc hủy lịch hẹn</li>
+                            <li><strong>Thanh toán:</strong> Chấp nhận tiền mặt, thẻ và ví điện tử</li>
+                            <li><strong>Cần mang theo:</strong> Không cần gì thêm, chúng tôi chuẩn bị mọi thứ</li>
+                        </ul>
+                    </div>
+
+                    <p style="text-align: center; color: #6c757d; margin-top: 30px;">
+                        Nếu bạn có bất kỳ câu hỏi nào hoặc muốn thay đổi lịch hẹn, 
+                        đừng ngần ngại liên hệ với chúng tôi.
+                    </p>
+                </div>
+
+                <div style="background-color: #2c3e50; color: #ecf0f1; padding: 30px 40px; text-align: center;">
+                    <div style="margin: 15px 0;">
+                        <h3 style="margin: 0 0 10px 0;">%s</h3>
+                        <p style="margin: 5px 0; font-size: 14px;">%s</p>
+                        <p style="margin: 5px 0; font-size: 14px;">📞 %s</p>
+                        <p style="margin: 5px 0; font-size: 14px;">📧 %s</p>
+                    </div>
+                    
+                    <p style="font-size: 12px; color: #95a5a6; margin-top: 20px;">
+                        © %d %s. Mọi quyền được bảo lưu.
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """,
                 companyName,
                 request.getCustomerName(),
-                request.getAppointmentId(), // FIX 1: Thêm tham số ID bị thiếu
+                request.getAppointmentId(),
                 request.getServiceName(),
                 formatDate(request.getAppointmentDate()),
-                request.getAppointmentTime(), // FIX 2: Tham số cho startTime
-                request.getEndTime() != null ? request.getEndTime() : "N/A", // FIX 2: Tham số cho endTime
+                request.getAppointmentTime(),
+                request.getEndTime() != null ? request.getEndTime() : "Không xác định",
                 request.getStaffName() != null ? request.getStaffName() : "Sẽ được chỉ định",
                 request.getPrice(),
                 notesSection,
@@ -207,54 +207,54 @@ public class EmailServiceImpl implements EmailService {
     private String createCancellationEmailHtml(EmailConfirmationRequestDto request) {
         // Mẫu HTML cho email hủy, có thể thay đổi màu sắc và nội dung cho phù hợp
         return String.format("""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-            </head>
-            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background-color: #f4f4f4;">
-                <div style="background-color: #ffffff; margin: 20px auto; padding: 0; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); overflow: hidden;">
-                    
-                    <div style="background: linear-gradient(135deg, #868e96 0%%, #495057 100%%); color: white; padding: 30px 40px; text-align: center;">
-                        <h1 style="margin: 0; font-size: 28px; font-weight: 300;">%s</h1>
-                        <p style="margin: 10px 0 0 0; font-size: 16px;">Appointment Cancellation</p>
-                    </div>
-
-                    <div style="padding: 40px;">
-                        <div style="font-size: 18px; margin-bottom: 30px; color: #2c3e50;">
-                            <p>Dear <strong>%s</strong>,</p>
-                            <p>We are writing to confirm that your appointment has been successfully cancelled as requested. Please find the details of the cancelled appointment below.</p>
-                        </div>
-
-                        <div style="background-color: #f8f9fa; border-left: 4px solid #dc3545; padding: 25px; margin: 30px 0; border-radius: 5px;">
-                            <h2 style="margin-top: 0; color: #dc3545;">📅 Cancelled Appointment Details</h2>
-                            <table style="width: 100%%; border-collapse: collapse;">
-                                <tr><td style="padding: 8px 0; font-weight: 600;">Appointment ID:</td><td style="text-align: right;">#%s</td></tr>
-                                <tr><td style="padding: 8px 0; font-weight: 600;">Service:</td><td style="text-align: right;">%s</td></tr>
-                                <tr><td style="padding: 8px 0; font-weight: 600;">Original Date:</td><td style="text-align: right;">%s</td></tr>
-                                <tr><td style="padding: 8px 0; font-weight: 600;">Original Time:</td><td style="text-align: right;">%s - %s</td></tr>
-                            </table>
-                        </div>
-
-                        <p style="text-align: center; color: #6c757d; margin-top: 30px;">
-                            If you did not request this cancellation or have any questions, please contact us immediately. We hope to see you again soon!
-                        </p>
-                    </div>
-
-                    <div style="background-color: #2c3e50; color: #ecf0f1; padding: 30px 40px; text-align: center;">
-                       <p style="font-size: 12px; color: #95a5a6; margin-top: 20px;">© %d %s. All rights reserved.</p>
-                    </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background-color: #f4f4f4;">
+            <div style="background-color: #ffffff; margin: 20px auto; padding: 0; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); overflow: hidden;">
+                
+                <div style="background: linear-gradient(135deg, #868e96 0%%, #495057 100%%); color: white; padding: 30px 40px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 28px; font-weight: 300;">%s</h1>
+                    <p style="margin: 10px 0 0 0; font-size: 16px;">Hủy Lịch Hẹn</p>
                 </div>
-            </body>
-            </html>
-            """,
+
+                <div style="padding: 40px;">
+                    <div style="font-size: 18px; margin-bottom: 30px; color: #2c3e50;">
+                        <p>Xin chào <strong>%s</strong>,</p>
+                        <p>Chúng tôi xác nhận rằng lịch hẹn của bạn đã được hủy thành công theo yêu cầu. Vui lòng xem thông tin chi tiết của cuộc hẹn đã hủy bên dưới.</p>
+                    </div>
+
+                    <div style="background-color: #f8f9fa; border-left: 4px solid #dc3545; padding: 25px; margin: 30px 0; border-radius: 5px;">
+                        <h2 style="margin-top: 0; color: #dc3545;">📅 Chi Tiết Lịch Hẹn Đã Hủy</h2>
+                        <table style="width: 100%%; border-collapse: collapse;">
+                            <tr><td style="padding: 8px 0; font-weight: 600;">Mã cuộc hẹn:</td><td style="text-align: right;">#%s</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: 600;">Dịch vụ:</td><td style="text-align: right;">%s</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: 600;">Ngày ban đầu:</td><td style="text-align: right;">%s</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: 600;">Thời gian ban đầu:</td><td style="text-align: right;">%s - %s</td></tr>
+                        </table>
+                    </div>
+
+                    <p style="text-align: center; color: #6c757d; margin-top: 30px;">
+                        Nếu bạn không yêu cầu hủy lịch này hoặc có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi ngay lập tức. Mong được gặp lại bạn trong thời gian tới!
+                    </p>
+                </div>
+
+                <div style="background-color: #2c3e50; color: #ecf0f1; padding: 30px 40px; text-align: center;">
+                   <p style="font-size: 12px; color: #95a5a6; margin-top: 20px;">© %d %s. Mọi quyền được bảo lưu.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """,
                 companyName,
                 request.getCustomerName(),
                 request.getAppointmentId(),
                 request.getServiceName(),
                 formatDate(request.getAppointmentDate()),
                 request.getAppointmentTime(),
-                request.getEndTime() != null ? request.getEndTime() : "N/A",
+                request.getEndTime() != null ? request.getEndTime() : "Không xác định",
                 LocalDateTime.now().getYear(),
                 companyName
         );
