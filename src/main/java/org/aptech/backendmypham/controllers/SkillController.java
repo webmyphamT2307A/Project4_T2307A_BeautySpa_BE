@@ -23,7 +23,7 @@ public class SkillController {
 
     @GetMapping("")
     public List<Skill> getAllSkills() {
-        return skillRepository.findAll();
+        return skillRepository.findAllByIsActiveTrue();
     }
 
     @PostMapping("")
@@ -31,10 +31,13 @@ public class SkillController {
         if (skillDTO.getSkillName() == null || skillDTO.getSkillName().trim().isEmpty()) {
             throw new IllegalArgumentException("Tên kỹ năng không được để trống");
         }
+        if (skillRepository.existsBySkillName(skillDTO.getSkillName())) {
+            throw new IllegalArgumentException("Kỹ năng với tên này đã tồn tại");
+        }
         Skill newSkill = new Skill();
         newSkill.setSkillName(skillDTO.getSkillName());
         newSkill.setDescription(skillDTO.getSkillDescription());
-        newSkill.setIsActive(skillDTO.isActive());
+        newSkill.setIsActive(true); // Mặc định kỹ năng mới được kích hoạt
         Skill savedSkill = skillRepository.save(newSkill);
         return ResponseEntity.ok(savedSkill);
     }
@@ -47,10 +50,13 @@ public class SkillController {
         if (skillDTO.getSkillName() == null || skillDTO.getSkillName().trim().isEmpty()) {
             throw new IllegalArgumentException("Tên kỹ năng không được để trống");
         }
-
         existingSkill.setSkillName(skillDTO.getSkillName());
-        existingSkill.setDescription(skillDTO.getSkillDescription());
-        existingSkill.setIsActive(skillDTO.isActive());
+        if (skillDTO.getSkillDescription() != null) {
+            existingSkill.setDescription(skillDTO.getSkillDescription());
+        }
+        if(skillDTO.getIsActive() != null) {
+            existingSkill.setIsActive(skillDTO.getIsActive());
+        }
         Skill updatedSkill = skillRepository.save(existingSkill);
         return ResponseEntity.ok(updatedSkill);
     }
