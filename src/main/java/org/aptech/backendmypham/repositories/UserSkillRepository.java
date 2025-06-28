@@ -12,4 +12,6 @@ public interface UserSkillRepository extends JpaRepository<UserSkill, UserSkillI
     List<UserSkill> findByUser_Id(Long userId);
 
     List<UserSkill> findBySkill_Id(Long skillId);
+
+    void deleteAllBySkill_Id(Long id);
 }
