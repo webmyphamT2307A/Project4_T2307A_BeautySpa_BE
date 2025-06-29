@@ -14,7 +14,7 @@ public interface UsersScheduleService {
     public UsersScheduleResponseDto getScheduleById(Integer scheduleId);
     public UsersScheduleResponseDto updateSchedule(Integer scheduleId, UsersScheduleRequestDto requestDto);
     public boolean deleteSchedule(Integer scheduleId);
-    public UsersScheduleResponseDto checkIn(Integer scheduleId);
+    public UsersScheduleResponseDto checkIn(Integer scheduleId, Long userId);
     public UsersScheduleResponseDto checkOut(Integer scheduleId);
     List<ScheduleUserDto> getUserScheduleByUserId(Long userId);
 }

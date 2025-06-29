@@ -8,12 +8,16 @@ import org.aptech.backendmypham.dto.UsersScheduleRequestDto;
 import org.aptech.backendmypham.dto.UsersScheduleResponseDto;
 import org.aptech.backendmypham.enums.Status;
 import org.aptech.backendmypham.dto.ResponseObject;
+import org.aptech.backendmypham.models.User;
+import org.aptech.backendmypham.repositories.UserRepository;
 import org.aptech.backendmypham.services.UsersScheduleService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -23,7 +27,7 @@ import java.util.List;
 public class UsersScheduleController {
 
     private final UsersScheduleService usersScheduleService;
-
+    private final UserRepository userRepository;
     @PostMapping("/created")
     @Operation(summary = "Tạo lịch làm việc cho nhân viên")
     public ResponseEntity<ResponseObject> createUsersSchedule(
@@ -98,12 +102,24 @@ public class UsersScheduleController {
         return ResponseEntity.ok(responseObject);
     }
     @PutMapping("/check-in/{scheduleId}")
+    @PreAuthorize("hasRole('STAFF')")
     @Operation(summary = "Nhân viên thực hiện Check-in (chấm công vào ca)")
-    public ResponseEntity<ResponseObject> checkIn(@PathVariable Integer scheduleId) {
-        UsersScheduleResponseDto updatedSchedule = usersScheduleService.checkIn(scheduleId);
+    public ResponseEntity<ResponseObject> checkIn(@PathVariable Integer scheduleId, Principal principal) {
+        Long staffId = getCurrentStaffId(principal);
+        UsersScheduleResponseDto updatedSchedule = usersScheduleService.checkIn(scheduleId, staffId);
         ResponseObject responseObject =
                 new ResponseObject(Status.SUCCESS, "Check-in thành công.", updatedSchedule);
         return ResponseEntity.ok(responseObject);
+    }
+
+    private Long getCurrentStaffId(Principal principal) {
+        String email = principal.getName(); // Usually email from JWT
+
+        // Look up staff user by email
+        User staff = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Staff not found with email: " + email));
+        System.out.println("Current staff ID: " + staff.getId());
+        return staff.getId();
     }
 
     @PutMapping("/check-out/{scheduleId}")

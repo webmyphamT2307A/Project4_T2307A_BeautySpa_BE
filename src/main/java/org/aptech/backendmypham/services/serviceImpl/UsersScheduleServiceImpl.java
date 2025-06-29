@@ -2,6 +2,9 @@ package org.aptech.backendmypham.services.serviceImpl;
 
 // Đảm bảo import đúng Transactional của Spring
 import org.aptech.backendmypham.dto.ScheduleUserDto;
+import org.aptech.backendmypham.models.Attendance;
+import org.aptech.backendmypham.repositories.AttendanceRepository;
+import org.aptech.backendmypham.services.AttendanceService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.AllArgsConstructor;
 import org.aptech.backendmypham.dto.UsersScheduleRequestDto;
@@ -15,7 +18,9 @@ import org.aptech.backendmypham.services.UsersScheduleService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -27,7 +32,8 @@ import java.util.stream.Collectors;
 public class UsersScheduleServiceImpl implements UsersScheduleService {
     private final UsersScheduleRepository usersScheduleRepository;
     private final UserRepository userRepository;
-
+    private final AttendanceService attendanceService;
+    private final AttendanceRepository attendanceRepository;
     @Override
     @Transactional
     public UsersScheduleResponseDto createSchedule(UsersScheduleRequestDto requestDto) {
@@ -162,6 +168,91 @@ public class UsersScheduleServiceImpl implements UsersScheduleService {
         // 6. Nếu không có lỗi, lưu đối tượng đã được cập nhật
         UsersSchedule updatedSchedule = usersScheduleRepository.save(scheduleToUpdate);
 
+        if (scheduleToUpdate.getCheckInTime() != null || scheduleToUpdate.getCheckOutTime() != null) {
+            // --- CASE 1: Cập nhật hoặc tạo mới attendance ---
+            LocalDateTime request = requestDto.getCheckInTime() != null
+                    ? LocalDateTime.of(requestDto.getWorkDate(), requestDto.getCheckInTime())
+                    : null;
+            LocalDateTime checkInDateTime = scheduleToUpdate.getCheckInTime() != null
+                    ? LocalDateTime.of(scheduleToUpdate.getWorkDate(), scheduleToUpdate.getCheckInTime())
+                    : null;
+
+            LocalDateTime checkOutDateTime = scheduleToUpdate.getCheckOutTime() != null
+                    ? LocalDateTime.of(scheduleToUpdate.getWorkDate(), scheduleToUpdate.getCheckOutTime())
+                    : null;
+
+            Attendance attendance;
+
+            try {
+                // Tìm bản ghi gần giờ check-in (nếu có check-in time)
+                attendance = attendanceService.findByUserAndCheckInBetween(
+                        user,
+                        request.minusMinutes(1),
+                        request.plusMinutes(30)
+                ).orElseThrow();
+            } catch (Exception e) {
+                // Không tìm thấy -> tạo mới
+                attendance = new Attendance();
+                attendance.setUser(user);
+                attendance.setIsActive(true);
+                attendance.setCreatedAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
+            }
+
+            if (checkInDateTime != null) {
+                attendance.setCheckIn(checkInDateTime);
+            }
+
+            if (checkOutDateTime != null) {
+                attendance.setCheckOut(checkOutDateTime);
+            }
+            ZoneId vietnamZone = ZoneId.of("Asia/Ho_Chi_Minh");
+            String shiftStr = updatedSchedule.getShift(); // Ví dụ: "Sáng (08:00 - 10:00)"
+
+            // Lấy giờ bắt đầu (08:00)
+            String startTimeStr = shiftStr.replaceAll(".*\\((.*) - .*\\)", "$1");
+            LocalTime startTime = LocalTime.parse(startTimeStr);
+
+            // Tạo LocalDateTime cho giờ bắt đầu hôm nay
+            LocalDateTime shiftStart = LocalDateTime.of(LocalDate.now(vietnamZone), startTime);
+
+            // So sánh
+            String status = checkInDateTime.isAfter(shiftStart) ? "late" : "on_time";
+
+            attendance.setStatus(status);
+
+            attendanceService.save(attendance);
+        } else {
+            // --- CASE 2: Cả checkIn và checkOut đều null -> xóa bản ghi điểm danh (nếu có) ---
+            try {
+                // Giả sử từng có check-in lúc nào đó → dùng khoảng trong ngày
+                LocalDateTime checkInDateTime = scheduleToUpdate.getCheckInTime() != null
+                        ? LocalDateTime.of(scheduleToUpdate.getWorkDate(), scheduleToUpdate.getCheckInTime())
+                        : null;
+
+                LocalDateTime checkOutDateTime = scheduleToUpdate.getCheckOutTime() != null
+                        ? LocalDateTime.of(scheduleToUpdate.getWorkDate(), scheduleToUpdate.getCheckOutTime())
+                        : null;
+
+                Attendance attendance;
+                try {
+                    // Tìm bản ghi gần giờ check-in (nếu có check-in time)
+                    attendance = attendanceService.findByUserAndCheckInBetween(
+                            user,
+                            checkInDateTime.minusMinutes(1),
+                            checkInDateTime.plusMinutes(30)
+                    ).orElseThrow();
+                    attendanceRepository.delete(attendance);
+                } catch (Exception e) {
+                }
+
+
+            } catch (Exception e) {
+                // Không có bản ghi điểm danh thì không cần xóa
+                System.out.println("Không có bản ghi điểm danh để xóa");
+            }
+        }
+
+
         // 7. Ánh xạ và trả về kết quả
         return mapToResponseDto(updatedSchedule);
     }
@@ -179,7 +270,7 @@ public class UsersScheduleServiceImpl implements UsersScheduleService {
     }
     @Override
     @Transactional
-    public UsersScheduleResponseDto checkIn(Integer scheduleId) {
+    public UsersScheduleResponseDto checkIn(Integer scheduleId, Long userId) {
         // Tìm lịch trình theo ID, nếu không thấy sẽ báo lỗi
         UsersSchedule schedule = usersScheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch trình với ID: " + scheduleId));
@@ -195,10 +286,34 @@ public class UsersScheduleServiceImpl implements UsersScheduleService {
         }
 
         // --- Cập nhật thông tin ---
-        schedule.setCheckInTime(LocalTime.now()); // Lấy giờ hiện tại
+        schedule.setCheckInTime(LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh"))); // Lấy giờ hiện tại
         schedule.setStatus("confirmed");      // Cập nhật trạng thái
 
         UsersSchedule savedSchedule = usersScheduleRepository.save(schedule);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
+        Attendance attendance = new Attendance();
+        attendance.setUser(user);
+        attendance.setCheckIn(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
+        ZoneId vietnamZone = ZoneId.of("Asia/Ho_Chi_Minh");
+        String shiftStr = savedSchedule.getShift(); // Ví dụ: "Sáng (08:00 - 10:00)"
+
+        // Lấy giờ bắt đầu (08:00)
+        String startTimeStr = shiftStr.replaceAll(".*\\((.*) - .*\\)", "$1");
+        LocalTime startTime = LocalTime.parse(startTimeStr);
+
+        // Tạo LocalDateTime cho giờ bắt đầu hôm nay
+        LocalDateTime shiftStart = LocalDateTime.of(LocalDate.now(vietnamZone), startTime);
+        LocalDateTime now = LocalDateTime.now(vietnamZone);
+
+        // So sánh
+        String status = now.isAfter(shiftStart) ? "late" : "on_time";
+
+        attendance.setStatus(status);
+        attendance.setIsActive(true);
+
+        attendanceService.save(attendance);
         return mapToResponseDto(savedSchedule);
     }
 
@@ -224,6 +339,15 @@ public class UsersScheduleServiceImpl implements UsersScheduleService {
         schedule.setStatus("completed");     // Cập nhật trạng thái
 
         UsersSchedule savedSchedule = usersScheduleRepository.save(schedule);
+        User user = userRepository.findById(schedule.getUser().getId())
+                .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
+
+        Attendance attendance = attendanceService.findByUserAndCheckInBetween(user,
+                LocalDateTime.of(schedule.getWorkDate(), schedule.getCheckInTime().minusMinutes(1)),
+                LocalDateTime.of(schedule.getWorkDate(), schedule.getCheckInTime().plusMinutes(30)))
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bản ghi điểm danh cho người dùng: " + user.getId()));
+        attendance.setCheckOut(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
+        attendanceService.save(attendance);
         return mapToResponseDto(savedSchedule);
     }
 

@@ -28,11 +28,14 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Integer>
     long getTotalWorkdays(Long userId, Number month);
 
     //sumTotalHours
-    @Query(nativeQuery = true, value = "SELECT SUM(TIMESTAMPDIFF(SECOND, a.check_in, a.check_out) / 3600) " +
-            "FROM attendance a " +
-            "WHERE a.user_id = ?1 " +
-            "AND EXTRACT(MONTH FROM a.check_in) = ?2 " +
-            "AND a.status = 'on_time'")
+        @Query(nativeQuery = true,
+                value = """
+        SELECT SUM(TIMESTAMPDIFF(SECOND, a.check_in, a.check_out)) / 3600
+        FROM attendance a
+        WHERE a.user_id = ?1
+          AND MONTH(a.check_in) = ?2
+          AND a.status IN ('on_time', 'late')
+    """)
     Long sumTotalHours(Long userId, int month);
 
 
