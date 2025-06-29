@@ -1,6 +1,8 @@
 package org.aptech.backendmypham.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
+import org.aptech.backendmypham.configs.CustomUserDetails;
+import org.aptech.backendmypham.configs.CustomUserDetailsForUser;
 import org.aptech.backendmypham.dto.*;
 import org.aptech.backendmypham.enums.Status;
 import org.aptech.backendmypham.models.User;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.util.List;
 import java.util.Map;
 
 
@@ -53,13 +56,13 @@ public class ReviewController {
         }
     }
 
-    @GetMapping("/item/{relatedId}")
+    @GetMapping("/item/{type}/{relatedId}")
     @Operation(summary = "Lấy danh sách đánh giá theo service/user ID")
-    public ResponseEntity<ResponseObject> getReviewsByRelatedId(
-            @PathVariable Integer relatedId,
-            Pageable pageable) {
+    public ResponseEntity<ResponseObject> getReviewsByTypeAndRelatedId(
+            @PathVariable(name = "type") String type,
+            @PathVariable(name = "relatedId") Integer relatedId) {
         try {
-            Page<ReviewResponseDTO> reviews = reviewService.getReviewsByRelatedId(relatedId, pageable);
+            List<ReviewResponseDTO> reviews = reviewService.getReviewsByTypeAndRelatedId(type, relatedId);
 
             return ResponseEntity.ok(
                     new ResponseObject(Status.SUCCESS, "Reviews retrieved successfully", reviews)
@@ -109,7 +112,7 @@ public class ReviewController {
     }
 
     @DeleteMapping("/{reviewId}")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     @Operation(summary = "Xóa đánh giá (soft delete)")
     public ResponseEntity<ResponseObject> deleteReview(
             @PathVariable Integer reviewId,
@@ -141,6 +144,17 @@ public class ReviewController {
             );
         }
     }
+    @GetMapping("/reviews")
+    @Operation(summary = "Lấy tất cả đánh giá (admin) theo page")
+    public ResponseEntity<?> getPagedReviews(
+            @RequestParam(required = false) Integer rating,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<ReviewDTO> result = reviewService.findAllPaged(rating, page, size);
+        return ResponseEntity.ok(result);
+    }
+
 
     // ====================== BUSINESS REPLY ENDPOINT ======================
 
@@ -180,20 +194,21 @@ public class ReviewController {
      * Extract customer ID from JWT authentication
      * For CUSTOMER role users
      */
-    private Long getCurrentCustomerId() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    public Long getCurrentCustomerId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Object principal = authentication.getPrincipal();
 
-        // Method 1: If using CustomUserDetails
-        if (auth.getPrincipal() instanceof org.aptech.backendmypham.configs.CustomUserDetails) {
-            org.aptech.backendmypham.configs.CustomUserDetails userDetails =
-                    (org.aptech.backendmypham.configs.CustomUserDetails) auth.getPrincipal();
-            return Long.valueOf(userDetails.getId());
+        if (principal instanceof CustomUserDetails) {
+            // User là khách hàng (CUSTOMER)
+            return Long.valueOf(((CustomUserDetails) principal).getId()); // trả về kiểu Long hoặc Integer tùy bạn
+        } else if (principal instanceof CustomUserDetailsForUser) {
+            // User là admin hoặc staff
+            return ((CustomUserDetailsForUser) principal).getId();
+        } else {
+            throw new RuntimeException("Unable to extract customer ID from authentication");
         }
-
-
-
-        throw new RuntimeException("Unable to extract customer ID from authentication");
     }
+
     @PostMapping("/service-and-staff")
     @PreAuthorize("hasRole('CUSTOMER')")
     @Operation(summary = "Tạo đồng thời đánh giá cho Dịch vụ và Nhân viên")
@@ -213,6 +228,16 @@ public class ReviewController {
         }
     }
 
+    @GetMapping("/calculate-average-user")
+    @Operation(summary = "Tính rating cho nhân viên, dùng để update nhanh dữ liệu")
+    public void calculateAverageUserRating() {
+        try {
+            reviewService.calculateAverageUserRating();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to calculate average user rating: " + e.getMessage());
+        }
+    }
+
 
     private Long getCurrentStaffId(Principal principal) {
         String email = principal.getName(); // Usually email from JWT
@@ -220,7 +245,7 @@ public class ReviewController {
         // Look up staff user by email
         User staff = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Staff not found with email: " + email));
-
+        System.out.println("Current staff ID: " + staff.getId());
         return staff.getId();
     }
 }
