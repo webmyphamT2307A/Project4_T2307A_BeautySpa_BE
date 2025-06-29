@@ -56,7 +56,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(readOnly = true)
     public List<ReviewResponseDTO> getReviewsByTypeAndRelatedId(String type, Integer relatedId) {
-        List<Review> reviewPage = reviewRepository.findByRelatedIdAndTypeAndIsActiveTrue(relatedId, type );
+        List<Review> reviewPage = reviewRepository.findByRelatedIdAndTypeAndIsActiveTrueOrderByCreatedAtDesc(relatedId, type );
         return reviewPage.stream()
                 .map(this::convertToResponseDTO)
                 .toList();
@@ -191,7 +191,7 @@ public class ReviewServiceImpl implements ReviewService {
                     .orElse(0.0);
             averageRating = Math.round(averageRating * 10.0) / 10.0;
             // Cập nhật rating trung bình cho user
-            updateAverageRating("user", userId, averageRating, userReviews.size());
+            updateAverageRating("staff", userId, averageRating, userReviews.size());
         }
     }
 
