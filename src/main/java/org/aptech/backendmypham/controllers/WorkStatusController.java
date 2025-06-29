@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,17 +42,25 @@ public class WorkStatusController {
         String currentStatus = hasShift ? "Working" : "No Shift";
         String message = hasShift ? "Bạn có ca làm việc hôm nay" : "Không có ca làm việc hôm nay";
 
-        List<Schedule> scheduleResponses = schedules.stream().map(schedule -> new Schedule(
-                schedule.getId(),
-                schedule.getWorkDate(),
-                schedule.getWorkDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")),
-                schedule.getWorkDate().getDayOfWeek().toString(),
-                schedule.getShift(),
-                schedule.getCheckInTime() != null ? schedule.getCheckInTime().toString() : null,
-                schedule.getCheckOutTime() != null ? schedule.getCheckOutTime().toString() : null,
-                schedule.getStatus(),
-                schedule.getIsActive()
-        )).collect(Collectors.toList());
+        List<String> shiftOrder = List.of("Sáng", "Chiều", "Tối"); // thứ tự mong muốn
+
+        List<Schedule> scheduleResponses = schedules.stream()
+                .sorted(Comparator.comparingInt(s -> {
+                    String shiftName = s.getShift().split(" ")[0]; // Lấy "Sáng" từ "Sáng (08:00 - 12:00)"
+                    return shiftOrder.indexOf(shiftName); // Trả về index theo thứ tự
+                }))
+                .map(schedule -> new Schedule(
+                        schedule.getId(),
+                        schedule.getWorkDate(),
+                        schedule.getWorkDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                        schedule.getWorkDate().getDayOfWeek().toString(),
+                        schedule.getShift(),
+                        schedule.getCheckInTime() != null ? schedule.getCheckInTime().toString() : null,
+                        schedule.getCheckOutTime() != null ? schedule.getCheckOutTime().toString() : null,
+                        schedule.getStatus(),
+                        schedule.getIsActive()
+                ))
+                .collect(Collectors.toList());
 
         WorkStatusResponse response = new WorkStatusResponse(
                 hasShift,
