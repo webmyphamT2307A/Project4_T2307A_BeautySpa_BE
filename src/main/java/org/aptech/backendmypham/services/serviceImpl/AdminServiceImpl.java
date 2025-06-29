@@ -57,12 +57,12 @@ public class AdminServiceImpl implements AdminService {
 
             // Tạo mới User
             User user = new User();
-            user.setFullName(userRequestDto.getFullName());
-            user.setPassword(passwordEncoder.encode(userRequestDto.getPassword()));
-            user.setEmail(userRequestDto.getEmail());
-            user.setPhone(userRequestDto.getPhone());
-            user.setAddress(userRequestDto.getAddress());
-            user.setImageUrl(userRequestDto.getImageUrl());
+            user.setFullName(userRequestDto.getFullName().trim());
+            user.setPassword(passwordEncoder.encode(userRequestDto.getPassword().trim()));
+            user.setEmail(userRequestDto.getEmail().trim());
+            user.setPhone(userRequestDto.getPhone().trim());
+            user.setAddress(userRequestDto.getAddress().trim());
+            user.setImageUrl(userRequestDto.getImageUrl().trim());
             user.setIsActive(1);
             user.setRole(roleOpt.get());
             user.setCreatedAt(Instant.now());

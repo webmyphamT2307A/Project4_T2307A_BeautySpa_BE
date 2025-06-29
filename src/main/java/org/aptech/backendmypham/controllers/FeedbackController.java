@@ -11,6 +11,7 @@ import org.aptech.backendmypham.services.FeedBackService;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.relational.core.sql.In;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -50,5 +51,19 @@ public class FeedbackController {
                 new ResponseObject(Status.SUCCESS, "Your message has been sent successfully!", createdFeedback),
                 HttpStatus.CREATED
         );
+    }
+
+    @PutMapping("/delete/{id}")
+    public ResponseEntity<ResponseObject> deleteFeedback(@PathVariable Integer id) {
+        try {
+            feedbackService.deleteFeedbackWithId(id);
+            return ResponseEntity.ok(
+                    new ResponseObject(Status.SUCCESS, "Feedback deleted successfully.", null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new ResponseObject(Status.ERROR, "Error deleting feedback: " + e.getMessage(), null)
+            );
+        }
     }
 }

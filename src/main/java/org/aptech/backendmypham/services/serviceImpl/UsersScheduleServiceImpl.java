@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -100,6 +101,7 @@ public class UsersScheduleServiceImpl implements UsersScheduleService {
          }
 
         return schedules.stream()
+                .sorted(Comparator.comparing(UsersSchedule::getId).reversed())
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
     }

@@ -68,12 +68,13 @@ public class FeedBackServiceImpl implements FeedBackService {
         } else {
             dto.setCustomerName(feedback.getGuestFirstName());
         }
+        dto.setActive(feedback.getIsActive());
 
         return dto;
     }
     @Override
     public Page<FeedbackResponseDTO> getAllFeedback(Pageable pageable) {
-        Page<Feedback> feedbackPage = feedBackRepository.findAll(pageable);
+        Page<Feedback> feedbackPage = feedBackRepository.findAllByIsActiveTrueOrderByIdDesc(pageable);
         return feedbackPage.map(this::convertToResponseDTO);
     }
     @Override
@@ -91,5 +92,14 @@ public class FeedBackServiceImpl implements FeedBackService {
         feedback.setIsActive(false);
         feedBackRepository.save(feedback);
     }
+
+    @Override
+    public void deleteFeedbackWithId(Integer id) {
+        Feedback feedback = feedBackRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy feedback với id: " + id));
+        feedback.setIsActive(false);
+        feedBackRepository.save(feedback);
+    }
+
 
 }

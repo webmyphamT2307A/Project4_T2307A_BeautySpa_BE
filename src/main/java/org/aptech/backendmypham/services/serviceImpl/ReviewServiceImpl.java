@@ -3,10 +3,7 @@ package org.aptech.backendmypham.services.serviceImpl;
 import lombok.RequiredArgsConstructor;
 import org.aptech.backendmypham.dto.*;
 import org.aptech.backendmypham.exception.ResourceNotFoundException;
-import org.aptech.backendmypham.models.Customer;
-import org.aptech.backendmypham.models.Review;
-import org.aptech.backendmypham.models.ReviewReply;
-import org.aptech.backendmypham.models.User;
+import org.aptech.backendmypham.models.*;
 import org.aptech.backendmypham.repositories.*;
 import org.aptech.backendmypham.services.ReviewService;
 import org.slf4j.Logger;
@@ -34,7 +31,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final ServiceRepository serviceRepository;
     private final UserRepository userRepository;
     private final ReviewReplyRepository reviewReplyRepository;
-
+    private final AppointmentRepository appointmentRepository;
     @Override
     @Transactional
     public ReviewResponseDTO createReview(Long customerId, ReviewCreateRequestDTO createDTO) {
@@ -59,7 +56,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(readOnly = true)
     public List<ReviewResponseDTO> getReviewsByTypeAndRelatedId(String type, Integer relatedId) {
-        List<Review> reviewPage = reviewRepository.findByRelatedIdAndTypeAndIsActiveTrue(relatedId, type );
+        List<Review> reviewPage = reviewRepository.findByRelatedIdAndTypeAndIsActiveTrueOrderByCreatedAtDesc(relatedId, type );
         return reviewPage.stream()
                 .map(this::convertToResponseDTO)
                 .toList();
@@ -116,6 +113,12 @@ public class ReviewServiceImpl implements ReviewService {
 
         return pageResult.map(this::convertToReviewDTO); // tự động map sang DTO
     }
+    public Page<ReviewDTO> findAllPagedByUserIdAndTypeStaff(Long userId,Integer rating, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Review> pageResult = reviewRepository.findAllByRatingAndIsActiveAndTypeStaff(userId, rating, pageable);
+
+        return pageResult.map(this::convertToReviewDTO); // tự động map sang DTO
+    }
 
     // ====================== BUSINESS REPLY METHOD (SIMPLIFIED) ======================
     @Override
@@ -167,7 +170,7 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     public void calculateAverageUserRating(){
-        List<Review> reviews = reviewRepository.findAllByType("user");
+        List<Review> reviews = reviewRepository.findAllByType("staff");
         if (reviews.isEmpty()) {
             return; // Không có review nào
         }
@@ -188,7 +191,7 @@ public class ReviewServiceImpl implements ReviewService {
                     .orElse(0.0);
             averageRating = Math.round(averageRating * 10.0) / 10.0;
             // Cập nhật rating trung bình cho user
-            updateAverageRating("user", userId, averageRating, userReviews.size());
+            updateAverageRating("staff", userId, averageRating, userReviews.size());
         }
     }
 
@@ -236,6 +239,12 @@ public class ReviewServiceImpl implements ReviewService {
 
         // Tính toán lại rating trung bình cho staff (dịch vụ được tính ở fe)
         calculateAverageRating(requestDTO.getStaffId().intValue(), "staff");
+
+        //update lại trạng thái feedback của dịch vụ
+        Appointment appointment = appointmentRepository.findById(requestDTO.getAppointmentId())
+                .orElseThrow(() -> new RuntimeException("Lịch hẹn không tồn tại"));
+        appointment.setIsFeedBack(true);
+        appointmentRepository.save(appointment);
         // 3. Trả về cả hai review vừa tạo
         return Map.of(
                 "serviceReview", createdServiceReview,

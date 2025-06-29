@@ -282,7 +282,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (appointment.getEndTime() != null) {
             dto.setEndTime(appointment.getEndTime().toString());
         }
-
+        if (appointment.getCreatedAt() != null) {
+            dto.setCreatedAt(appointment.getCreatedAt().toString());
+        }
         // Xử lý Service
         if (appointment.getService() != null) {
             dto.setServiceName(appointment.getService().getName());
@@ -896,6 +898,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .status(appointment.getStatus())
                 .notes(appointment.getNotes())
                 .isActive(appointment.getIsActive())
+                .isFeedBack(appointment.getIsFeedBack())
                 .createdAt(appointment.getCreatedAt().toString())
                 .statusText(determineStatusText(appointment))
                 .statusClassName(determineStatusClassName(appointment))

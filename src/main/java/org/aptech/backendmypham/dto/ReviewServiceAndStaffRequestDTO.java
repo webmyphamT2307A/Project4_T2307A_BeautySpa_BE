@@ -28,5 +28,7 @@ public class ReviewServiceAndStaffRequestDTO {
     @Max(value = 5, message = "Rating must be at most 5")
     private Integer staffRating;
 
+    @NotNull(message = "Appointment ID is required")
+    private Long appointmentId ;
     private String comment;
 }
