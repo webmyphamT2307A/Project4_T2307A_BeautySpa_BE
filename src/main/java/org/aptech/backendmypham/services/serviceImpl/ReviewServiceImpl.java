@@ -170,7 +170,7 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     public void calculateAverageUserRating(){
-        List<Review> reviews = reviewRepository.findAllByType("user");
+        List<Review> reviews = reviewRepository.findAllByType("staff");
         if (reviews.isEmpty()) {
             return; // Không có review nào
         }
