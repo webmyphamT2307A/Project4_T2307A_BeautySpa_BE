@@ -15,4 +15,5 @@ public class FeedbackResponseDTO {
     private Instant createdAt;
     private String customerName;
     private Integer customerId;
+    private boolean isActive;
 }

@@ -34,4 +34,9 @@ public interface ReviewRepository extends JpaRepository<Review,Integer> {
     List<Review> findAllByType(String type);
     @Query("SELECT r FROM Review r WHERE r.isActive = true AND (:rating IS NULL OR r.rating = :rating)")
     Page<Review> findAllByRatingAndIsActive(@Param("rating") Integer rating, Pageable pageable);
+
+    @Query("SELECT r FROM Review r WHERE r.isActive = true AND (:rating IS NULL OR r.rating = :rating) AND r.relatedId = :userId AND r.type = 'staff'")
+    Page<Review> findAllByRatingAndIsActiveAndTypeStaff(@Param("userId") Long userId, @Param("rating") Integer rating, Pageable pageable);
+
+
 }

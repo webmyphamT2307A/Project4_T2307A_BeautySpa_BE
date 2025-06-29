@@ -22,6 +22,8 @@ public class AppointmentResponseDto {
     private String customerEmail;
     private String UserImageUrl;
     private String customerImageUrl;
+    private String createdAt;
+
 
 
 

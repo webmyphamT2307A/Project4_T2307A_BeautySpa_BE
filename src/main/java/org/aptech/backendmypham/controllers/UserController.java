@@ -38,11 +38,11 @@ public class UserController {
             }
 
             userService.createUser(
-                    userRequestDto.getFullName(),
-                    userRequestDto.getPassword(),
-                    userRequestDto.getEmail(),
-                    userRequestDto.getPhone(),
-                    userRequestDto.getAddress(),
+                    userRequestDto.getFullName().trim(),
+                    userRequestDto.getPassword().trim(),
+                    userRequestDto.getEmail().trim(),
+                    userRequestDto.getPhone().trim(),
+                    userRequestDto.getAddress().trim(),
                     userRequestDto.getRoleId()
             );
 

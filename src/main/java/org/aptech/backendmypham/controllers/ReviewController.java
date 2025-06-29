@@ -145,6 +145,7 @@ public class ReviewController {
         }
     }
     @GetMapping("/reviews")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Lấy tất cả đánh giá (admin) theo page")
     public ResponseEntity<?> getPagedReviews(
             @RequestParam(required = false) Integer rating,
@@ -152,6 +153,20 @@ public class ReviewController {
             @RequestParam(defaultValue = "10") int size
     ) {
         Page<ReviewDTO> result = reviewService.findAllPaged(rating, page, size);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/reviews/staff")
+    @PreAuthorize("hasRole('STAFF')")
+    @Operation(summary = "Lấy tất cả đánh giá (staff) theo page")
+    public ResponseEntity<?> getPagedReviewsByUser(
+            @RequestParam(required = false) Integer rating,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Principal principal
+    ) {
+        Long staffId = getCurrentStaffId(principal);
+        Page<ReviewDTO> result = reviewService.findAllPagedByUserIdAndTypeStaff(staffId, rating, page, size);
         return ResponseEntity.ok(result);
     }
 

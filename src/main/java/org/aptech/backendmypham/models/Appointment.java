@@ -80,4 +80,7 @@ public class Appointment {
     @Column(name = "is_active")
     private Boolean isActive;
 
+    @ColumnDefault("0")
+    @Column(name = "is_feedback")
+    private Boolean isFeedBack;
 }

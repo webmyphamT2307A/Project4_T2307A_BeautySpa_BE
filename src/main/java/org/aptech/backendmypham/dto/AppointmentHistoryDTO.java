@@ -49,4 +49,6 @@ public class AppointmentHistoryDTO {
     private String statusClassName; // "bg-success", "bg-danger", etc.
     private Boolean canCancel;
     private String displayDate; // "Thứ 2, 25/12/2023"
+
+    private Boolean isFeedBack; // kiểm tra xem đã feedback chưa
 }
