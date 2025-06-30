@@ -18,10 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.YearMonth;
+import java.time.*;
 import java.util.List;
 import java.util.Map;
 
@@ -108,36 +105,43 @@ public class AttendanceController {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
 
-            LocalDateTime start;
-            LocalDateTime end;
+            ZoneId zoneVN = ZoneId.of("Asia/Ho_Chi_Minh");
+            ZonedDateTime start;
+            ZonedDateTime end;
 
             switch (type.toLowerCase()) {
                 case "month":
-                    int currentYear = LocalDate.now().getYear();
-                    start = LocalDateTime.of(currentYear, 1, 1, 0, 0, 0);
-                    end = LocalDateTime.of(currentYear, 12, 31, 23, 59, 59);
+                    int year = ZonedDateTime.now(zoneVN).getYear();
+                    start = ZonedDateTime.of(LocalDate.of(year, 1, 1).atStartOfDay(), zoneVN);
+                    end = ZonedDateTime.of(LocalDate.of(year, 12, 31).atTime(23, 59, 59), zoneVN);
                     break;
 
                 case "year":
-                    int current = LocalDate.now().getYear();
-                    start = LocalDateTime.of(current - 4, 1, 1, 0, 0, 0); // từ 5 năm trước
-                    end = LocalDateTime.of(current, 12, 31, 23, 59, 59);
+                    int currentYear = ZonedDateTime.now(zoneVN).getYear();
+                    start = ZonedDateTime.of(LocalDate.of(currentYear - 4, 1, 1).atStartOfDay(), zoneVN);
+                    end = ZonedDateTime.of(LocalDate.of(currentYear, 12, 31).atTime(23, 59, 59), zoneVN);
                     break;
 
                 case "day":
                 case "week":
                 default:
-                    LocalDateTime startOfWeek = LocalDate.now()
-                            .with(java.time.DayOfWeek.MONDAY)
-                            .atStartOfDay();
-                    LocalDateTime endOfWeek = startOfWeek.plusDays(6)
-                            .withHour(23).withMinute(59).withSecond(59);
-                    start = startOfWeek;
-                    end = endOfWeek;
+                    LocalDate today = LocalDate.now(zoneVN);
+                    LocalDate monday = today.with(java.time.DayOfWeek.MONDAY);
+                    LocalDate sunday = monday.plusDays(6);
+
+                    start = ZonedDateTime.of(monday.atStartOfDay(), zoneVN);
+                    end = ZonedDateTime.of(sunday.atTime(23, 59, 59), zoneVN);
                     break;
             }
 
-            return attendanceService.findByUserAndBetween(user, start, end, type);
+            // convert về LocalDateTime nếu hàm service xử lý kiểu đó
+            return attendanceService.findByUserAndBetween(
+                    user,
+                    start.toLocalDateTime(),
+                    end.toLocalDateTime(),
+                    type
+            );
+
         } catch (Exception e) {
             System.err.println("Lỗi khi tìm lịch điểm danh: " + e.getMessage());
             return List.of();

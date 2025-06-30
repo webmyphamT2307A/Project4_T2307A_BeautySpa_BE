@@ -54,32 +54,31 @@ public class AttendanceServiceImpl implements AttendanceService {
         List<Attendance> attendances = attendanceRepository.findByUserAndCheckInBetweenAndStatus(user, start, end);
 
         if ("month".equalsIgnoreCase(type)) {
-            // Khởi tạo mảng 12 tháng (1-12)
-            long[] totalHoursByMonth = new long[12];
+            double[] totalHoursByMonth = new double[12];
 
             for (Attendance attendance : attendances) {
                 LocalDateTime checkIn = attendance.getCheckIn();
                 LocalDateTime checkOut = attendance.getCheckOut();
                 if (checkIn != null && checkOut != null) {
-                    long hoursWorked = Duration.between(checkIn, checkOut).toHours();
-                    int month = checkIn.getMonthValue(); // 1 - 12
+                    double hoursWorked = Duration.between(checkIn, checkOut).toMinutes() / 60.0;
+                    int month = checkIn.getMonthValue();
                     totalHoursByMonth[month - 1] += hoursWorked;
                 }
             }
 
             List<AttendanceHourDto> result = new ArrayList<>();
             for (int i = 0; i < 12; i++) {
-                result.add(new AttendanceHourDto(String.format("%02d", i + 1), totalHoursByMonth[i]));
+                double rounded = Math.round(totalHoursByMonth[i] * 10) / 10.0;
+                result.add(new AttendanceHourDto(String.format("%02d", i + 1), rounded));
             }
             return result;
 
         } else if ("year".equalsIgnoreCase(type)) {
-            // Tính từ 5 năm trước đến hiện tại
             int currentYear = LocalDate.now().getYear();
             int startYear = currentYear - 4;
-            Map<Integer, Long> yearToHours = new LinkedHashMap<>();
+            Map<Integer, Double> yearToHours = new LinkedHashMap<>();
             for (int y = startYear; y <= currentYear; y++) {
-                yearToHours.put(y, 0L);
+                yearToHours.put(y, 0.0);
             }
 
             for (Attendance attendance : attendances) {
@@ -88,49 +87,40 @@ public class AttendanceServiceImpl implements AttendanceService {
                 if (checkIn != null && checkOut != null) {
                     int year = checkIn.getYear();
                     if (yearToHours.containsKey(year)) {
-                        long hoursWorked = Duration.between(checkIn, checkOut).toHours();
+                        double hoursWorked = Duration.between(checkIn, checkOut).toMinutes() / 60.0;
                         yearToHours.put(year, yearToHours.get(year) + hoursWorked);
                     }
                 }
             }
 
             return yearToHours.entrySet().stream()
-                    .map(entry -> new AttendanceHourDto(String.valueOf(entry.getKey()), entry.getValue()))
+                    .map(entry -> {
+                        double rounded = Math.round(entry.getValue() * 10) / 10.0;
+                        return new AttendanceHourDto(String.valueOf(entry.getKey()), rounded);
+                    })
                     .collect(Collectors.toList());
 
         } else {
-            // type = day hoặc default: xử lý theo tuần như cũ
-            if (attendances.isEmpty()) {
-                return List.of(
-                        new AttendanceHourDto("T2", 0),
-                        new AttendanceHourDto("T3", 0),
-                        new AttendanceHourDto("T4", 0),
-                        new AttendanceHourDto("T5", 0),
-                        new AttendanceHourDto("T6", 0),
-                        new AttendanceHourDto("T7", 0),
-                        new AttendanceHourDto("CN", 0)
-                );
-            }
+            double[] totalHours = new double[7]; // T2 - CN
 
-            long[] totalHours = new long[7]; // T2 đến CN
             for (Attendance attendance : attendances) {
                 LocalDateTime checkIn = attendance.getCheckIn();
                 LocalDateTime checkOut = attendance.getCheckOut();
                 if (checkIn != null && checkOut != null) {
-                    long hoursWorked = Duration.between(checkIn, checkOut).toHours();
+                    double hoursWorked = Duration.between(checkIn, checkOut).toMinutes() / 60.0;
                     int dayOfWeek = checkIn.getDayOfWeek().getValue(); // 1 = Monday, 7 = Sunday
                     totalHours[dayOfWeek - 1] += hoursWorked;
                 }
             }
 
             return List.of(
-                    new AttendanceHourDto("T2", totalHours[0]),
-                    new AttendanceHourDto("T3", totalHours[1]),
-                    new AttendanceHourDto("T4", totalHours[2]),
-                    new AttendanceHourDto("T5", totalHours[3]),
-                    new AttendanceHourDto("T6", totalHours[4]),
-                    new AttendanceHourDto("T7", totalHours[5]),
-                    new AttendanceHourDto("CN", totalHours[6])
+                    new AttendanceHourDto("T2", Math.round(totalHours[0] * 10) / 10.0),
+                    new AttendanceHourDto("T3", Math.round(totalHours[1] * 10) / 10.0),
+                    new AttendanceHourDto("T4", Math.round(totalHours[2] * 10) / 10.0),
+                    new AttendanceHourDto("T5", Math.round(totalHours[3] * 10) / 10.0),
+                    new AttendanceHourDto("T6", Math.round(totalHours[4] * 10) / 10.0),
+                    new AttendanceHourDto("T7", Math.round(totalHours[5] * 10) / 10.0),
+                    new AttendanceHourDto("CN", Math.round(totalHours[6] * 10) / 10.0)
             );
         }
     }
