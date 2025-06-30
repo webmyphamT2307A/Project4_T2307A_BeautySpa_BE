@@ -463,8 +463,22 @@ public class AppointmentServiceImpl implements AppointmentService {
         User staffToBook = appointment.getUser(); // Nhân viên hiện tại
         boolean staffChanged = false;
 
+        // --- LOGIC SỬA LỖI ---
+        // Xác định xem đây có phải là yêu cầu chỉ cập nhật trạng thái hay không
+        // (Tức là không có thông tin nào khác về user, service, time slot, date được gửi lên)
+        boolean isStatusOnlyUpdate = (newStatus != null && !newStatus.equals(oldStatus)) &&
+                dto.getUserId() == null &&
+                dto.getServiceId() == null &&
+                dto.getTimeSlotId() == null &&
+                (dto.getAppointmentDate() == null || dto.getAppointmentDate().isEmpty());
+        System.out.println("Is status-only update? " + isStatusOnlyUpdate);
+
+
 // LOGIC ĐÃ SỬA: Xử lý gán/bỏ gán nhân viên dựa trên trạng thái mới
-        if ("cancelled".equalsIgnoreCase(newStatus)) {
+        if (isStatusOnlyUpdate) {
+            // Nếu chỉ là cập nhật trạng thái, không làm gì cả, giữ nguyên nhân viên hiện tại.
+            System.out.println("Chỉ cập nhật trạng thái, giữ nguyên nhân viên hiện tại: " + (staffToBook != null ? staffToBook.getFullName() : "null"));
+        } else if ("cancelled".equalsIgnoreCase(newStatus)) {
             // 1. KHI HỦY LỊCH: GIỮ LẠI NHÂN VIÊN để bảo toàn lịch sử
             System.out.println("Trạng thái là 'cancelled'. Giữ lại thông tin nhân viên để bảo toàn lịch sử.");
 
@@ -495,7 +509,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             }
 
         } else {
-            // 3. CÁC TRẠNG THÁI KHÁC (pending, confirmed...): Xử lý gán/bỏ gán từ DTO như bình thường.
+            // 3. CÁC TRẠNG THÁI KHÁC (pending, confirmed...) HOẶC UPDATE ĐẦY ĐỦ: Xử lý gán/bỏ gán từ DTO như bình thường.
             if (dto.getUserId() != null) {
                 // Gán nhân viên mới
                 if (staffToBook == null || !dto.getUserId().equals(staffToBook.getId())) {
@@ -584,7 +598,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
         System.out.println("---- Kết thúc updateAppointment cho ID: " + appointmentId + " ----");
     }
-
 
 @Override
     public void deleteAppointment(Long Aid) {
